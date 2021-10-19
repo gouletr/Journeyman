@@ -3,7 +3,7 @@ local L = addon.Locale
 local Traveler = addon.Traveler
 
 function Traveler:InitializeHooks()
-    self:Hook("TakeTaxiNode", "OnTakeTaxiNode")
+    self:Hook("TakeTaxiNode", "OnTakeTaxiNode", true)
 end
 
 function Traveler:OnTakeTaxiNode(slot)
