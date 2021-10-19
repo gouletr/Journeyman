@@ -1,0 +1,32 @@
+## Interface: 11401
+## Title: Traveler
+## Author: Erunehtar
+## Notes: Helps you travel around Azeroth and reach max level
+## Version: 0.1.0
+## Dependencies: Grail
+## SavedVariables: TravelerDatabase
+## SavedVariablesPerCharacter: TravelerDatabaseChar
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceLocale-3.0\AceLocale-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceHook-3.0\AceHook-3.0.xml
+Libs\AceEvent-3.0\AceEvent-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
+
+Locales\Locales.xml
+
+Traveler.lua
+TravelerDatabase.lua
+TravelerOptions.lua
+TravelerHooks.lua
+TravelerEvents.lua
+TravelerQuests.lua
+TravelerJourneys.lua
+TravelerTracker.lua
