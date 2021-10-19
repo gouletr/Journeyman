@@ -70,7 +70,7 @@ end
 
 function Traveler:JourneyCurrentChapterAddStep(type, data)
     local currentChapter = self:JourneyCurrentChapter()
-    self:JourneyCurrentChapterAddStep(currentChapter, type, data)
+    self:JourneyChapterAddStep(currentChapter, type, data)
 end
 
 function Traveler:JourneyAddQuestAccept(questId)
