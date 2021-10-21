@@ -27,7 +27,6 @@ function Traveler:JourneyImportFromCharacter()
         local journey = TableDeepCopy(self.journey)
         ArrayAdd(self.journeys, journey)
     end
-    self:SerializeDatabase()
 end
 
 function Traveler:JourneyAddChapter(title)
