@@ -17,17 +17,12 @@ local databaseDefaults = {
             x = 0,
             y = 0,
             alpha = 0.5
-        },
-        journeys = {}
+        }
     },
     char = {
         tracker = {
             show = true,
             journey = -1,
-        },
-        journey = {
-            title = nil,
-            chapters = {}
         }
     }
 }
