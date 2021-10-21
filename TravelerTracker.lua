@@ -79,16 +79,16 @@ function Traveler:CreateTracker()
     frame.resizeButton = resizeButton
 
     -- Store tracker frame
-    self.trackerFrame = frame
+    self.tracker = frame
 end
 
 function Traveler:ShowTracker()
-    self.trackerFrame:Show()
+    self.tracker:Show()
     self.db.char.tracker.show = true
 end
 
 function Traveler:HideTracker()
-    self.trackerFrame:Hide()
+    self.tracker:Hide()
     self.db.char.tracker.show = false
 end
 
@@ -100,21 +100,21 @@ end
 
 function Traveler:UpdateTrackerLockButton()
     if self.db.profile.tracker.locked then
-        self.trackerFrame.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
-        self.trackerFrame.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
-        self.trackerFrame.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
+        self.tracker.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
+        self.tracker.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
+        self.tracker.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
     else
-        self.trackerFrame.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Unlocked-Up")
-        self.trackerFrame.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
-        self.trackerFrame.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
+        self.tracker.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Unlocked-Up")
+        self.tracker.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
+        self.tracker.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
     end
 end
 
 function Traveler:UpdateTrackerResizeButton()
     if self.db.profile.tracker.locked then
-        self.trackerFrame.resizeButton:Hide()
+        self.tracker.resizeButton:Hide()
     else
-        self.trackerFrame.resizeButton:Show()
+        self.tracker.resizeButton:Show()
     end
 end
 

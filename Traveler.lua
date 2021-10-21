@@ -18,7 +18,9 @@ function Traveler:OnInitialize()
     else
         self:SetEnabledState(true)
     end
+end
 
+function Traveler:OnEnable()
     self:InitializeDatabase()
     self:InitializeOptions()
     self:InitializeHooks()
@@ -27,11 +29,9 @@ function Traveler:OnInitialize()
     self:InitializeJourney()
 
     self:RegisterChatCommand("journey", function()
-        self:Print(dump(self.db.char.journey))
+        self:Print(dump(self.journey))
     end, true)
-end
 
-function Traveler:OnEnable()
     if self.db.char.tracker.show then
         self:ShowTracker()
     else

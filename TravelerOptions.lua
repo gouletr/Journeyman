@@ -7,8 +7,9 @@ function Traveler:InitializeOptions()
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
     aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
-    aceConfigDialog:AddToBlizOptions(addonName, "Journeys", nil, "journeys")
+    aceConfigDialog:AddToBlizOptions(addonName, "Journeys", addonName, "journeys")
     aceConfigDialog:AddToBlizOptions(addonName, "Tracker", addonName, "tracker")
+    aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
     aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
@@ -20,6 +21,7 @@ function Traveler:GetOptionsTable()
             general = self:GetGeneralOptionsTable(),
             journeys = self:GetJourneysOptionsTable(),
             tracker = self:GetTrackerOptionsTable(),
+            advanced = self:GetAdvancedOptionsTable(),
             profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
         }
     }
@@ -30,12 +32,34 @@ function Traveler:GetGeneralOptionsTable()
         name = "General",
         type = "group",
         args = {
-            debug = {
+            showTracker = {
+                order = 0,
                 type = "toggle",
-                name = "Show Debug Infos",
-                desc = "Toggle showing debug informations.",
-                get = function(info) return self.db.profile.general.debug end,
-                set = function(info, value) self.db.profile.general.debug = value end
+                name = L["SHOW_TRACKER"],
+                desc = L["SHOW_TRACKER_DESC"],
+                get = function(info) return self.db.char.tracker.show end,
+                set = function(info, value)
+                    if value then
+                        self:ShowTracker()
+                    else
+                        self:HideTracker()
+                    end
+                end
+            },
+            selectJourney = {
+                order = 1,
+                type = "select",
+                name = L["SELECT_JOURNEY"],
+                desc = L["SELECT_JOURNEY_DESC"],
+                values = function()
+                    local values = {}
+                    for i,v in ipairs(self.journeys) do
+                        values[i] = v.title
+                    end
+                    return values
+                end,
+                set = function(info, value) self.db.char.tracker.journey = value end,
+                get = function(info) return self.db.char.tracker.journey end
             }
         }
     }
@@ -50,7 +74,22 @@ function Traveler:GetJourneysOptionsTable()
                 type = "execute",
                 name = L["IMPORT_JOURNEY"],
                 desc = L["IMPORT_JOURNEY_DESC"],
-                func = "ImportFromCharacter"
+                func = function() self:JourneyImportFromCharacter() end,
+                width = "full"
+            },
+            journeys = {
+                type = "select",
+                name = L["SELECT_JOURNEY"],
+                desc = L["SELECT_JOURNEY_DESC"],
+                values = function()
+                    local values = {}
+                    for i,v in ipairs(self.journeys) do
+                        values[i] = v.title
+                    end
+                    return values
+                end,
+                set = function(info, value) end,
+                get = function(info) end
             }
         }
     }
@@ -61,18 +100,21 @@ function Traveler:GetTrackerOptionsTable()
         name = "Tracker",
         type = "group",
         args = {
-            show = {
+        }
+    }
+end
+
+function Traveler:GetAdvancedOptionsTable()
+    return {
+        name = "Advanced",
+        type = "group",
+        args = {
+            debug = {
                 type = "toggle",
-                name = L["SHOW_TRACKER"],
-                desc = L["SHOW_TRACKER_DESC"],
-                get = function(info) return self.db.char.tracker.show end,
-                set = function(info, value)
-                    if value then
-                        self:ShowTracker()
-                    else
-                        self:HideTracker()
-                    end
-                end
+                name = L["ENABLE_DEBUG"],
+                desc = L["ENABLE_DEBUG_DESC"],
+                get = function(info) return self.db.profile.general.debug end,
+                set = function(info, value) self.db.profile.general.debug = value end
             }
         }
     }

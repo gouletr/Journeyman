@@ -1,26 +1,33 @@
 local addonName, addon = ...
 local L = addon.Locale
 local Traveler = addon.Traveler
-local Grail = Grail
 
 function Traveler:InitializeJourney()
-    if self.db.char.journey == nil or self.db.char.journey.chapters == nil then
-        self.db.char.journey = {
+    if self.journeys == nil then
+        self.journeys = {}
+    end
+
+    if self.journey == nil then
+        self.journey = {
             title = nil,
             chapters = {}
         }
     end
 
-    if self.db.char.journey.title == nil then
+    if self.journey.title == nil then
         local playerName = UnitName("player")
-        self.db.char.journey.title = playerName.."'s Journey"
+        self.journey.title = playerName.."'s Journey"
     end
 
     self:JourneyRemoveEmptyChapters()
 end
 
-function Traveler:ImportFromCharacter()
-    
+function Traveler:JourneyImportFromCharacter()
+    if self.journey ~= nil then
+        local journey = TableDeepCopy(self.journey)
+        ArrayAdd(self.journeys, journey)
+    end
+    self:SerializeDatabase()
 end
 
 function Traveler:JourneyAddChapter(title)
@@ -29,13 +36,13 @@ function Traveler:JourneyAddChapter(title)
         level = UnitLevel("player"),
         steps = {}
     }
-    ArrayAdd(self.db.char.journey.chapters, chapter)
+    ArrayAdd(self.journey.chapters, chapter)
     return chapter
 end
 
 function Traveler:JourneyRemoveEmptyChapters()
-    ArrayRemoveIf(self.db.char.journey.chapters, function(i)
-        local chapter = self.db.char.journey.chapters[i]
+    ArrayRemoveIf(self.journey.chapters, function(i)
+        local chapter = self.journey.chapters[i]
         return #chapter.steps == 0
     end)
 end
@@ -44,13 +51,13 @@ function Traveler:JourneyCurrentChapter()
     local uiMapId = C_Map.GetBestMapForUnit("player")
     local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
     local mapName = mapInfo and mapInfo.name or ""
-    local chapterCount = #self.db.char.journey.chapters
+    local chapterCount = #self.journey.chapters
 
     if chapterCount == 0 then
         return self:JourneyAddChapter(mapName)
     end
 
-    local lastChapter = self.db.char.journey.chapters[chapterCount]
+    local lastChapter = self.journey.chapters[chapterCount]
     if lastChapter.title ~= mapName then
         return self:JourneyAddChapter(mapName)
     end
@@ -82,7 +89,7 @@ function Traveler:JourneyAddQuestTurnIn(questId)
 end
 
 function Traveler:JourneyRemoveQuest(questId)
-    for _,chapter in ipairs(self.db.char.journey.chapters) do
+    for _,chapter in ipairs(self.journey.chapters) do
         ArrayRemoveIf(chapter.steps, function(i)
             local step = chapter.steps[i]
             return step.data == questId and (step.type == "ACCEPT" or step.type == "TURNIN" or step.type == "COMPLETE")
@@ -129,4 +136,19 @@ function ArrayRemoveIf(array, func)
             array[i] = nil
         end
     end
+end
+
+function TableDeepCopy(original)
+    local original_type = type(original)
+    local copy
+    if original_type == 'table' then
+        copy = {}
+        for original_key, original_value in next, original, nil do
+            copy[TableDeepCopy(original_key)] = TableDeepCopy(original_value)
+        end
+        setmetatable(copy, TableDeepCopy(getmetatable(original)))
+    else -- number, string, boolean, etc
+        copy = original
+    end
+    return copy
 end

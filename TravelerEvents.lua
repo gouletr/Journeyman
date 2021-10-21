@@ -3,10 +3,15 @@ local L = addon.Locale
 local Traveler = addon.Traveler
 
 function Traveler:InitializeEvents()
+    self:RegisterEvent("PLAYER_LOGOUT", function(event) self:OnPlayerLogOut(questId) end)
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId) self:OnQuestAccepted(questId) end)
     self:RegisterEvent("QUEST_REMOVED", function(event, questId) self:OnQuestRemoved(questId) end)
     self:RegisterEvent("QUEST_TURNED_IN", function(event, questId) self:OnQuestTurnedIn(questId) end)
     --self:RegisterEvent("QUEST_LOG_UPDATE", function(event) self:OnQuestLogUpdate() end)
+end
+
+function Traveler:OnPlayerLogOut()
+    self:SerializeDatabase()
 end
 
 function Traveler:OnQuestAccepted(questId)
