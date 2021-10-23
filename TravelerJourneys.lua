@@ -29,6 +29,20 @@ function Traveler:JourneyImportFromCharacter()
     end
 end
 
+function Traveler:GetActiveJourney()
+    local journeyIndex = self.db.char.tracker.journey
+    if journeyIndex > 0 and journeyIndex <= #self.journeys then
+        return self.journeys[journeyIndex]
+    end
+end
+
+function Traveler:GetActiveChapter(journey)
+    local chapterIndex = self.db.char.tracker.chapter
+    if journey ~= nil and chapterIndex > 0 and chapterIndex <= #journey.chapters then
+        return journey.chapters[chapterIndex]
+    end
+end
+
 function Traveler:JourneyAddChapter(title)
     local chapter = {
         title = title,
@@ -46,7 +60,7 @@ function Traveler:JourneyRemoveEmptyChapters()
     end)
 end
 
-function Traveler:JourneyCurrentChapter()
+function Traveler:JourneyGetOrCreateChapter()
     local uiMapId = C_Map.GetBestMapForUnit("player")
     local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
     local mapName = mapInfo and mapInfo.name or ""
@@ -75,7 +89,7 @@ function Traveler:JourneyChapterAddStep(chapter, type, data)
 end
 
 function Traveler:JourneyCurrentChapterAddStep(type, data)
-    local currentChapter = self:JourneyCurrentChapter()
+    local currentChapter = self:JourneyGetOrCreateChapter()
     self:JourneyChapterAddStep(currentChapter, type, data)
 end
 

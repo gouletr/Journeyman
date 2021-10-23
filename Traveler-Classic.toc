@@ -3,10 +3,11 @@
 ## Author: Erunehtar
 ## Notes: Helps you travel around Azeroth and reach max level
 ## Version: 0.1.0
-## Dependencies: Grail
+## Dependencies: Questie
 ## SavedVariables: TravelerDatabase
 ## SavedVariablesPerCharacter: TravelerDatabaseChar
 
+# Embedded libraries
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\AceAddon-3.0\AceAddon-3.0.xml
@@ -21,13 +22,17 @@ Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
 Libs\LibDeflate\LibDeflate.lua
 
+# Locale files
 Locales\Locales.xml
 
+# Addon files
 Traveler.lua
 TravelerDatabase.lua
 TravelerOptions.lua
 TravelerHooks.lua
 TravelerEvents.lua
-TravelerQuests.lua
 TravelerJourneys.lua
 TravelerTracker.lua
+
+# Data sources
+TravelerQuestie.lua

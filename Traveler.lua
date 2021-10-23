@@ -5,38 +5,26 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local L = addon.Locale
 local Traveler = addon.Traveler
-Traveler:SetEnabledState(false)
-
-local Grail = Grail
-local requiredGrailVersion = 116
 
 function Traveler:OnInitialize()
-    -- Check Grail version
-    if Grail.versionNumber < requiredGrailVersion then
-        self:Printf(L["GRAIL_VERSION_REQUIRED"], requiredGrailVersion)
-        return
-    else
-        self:SetEnabledState(true)
-    end
-end
-
-function Traveler:OnEnable()
     self:InitializeDatabase()
     self:InitializeOptions()
     self:InitializeHooks()
     self:InitializeEvents()
-    self:InitializeTracker()
     self:InitializeJourney()
+    self:InitializeTracker()
+end
 
+function Traveler:OnEnable()
     self:RegisterChatCommand("journey", function()
         self:Print(dump(self.journey))
     end, true)
 
-    if self.db.char.tracker.show then
-        self:ShowTracker()
-    else
-        self:HideTracker()
+    afterDataSourceInit = function(func)
+        if self.DataSource.IsInitialized() then func() return end
+        C_Timer.After(0.25, function() afterDataSourceInit(func) end)
     end
+    afterDataSourceInit(function() self:UpdateTracker() end)
 end
 
 function Traveler:OnDisable()

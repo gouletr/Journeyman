@@ -58,7 +58,10 @@ function Traveler:GetGeneralOptionsTable()
                     end
                     return values
                 end,
-                set = function(info, value) self.db.char.tracker.journey = value end,
+                set = function(info, value)
+                    self.db.char.tracker.journey = value
+                    self.db.char.tracker.chapter = 1
+                end,
                 get = function(info) return self.db.char.tracker.journey end
             }
         }
