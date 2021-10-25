@@ -2,6 +2,16 @@ local addonName, addon = ...
 local L = addon.Locale
 local Traveler = addon.Traveler
 
+Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
+Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
+Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
+Traveler.STEP_TYPE_FLY_TO = "FLYTO"
+Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
+
+function Traveler:IsStepQuest(step)
+    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
+end
+
 function Traveler:InitializeJourney()
     if self.journeys == nil then
         self.journeys = {}
@@ -41,6 +51,19 @@ function Traveler:GetActiveChapter(journey)
     if journey ~= nil and chapterIndex > 0 and chapterIndex <= #journey.chapters then
         return journey.chapters[chapterIndex]
     end
+end
+
+function Traveler:GetActiveChapterState(journey)
+    local chapterIndex = self.db.char.tracker.chapter
+    if self.db.char.state.chapters == nil then
+        self.db.char.state.chapters = {}
+    end
+    if self.db.char.state.chapters[chapterIndex] == nil then
+        self.db.char.state.chapters[chapterIndex] = {
+            steps = {}
+        }
+    end
+    return self.db.char.state.chapters[chapterIndex]
 end
 
 function Traveler:JourneyAddChapter(title)
@@ -94,25 +117,29 @@ function Traveler:JourneyCurrentChapterAddStep(type, data)
 end
 
 function Traveler:JourneyAddQuestAccept(questId)
-    self:JourneyCurrentChapterAddStep("ACCEPT", questId)
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_ACCEPT_QUEST, questId)
+end
+
+function Traveler:JourneyAddQuestComplete(questId)
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_COMPLETE_QUEST, questId)
 end
 
 function Traveler:JourneyAddQuestTurnIn(questId)
-    self:JourneyCurrentChapterAddStep("TURNIN", questId)
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_TURNIN_QUEST, questId)
 end
 
 function Traveler:JourneyRemoveQuest(questId)
     for _,chapter in ipairs(self.journey.chapters) do
         ArrayRemoveIf(chapter.steps, function(i)
             local step = chapter.steps[i]
-            return step.data == questId and (step.type == "ACCEPT" or step.type == "TURNIN" or step.type == "COMPLETE")
+            return self:IsStepQuest(step) and step.data == questId
         end)
     end
     self:JourneyRemoveEmptyChapters()
 end
 
 function Traveler:JourneyAddFlyTo(slot, name)
-    self:JourneyCurrentChapterAddStep("FLYTO", { slot, name })
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_FLY_TO, { slot, name })
 end
 
 function ArrayAdd(array, value)

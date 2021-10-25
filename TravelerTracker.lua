@@ -1,61 +1,68 @@
 local addonName, addon = ...
 local L = addon.Locale
 local Traveler = addon.Traveler
-local headerHeight = 24
 
-function Traveler:InitializeTracker()
-    self:CreateTracker()
-end
+local Tracker = {}
+local HEADER_HEIGHT = 24
+local STEP_COLOR_COMPLETE = "|cFFA0A0A0"
+local QUEST_COLOR_RED = "|cFFFF1A1A"
+local QUEST_COLOR_ORANGE = "|cFFFF8040"
+local QUEST_COLOR_YELLOW = "|cFFFFFF00"
+local QUEST_COLOR_GREEN = "|cFF40C040"
+local QUEST_COLOR_GREY = "|cFFC0C0C0"
 
-function Traveler:CreateTracker()
+function Tracker:Initialize()
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
-    frame:SetWidth(self.db.profile.tracker.width)
-    frame:SetHeight(self.db.profile.tracker.height)
-    frame:SetPoint(self.db.profile.tracker.relativeTo, UIParent, self.db.profile.tracker.relativeTo, self.db.profile.tracker.x, self.db.profile.tracker.y)
-    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bg:SetAllPoints(frame)
-    frame.bg:SetColorTexture(0, 0, 0, self.db.profile.tracker.alpha)
+    frame:SetWidth(Traveler.db.profile.tracker.width)
+    frame:SetHeight(Traveler.db.profile.tracker.height)
+    frame:SetPoint(Traveler.db.profile.tracker.relativeTo, UIParent, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y)
     frame:SetMovable(true)
     frame:SetResizable(true)
     frame:SetMinResize(200, 200)
     frame:EnableMouse(true)
-    frame:SetScript("OnMouseDown", function(f, button)
-        if (not self.db.profile.tracker.locked and button == "LeftButton") then
+    frame:SetScript("OnMouseDown", function(self, button)
+        if (not Traveler.db.profile.tracker.locked and button == "LeftButton") then
             frame:StartMoving()
         end
     end)
-    frame:SetScript("OnMouseUp", function(f, button)
+    frame:SetScript("OnMouseUp", function(self, button)
         if button == "LeftButton" then
             frame:StopMovingOrSizing()
             local _
-            _, _, self.db.profile.tracker.relativeTo, self.db.profile.tracker.x, self.db.profile.tracker.y = frame:GetPoint()
-            self:UpdateTracker()
+            _, _, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y = frame:GetPoint()
+            Tracker:Update()
         end
     end)
+    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bg:SetAllPoints(frame)
+    frame.bg:SetColorTexture(0, 0, 0, Traveler.db.profile.tracker.alpha)
+    frame:Hide()
+    self.frame = frame
 
     -- Create close button
     local closeButton = CreateFrame("BUTTON", nil, frame)
-    closeButton:SetSize(headerHeight, headerHeight)
+    closeButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
     closeButton:SetNormalTexture("Interface/Buttons/UI-Panel-MinimizeButton-Up")
     closeButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
     closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0,0)
     closeButton:SetScript("OnClick", function()
-        self:HideTracker()
+        Traveler.db.char.tracker.show = false
+        Tracker.frame:Hide()
     end)
-    frame.closeButton = closeButton
+    self.closeButton = closeButton
 
     -- Create lock button
     local lockButton = CreateFrame("BUTTON", nil, frame)
-    lockButton:SetSize(headerHeight, headerHeight)
+    lockButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
     lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT", 0, 0)
     lockButton:SetScript("OnClick", function()
-        self.db.profile.tracker.locked = not self.db.profile.tracker.locked
-        self:UpdateTrackerLockButton()
-        self:UpdateTrackerResizeButton()
+        Traveler.db.profile.tracker.locked = not Traveler.db.profile.tracker.locked
+        self:UpdateLockButton()
+        self:UpdateResizeButton()
     end)
-    frame.lockButton = lockButton
+    self.lockButton = lockButton
 
     -- Create resize button
     local resizeButton = CreateFrame("BUTTON", nil, frame)
@@ -65,7 +72,7 @@ function Traveler:CreateTracker()
     resizeButton:SetHighlightTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight")
     resizeButton:SetPushedTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down")
     resizeButton:SetScript("OnMouseDown", function(_, button)
-        if (not self.db.profile.tracker.locked and button == "LeftButton") then
+        if (not Traveler.db.profile.tracker.locked and button == "LeftButton") then
             frame:StartSizing("BOTTOMRIGHT")
         end
     end)
@@ -73,20 +80,20 @@ function Traveler:CreateTracker()
         if button == "LeftButton" then
             frame:StopMovingOrSizing()
             local _
-            _, _, self.db.profile.tracker.relativeTo, self.db.profile.tracker.x, self.db.profile.tracker.y = frame:GetPoint()
-            self.db.profile.tracker.width, self.db.profile.tracker.height = frame:GetSize()
-            self:UpdateTracker()
+            _, _, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y = frame:GetPoint()
+            Traveler.db.profile.tracker.width, Traveler.db.profile.tracker.height = frame:GetSize()
+            Tracker:Update()
         end
     end)
-    frame.resizeButton = resizeButton
+    self.resizeButton = resizeButton
 
     -- Scroll frame
     local scrollFrame = CreateFrame("SCROLLFRAME", nil, frame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetWidth(frame:GetWidth())
-    scrollFrame:SetHeight(frame:GetHeight() - headerHeight)
-    scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -headerHeight)
+    scrollFrame:SetHeight(frame:GetHeight() - HEADER_HEIGHT)
+    scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -HEADER_HEIGHT)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
-    frame.scrollFrame = scrollFrame
+    self.scrollFrame = scrollFrame
 
     -- Scroll child
     local scrollChild = CreateFrame("FRAME", nil, frame)
@@ -94,161 +101,205 @@ function Traveler:CreateTracker()
     scrollChild:SetWidth(scrollFrame:GetWidth())
     scrollChild:SetHeight(scrollFrame:GetHeight())
     scrollChild:SetAllPoints(scrollFrame)
-    frame.scrollChild = scrollChild
-
-    -- Finished, store tracker frame
-    self.tracker = frame
-    self.tracker:Hide()
+    self.scrollChild = scrollChild
 end
 
-function Traveler:ShowTracker()
-    self.tracker:Show()
-    self.db.char.tracker.show = true
+function Tracker:Update()
+    self:DelayedUpdate(function()
+        self.playerLevel = UnitLevel("player")
+        self.playerGreenRange = GetQuestGreenRange("player")
+        self.currentQuestLog = {}
+        local entriesCount, questCount = GetNumQuestLogEntries()
+        for i=1,entriesCount do
+            local _, _, _, isHeader, _, isComplete, _, questID = GetQuestLogTitle(i)
+            if not isHeader then
+                self.currentQuestLog[questID] = isComplete == 1
+            end
+        end
+
+        self:UpdateLockButton()
+        self:UpdateResizeButton()
+        self:UpdateScrollFrame()
+        self:UpdateSteps()
+
+        if Traveler.db.char.tracker.show then
+            self.frame:Show()
+        else
+            self.frame:Hide()
+        end
+    end)
 end
 
-function Traveler:HideTracker()
-    self.tracker:Hide()
-    self.db.char.tracker.show = false
+function Tracker:DelayedUpdate(func)
+    if Traveler.DataSource.IsInitialized() then func() return end
+    C_Timer.After(0.25, function() self:DelayedUpdate(func) end)
 end
 
-function Traveler:UpdateTracker()
-    self:UpdateTrackerLockButton()
-    self:UpdateTrackerResizeButton()
-    self:UpdateTrackerScrollFrame()
-    self:UpdateTrackerSteps()
-
-    if self.db.char.tracker.show then
-        self.tracker:Show()
+function Tracker:UpdateLockButton()
+    if Traveler.db.profile.tracker.locked then
+        self.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
+        self.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
+        self.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
     else
-        self.tracker:Hide()
+        self.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Unlocked-Up")
+        self.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
+        self.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
     end
 end
 
-function Traveler:UpdateTrackerLockButton()
-    if self.db.profile.tracker.locked then
-        self.tracker.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
-        self.tracker.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
-        self.tracker.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
+function Tracker:UpdateResizeButton()
+    if Traveler.db.profile.tracker.locked then
+        self.resizeButton:Hide()
     else
-        self.tracker.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Unlocked-Up")
-        self.tracker.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
-        self.tracker.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
+        self.resizeButton:Show()
     end
 end
 
-function Traveler:UpdateTrackerResizeButton()
-    if self.db.profile.tracker.locked then
-        self.tracker.resizeButton:Hide()
-    else
-        self.tracker.resizeButton:Show()
-    end
+function Tracker:UpdateScrollFrame()
+    self.scrollFrame:SetWidth(self.frame:GetWidth())
+    self.scrollFrame:SetHeight(self.frame:GetHeight() - HEADER_HEIGHT)
+    self.scrollChild:SetWidth(self.scrollFrame:GetWidth())
+    self.scrollChild:SetHeight(self.scrollFrame:GetHeight())
 end
 
-function Traveler:UpdateTrackerScrollFrame()
-    self.tracker.scrollFrame:SetWidth(self.tracker:GetWidth())
-    self.tracker.scrollFrame:SetHeight(self.tracker:GetHeight() - headerHeight)
-    self.tracker.scrollChild:SetWidth(self.tracker.scrollFrame:GetWidth())
-    self.tracker.scrollChild:SetHeight(self.tracker.scrollFrame:GetHeight())
-end
-
-function Traveler:UpdateTrackerSteps()
-    local journey = self:GetActiveJourney()
+function Tracker:UpdateSteps()
+    local journey = Traveler:GetActiveJourney()
     if journey == nil then return end
 
-    local chapter = self:GetActiveChapter(journey)
+    local chapter = Traveler:GetActiveChapter(journey)
     if chapter == nil then return end
 
-    if self.tracker.steps == nil then
-        self.tracker.steps = {}
+    local chapterState = Traveler:GetActiveChapterState(journey)
+    if chapterState == nil then return end
+
+    self.lineIndex = 1
+    for stepIndex, step in ipairs(chapter.steps) do
+        local stepState = chapterState.steps[stepIndex]
+        if stepState == nil then
+            stepState = {
+                completed = self:IsStepCompleted(step)
+            }
+            chapterState.steps[stepIndex] = stepState
+        end
+
+        local isStepQuest = Traveler:IsStepQuest(step)
+        if isStepQuest then
+            if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+                local nearest = Traveler.DataSource:GetNearestQuestStarter(step.data)
+                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Accept from "..nearest.name..":"))
+            elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Complete:"))
+            elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+                local nearest = Traveler.DataSource:GetNearestQuestFinisher(step.data)
+                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Turn-in at "..nearest.name..":"))
+            end
+            self:GetNextLine():SetText("    "..self:GetColoredQuestText(step, stepState))
+        end
     end
 
-    local lineIndex = 1
-    local ds = self.DataSource
-    for stepIndex, step in ipairs(chapter.steps) do
-        local line
-
-        if step.type == "ACCEPT" then
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("Accept from <NPC Name>:")
-            self:UpdateTrackerLine(line)
-
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("    "..ds:GetColoredQuestName(step.data))
-            self:UpdateTrackerLine(line)
-
-        elseif step.type == "TURNIN" then
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("Turn-in at <NPC Name>:")
-            self:UpdateTrackerLine(line)
-
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("    "..ds:GetColoredQuestName(step.data))
-            self:UpdateTrackerLine(line)
-
-        elseif step.type == "COMPLETE" then
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("Complete:")
-            self:UpdateTrackerLine(line)
-
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("    "..ds:GetColoredQuestName(step.data))
-            self:UpdateTrackerLine(line)
-
-        elseif step.type == "FLYTO" then
-            line = self:GetOrCreateTrackerLine(lineIndex)
-            lineIndex = lineIndex + 1
-            line:SetText("Fly to <Location>")
-            self:UpdateTrackerLine(line)
-
-        end
+    -- Hide other lines
+    for i = self.lineIndex, #self.lines do
+        self.lines[i]:Hide()
     end
 end
 
-function Traveler:GetOrCreateTrackerLine(index)
-    if index > #self.tracker.steps then
-        frame = CreateFrame("FRAME", nil, self.tracker.scrollChild)
-        frame:SetWidth(self.tracker:GetWidth())
-        frame:SetHeight(self.db.profile.tracker.fontSize)
-        if index == 1 then
-            frame:SetPoint("TOPLEFT", self.tracker.scrollChild, "TOPLEFT")
+function Tracker:GetNextLine()
+    if self.lines == nil then self.lines = {} end
+
+    local line
+    if self.lineIndex > #self.lines then
+        line = CreateFrame("FRAME", nil, self.scrollChild)
+        line:SetWidth(self.frame:GetWidth())
+        line:SetHeight(Traveler.db.profile.tracker.fontSize + Traveler.db.profile.tracker.lineSpacing)
+        if self.lineIndex == 1 then
+            line:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT")
         else
-            frame:SetPoint("TOPLEFT", self.tracker.steps[index - 1], "BOTTOMLEFT", 0, -self.db.profile.tracker.lineSpacing)
+            line:SetPoint("TOPLEFT", self.lines[self.lineIndex - 1], "BOTTOMLEFT")
         end
 
-        local fontString = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        fontString:SetAllPoints(frame)
+        local fontString = line:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        fontString:SetAllPoints(line)
         fontString:SetJustifyH("LEFT")
         fontString:SetFontObject("GameFontNormal")
         fontString:SetWordWrap(true)
         fontString:SetMaxLines(1)
+        line.fontString = fontString
 
-        frame.index = index
-        frame.fontString = fontString
-        frame.SetText = function(this, text) this.fontString:SetText(text) end
-        frame.SetMaxLines = function(this, count) this.fontString:SetMaxLines(count) end
-        frame.GetUnboundedWidth = function(this) return this.fontString:GetUnboundedStringWidth() end
+        line.index = self.lineIndex
+        line.SetText = function(self, text)
+            self.fontString:SetText(text)
+            local wrapLineCount = math.ceil(self.fontString:GetUnboundedStringWidth() / Tracker.frame:GetWidth())
+            self:SetWidth(Tracker.frame:GetWidth())
+            self:SetHeight((Traveler.db.profile.tracker.fontSize * wrapLineCount) + Traveler.db.profile.tracker.lineSpacing)
+            if self.index == 1 then
+                self:SetPoint("TOPLEFT", Tracker.scrollChild, "TOPLEFT")
+            else
+                self:SetPoint("TOPLEFT", Tracker.lines[self.index - 1], "BOTTOMLEFT")
+            end
+            self.fontString:SetMaxLines(wrapLineCount)
+        end
 
-        self.tracker.steps[#self.tracker.steps + 1] = frame
-        return frame
+        self.lines[#self.lines + 1] = line
     else
-        return self.tracker.steps[index]
+        line = self.lines[self.lineIndex]
+    end
+    self.lineIndex = self.lineIndex + 1
+    return line
+end
+
+function Tracker:IsStepCompleted(step)
+    if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+        return self.currentQuestLog[step.data] ~= nil or C_QuestLog.IsQuestFlaggedCompleted(step.data)
+    elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+        return C_QuestLog.IsComplete(step.data) or C_QuestLog.IsQuestFlaggedCompleted(step.data)
+    elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+        return C_QuestLog.IsQuestFlaggedCompleted(step.data)
+    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+        -- todo
+        return false
+    elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+        -- todo
+        return false
+    end
+    return false
+end
+
+function Tracker:GetColoredStepText(state, text)
+    if state.completed then
+        return STEP_COLOR_COMPLETE .. text .. "|r"
+    else
+        return text
     end
 end
 
-function Traveler:UpdateTrackerLine(line)
-    local requiredLineCount = math.ceil(line:GetUnboundedWidth() / self.tracker:GetWidth())
-    line:SetWidth(self.tracker:GetWidth())
-    line:SetHeight(self.db.profile.tracker.fontSize * requiredLineCount)
-    if line.index == 1 then
-        frame:SetPoint("TOPLEFT", self.tracker.scrollChild, "TOPLEFT")
+function Tracker:GetColoredQuestText(step, state)
+    local text = Traveler.DataSource:GetQuestName(step.data)
+    if state.completed then
+        return STEP_COLOR_COMPLETE .. text .. "|r"
     else
-        frame:SetPoint("TOPLEFT", self.tracker.steps[line.index - 1], "BOTTOMLEFT", 0, -self.db.profile.tracker.lineSpacing)
+        local level = Traveler.DataSource:GetQuestLevel(step.data)
+        if level ~= nil then
+            local levelDiff = level - self.playerLevel
+            if (levelDiff >= 5) then
+                return QUEST_COLOR_RED .. text .. "|r"
+            elseif (levelDiff >= 3) then
+                return QUEST_COLOR_ORANGE .. text .. "|r"
+            elseif (levelDiff >= -2) then
+                return QUEST_COLOR_YELLOW .. text .. "|r"
+            elseif (-levelDiff <= self.playerGreenRange) then
+                return QUEST_COLOR_GREEN .. text .. "|r"
+            else
+                return QUEST_COLOR_GREY .. text .. "|r"
+            end
+        end
     end
-    line:SetMaxLines(requiredLineCount)
+    return text
 end
+
+function Tracker:GetStepQuestName(step, state)
+    local questName = Traveler.DataSource:GetQuestName(step.data)
+    local questLevel = Traveler.DataSource:GetQuestLevel(step.data)
+    return self:AddQuestColor(questId, questLevel, questName)
+end
+
+Traveler.Tracker = Tracker

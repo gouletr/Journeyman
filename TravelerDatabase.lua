@@ -18,7 +18,8 @@ local databaseDefaults = {
             y = 0,
             alpha = 0.5,
             fontSize = 12,
-            lineSpacing = 2
+            lineSpacing = 2,
+            showLevel = true
         }
     },
     char = {
@@ -26,6 +27,9 @@ local databaseDefaults = {
             show = true,
             journey = -1,
             chapter = 1
+        },
+        state = {
+            chapters = {}
         }
     }
 }
@@ -77,6 +81,10 @@ function Traveler:DeserializeDatabase()
 
     if self.db.char.tracker.chapter <= 0 or self.db.char.tracker.chapter > #journey.chapters then
         self.db.char.tracker.chapter = 1
+    end
+
+    if self.db.char.state.chapters == nil then
+        self.db.char.state.chapters = {}
     end
 end
 

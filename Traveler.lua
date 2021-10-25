@@ -12,19 +12,14 @@ function Traveler:OnInitialize()
     self:InitializeHooks()
     self:InitializeEvents()
     self:InitializeJourney()
-    self:InitializeTracker()
+    self.Tracker:Initialize()
 end
 
 function Traveler:OnEnable()
     self:RegisterChatCommand("journey", function()
         self:Print(dump(self.journey))
     end, true)
-
-    afterDataSourceInit = function(func)
-        if self.DataSource.IsInitialized() then func() return end
-        C_Timer.After(0.25, function() afterDataSourceInit(func) end)
-    end
-    afterDataSourceInit(function() self:UpdateTracker() end)
+    self.Tracker:Update()
 end
 
 function Traveler:OnDisable()

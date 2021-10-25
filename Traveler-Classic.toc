@@ -1,11 +1,10 @@
 ## Interface: 11401
 ## Title: Traveler
 ## Author: Erunehtar
-## Notes: Helps you travel around Azeroth and reach max level
+## Notes: Helps you travel around and reach max level quickly
 ## Version: 0.1.0
 ## Dependencies: Questie
 ## SavedVariables: TravelerDatabase
-## SavedVariablesPerCharacter: TravelerDatabaseChar
 
 # Embedded libraries
 Libs\LibStub\LibStub.lua
@@ -21,6 +20,7 @@ Libs\AceGUI-3.0\AceGUI-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
 Libs\LibDeflate\LibDeflate.lua
+Libs\HereBeDragons\HereBeDragons-2.0.lua
 
 # Locale files
 Locales\Locales.xml

@@ -39,11 +39,8 @@ function Traveler:GetGeneralOptionsTable()
                 desc = L["SHOW_TRACKER_DESC"],
                 get = function(info) return self.db.char.tracker.show end,
                 set = function(info, value)
-                    if value then
-                        self:ShowTracker()
-                    else
-                        self:HideTracker()
-                    end
+                    self.db.char.tracker.show = value
+                    self.Tracker:Update()
                 end
             },
             selectJourney = {
@@ -61,6 +58,8 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     self.db.char.tracker.journey = value
                     self.db.char.tracker.chapter = 1
+                    self.db.char.state = {}
+                    self.Tracker:Update()
                 end,
                 get = function(info) return self.db.char.tracker.journey end
             }
