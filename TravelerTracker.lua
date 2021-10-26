@@ -5,6 +5,7 @@ local Traveler = addon.Traveler
 local Tracker = {}
 local HEADER_HEIGHT = 24
 local STEP_COLOR_COMPLETE = "|cFFA0A0A0"
+local LOCATION_COLOR = "|cFFFFFFFF"
 local QUEST_COLOR_RED = "|cFFFF1A1A"
 local QUEST_COLOR_ORANGE = "|cFFFF8040"
 local QUEST_COLOR_YELLOW = "|cFFFFFF00"
@@ -12,6 +13,8 @@ local QUEST_COLOR_GREEN = "|cFF40C040"
 local QUEST_COLOR_GREY = "|cFFC0C0C0"
 
 function Tracker:Initialize()
+    self:ResetState()
+
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
     frame:SetWidth(Traveler.db.profile.tracker.width)
@@ -43,10 +46,10 @@ function Tracker:Initialize()
     -- Create close button
     local closeButton = CreateFrame("BUTTON", nil, frame)
     closeButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
     closeButton:SetNormalTexture("Interface/Buttons/UI-Panel-MinimizeButton-Up")
     closeButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
-    closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0,0)
     closeButton:SetScript("OnClick", function()
         Traveler.db.char.tracker.show = false
         Tracker.frame:Hide()
@@ -56,13 +59,63 @@ function Tracker:Initialize()
     -- Create lock button
     local lockButton = CreateFrame("BUTTON", nil, frame)
     lockButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
-    lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT", 0, 0)
+    lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT")
     lockButton:SetScript("OnClick", function()
         Traveler.db.profile.tracker.locked = not Traveler.db.profile.tracker.locked
         self:UpdateLockButton()
         self:UpdateResizeButton()
     end)
     self.lockButton = lockButton
+
+    -- Next chapter button
+    local nextChapterButton = CreateFrame("BUTTON", nil, frame)
+    nextChapterButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+    nextChapterButton:SetPoint("TOPRIGHT", lockButton, "TOPLEFT")
+    nextChapterButton:SetNormalTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Up")
+    nextChapterButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
+    nextChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Down")
+    nextChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Disabled")
+    nextChapterButton:SetScript("OnClick", function()
+        local journey = Traveler:GetActiveJourney()
+        if journey ~= nil then
+            if Traveler.db.char.tracker.chapter < #journey.chapters then
+                Traveler.db.char.tracker.chapter = Traveler.db.char.tracker.chapter + 1
+                Tracker:Update()
+            end
+        end
+    end)
+    self.nextChapterButton = nextChapterButton
+
+    -- Previous chapter button
+    local prevChapterButton = CreateFrame("BUTTON", nil, frame)
+    prevChapterButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
+    prevChapterButton:SetPoint("TOPRIGHT", nextChapterButton, "TOPLEFT")
+    prevChapterButton:SetNormalTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Up")
+    prevChapterButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
+    prevChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Down")
+    prevChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Disabled")
+    prevChapterButton:SetScript("OnClick", function()
+        local journey = Traveler:GetActiveJourney()
+        if journey ~= nil then
+            if Traveler.db.char.tracker.chapter > 1 then
+                Traveler.db.char.tracker.chapter = Traveler.db.char.tracker.chapter - 1
+                Tracker:Update()
+            end
+        end
+    end)
+    self.prevChapterButton = prevChapterButton
+
+    -- Chapter title
+    local chapterTitle = CreateFrame("FRAME", nil, frame)
+    chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
+    chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
+    chapterTitle.fontString = chapterTitle:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    chapterTitle.fontString:SetAllPoints(chapterTitle)
+    chapterTitle.fontString:SetJustifyH("LEFT")
+    chapterTitle.fontString:SetJustifyV("CENTER")
+    chapterTitle.fontString:SetFontObject("GameFontNormal")
+    chapterTitle.SetText = function(self, text) self.fontString:SetText(text) end
+    self.chapterTitle = chapterTitle
 
     -- Create resize button
     local resizeButton = CreateFrame("BUTTON", nil, frame)
@@ -102,37 +155,54 @@ function Tracker:Initialize()
     scrollChild:SetHeight(scrollFrame:GetHeight())
     scrollChild:SetAllPoints(scrollFrame)
     self.scrollChild = scrollChild
-end
 
-function Tracker:Update()
-    self:DelayedUpdate(function()
-        self.playerLevel = UnitLevel("player")
-        self.playerGreenRange = GetQuestGreenRange("player")
-        self.currentQuestLog = {}
-        local entriesCount, questCount = GetNumQuestLogEntries()
-        for i=1,entriesCount do
-            local _, _, _, isHeader, _, isComplete, _, questID = GetQuestLogTitle(i)
-            if not isHeader then
-                self.currentQuestLog[questID] = isComplete == 1
+    -- Install update ticker
+    self.ticker = C_Timer.NewTicker(Traveler.db.profile.tracker.updateFrequency, function()
+        if Tracker.NeedUpdate and Traveler.DataSource.IsInitialized() then
+            Tracker.playerLevel = UnitLevel("player")
+            Tracker.playerGreenRange = GetQuestGreenRange("player")
+            Tracker.currentQuestLog = {}
+            local entriesCount, questCount = GetNumQuestLogEntries()
+            for i=1,entriesCount do
+                local _, _, _, isHeader, _, isComplete, _, questID = GetQuestLogTitle(i)
+                if not isHeader then
+                    Tracker.currentQuestLog[questID] = {
+                        isComplete = isComplete == 1
+                    }
+                end
             end
-        end
 
-        self:UpdateLockButton()
-        self:UpdateResizeButton()
-        self:UpdateScrollFrame()
-        self:UpdateSteps()
+            Tracker:UpdateLockButton()
+            Tracker:UpdateNextChapterButton()
+            Tracker:UpdatePreviousChapterButton()
+            Tracker:UpdateChapterTitle()
+            Tracker:UpdateResizeButton()
+            Tracker:UpdateScrollFrame()
+            Tracker:UpdateSteps()
 
-        if Traveler.db.char.tracker.show then
-            self.frame:Show()
-        else
-            self.frame:Hide()
+            if Traveler.db.char.tracker.show then
+                Tracker.frame:Show()
+            else
+                Tracker.frame:Hide()
+            end
+
+            Tracker.NeedUpdate = false
         end
     end)
 end
 
-function Tracker:DelayedUpdate(func)
-    if Traveler.DataSource.IsInitialized() then func() return end
-    C_Timer.After(0.25, function() self:DelayedUpdate(func) end)
+function Tracker:Shutdown()
+    self.ticker:Cancel()
+end
+
+function Tracker:ResetState()
+    self.state = {
+        steps = {}
+    }
+end
+
+function Tracker:Update()
+    self.NeedUpdate = true
 end
 
 function Tracker:UpdateLockButton()
@@ -155,6 +225,35 @@ function Tracker:UpdateResizeButton()
     end
 end
 
+function Tracker:UpdateNextChapterButton()
+    local enabled = false
+    local journey = Traveler:GetActiveJourney()
+    if journey ~= nil then
+        local index = Traveler:GetActiveChapterIndex()
+        enabled = index >= 1 and index < #journey.chapters
+    end
+    self.nextChapterButton:SetEnabled(enabled)
+end
+
+function Tracker:UpdatePreviousChapterButton()
+    local enabled = false
+    local journey = Traveler:GetActiveJourney()
+    if journey ~= nil then
+        local index = Traveler:GetActiveChapterIndex()
+        enabled = index > 1 and index <= #journey.chapters
+    end
+    self.prevChapterButton:SetEnabled(enabled)
+end
+
+function Tracker:UpdateChapterTitle()
+    local journey = Traveler:GetActiveJourney()
+    local chapter = Traveler:GetActiveChapter(journey)
+    if chapter ~= nil then
+        local index = Traveler:GetActiveChapterIndex()
+        self.chapterTitle:SetText("Chapter " .. index .. ": " .. chapter.title)
+    end
+end
+
 function Tracker:UpdateScrollFrame()
     self.scrollFrame:SetWidth(self.frame:GetWidth())
     self.scrollFrame:SetHeight(self.frame:GetHeight() - HEADER_HEIGHT)
@@ -169,31 +268,56 @@ function Tracker:UpdateSteps()
     local chapter = Traveler:GetActiveChapter(journey)
     if chapter == nil then return end
 
-    local chapterState = Traveler:GetActiveChapterState(journey)
-    if chapterState == nil then return end
-
     self.lineIndex = 1
     for stepIndex, step in ipairs(chapter.steps) do
-        local stepState = chapterState.steps[stepIndex]
+        local state = self.state or {}
+        local stepState = state.steps[stepIndex]
         if stepState == nil then
             stepState = {
-                completed = self:IsStepCompleted(step)
+                isComplete = self:IsStepComplete(step)
             }
-            chapterState.steps[stepIndex] = stepState
+            state.steps[stepIndex] = stepState
+        else
+            stepState.isComplete = self:IsStepComplete(step)
         end
 
+        local location
         local isStepQuest = Traveler:IsStepQuest(step)
         if isStepQuest then
             if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                local nearest = Traveler.DataSource:GetNearestQuestStarter(step.data)
-                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Accept from "..nearest.name..":"))
+                location = Traveler.DataSource:GetNearestQuestStarter(step.data)
             elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Complete:"))
+                -- todo
             elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                local nearest = Traveler.DataSource:GetNearestQuestFinisher(step.data)
-                self:GetNextLine():SetText(self:GetColoredStepText(stepState, "Turn-in at "..nearest.name..":"))
+                location = Traveler.DataSource:GetNearestQuestFinisher(step.data)
             end
-            self:GetNextLine():SetText("    "..self:GetColoredQuestText(step, stepState))
+        end
+        stepState.location = location
+
+        if location ~= nil then
+            local prevLocation
+            if stepIndex > 1 then
+                local prevStepState = self.state.steps[stepIndex - 1]
+                prevLocation = prevStepState.location
+            end
+
+            if prevLocation == nil or location.type ~= prevLocation.type or location.name ~= prevLocation.name then
+                local prefix = ""
+                if location.type == "NPC" then
+                    prefix = "Go talk to "
+                else
+                    prefix = "Go to "
+                end
+                self:GetNextLine():SetText(self:GetColoredText(stepState, prefix) .. self:GetColoredLocationText(stepState, location.name))
+            end
+        end
+
+        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+            self:GetNextLine():SetText(self:GetColoredText(stepState, "    Accept ") .. self:GetColoredQuestText(step, stepState))
+        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            self:GetNextLine():SetText(self:GetColoredText(stepState, "Complete ") .. self:GetColoredQuestText(step, stepState))
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            self:GetNextLine():SetText(self:GetColoredText(stepState, "    Turn-in ") .. self:GetColoredQuestText(step, stepState))
         end
     end
 
@@ -247,25 +371,49 @@ function Tracker:GetNextLine()
     return line
 end
 
-function Tracker:IsStepCompleted(step)
-    if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-        return self.currentQuestLog[step.data] ~= nil or C_QuestLog.IsQuestFlaggedCompleted(step.data)
-    elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-        return C_QuestLog.IsComplete(step.data) or C_QuestLog.IsQuestFlaggedCompleted(step.data)
-    elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-        return C_QuestLog.IsQuestFlaggedCompleted(step.data)
-    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-        -- todo
-        return false
-    elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-        -- todo
-        return false
+function Tracker:IsStepComplete(step)
+    if Traveler:IsStepQuest(step) then
+        -- If quest is already turned-in, mark step as complete
+        if C_QuestLog.IsQuestFlaggedCompleted(step.data) then
+            return true
+        end
+
+        -- Exclusive quests are unobtainable, mark step as complete
+        local exclusiveTo = Traveler.DataSource:GetQuestExclusiveTo(step.data)
+        if exclusiveTo ~= nil then
+            for _,questId in ipairs(exclusiveTo) do
+                if self.currentQuestLog[questId] ~= nil or C_QuestLog.IsQuestFlaggedCompleted(questId) then
+                    return true
+                end
+            end
+        end
+
+        -- Per step type checks
+        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+            if self.currentQuestLog[step.data] ~= nil then
+                return true -- Quest is in quest log
+            end
+        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            if C_QuestLog.IsComplete(step.data) then
+                return true -- Quest is in quest log and all objectives are completed
+            end
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            -- Nothing to do
+        end
+    else
+        if step.type == Traveler.STEP_TYPE_FLY_TO then
+            -- todo
+            return false
+        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+            -- todo
+            return false
+        end
     end
     return false
 end
 
-function Tracker:GetColoredStepText(state, text)
-    if state.completed then
+function Tracker:GetColoredText(state, text)
+    if state.isComplete then
         return STEP_COLOR_COMPLETE .. text .. "|r"
     else
         return text
@@ -274,7 +422,7 @@ end
 
 function Tracker:GetColoredQuestText(step, state)
     local text = Traveler.DataSource:GetQuestName(step.data)
-    if state.completed then
+    if state.isComplete then
         return STEP_COLOR_COMPLETE .. text .. "|r"
     else
         local level = Traveler.DataSource:GetQuestLevel(step.data)
@@ -296,10 +444,12 @@ function Tracker:GetColoredQuestText(step, state)
     return text
 end
 
-function Tracker:GetStepQuestName(step, state)
-    local questName = Traveler.DataSource:GetQuestName(step.data)
-    local questLevel = Traveler.DataSource:GetQuestLevel(step.data)
-    return self:AddQuestColor(questId, questLevel, questName)
+function Tracker:GetColoredLocationText(state, text)
+    if state.isComplete then
+        return STEP_COLOR_COMPLETE .. text .. "|r"
+    else
+        return LOCATION_COLOR .. text .. "|r"
+    end
 end
 
 Traveler.Tracker = Tracker

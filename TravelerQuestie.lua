@@ -27,6 +27,11 @@ function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
 end
 
+function DataSourceQuestie:GetQuestExclusiveTo(questId)
+    local quest = QuestieDB:GetQuest(questId)
+    if quest ~= nil then return quest.exclusiveTo end
+end
+
 local function UpdateIfNearest(nearest, playerX, playerY, x, y, uiMapId, name, type)
     if x and y then
         local distance = HBD:GetWorldDistance(nil, playerX or 0, playerY or 0, x, y)

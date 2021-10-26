@@ -23,6 +23,7 @@ function Traveler:OnEnable()
 end
 
 function Traveler:OnDisable()
+    self.Tracker:Shutdown()
 end
 
 function Traveler:Debug(...)

@@ -39,31 +39,26 @@ function Traveler:JourneyImportFromCharacter()
     end
 end
 
+function Traveler:GetActiveJourneyIndex()
+    return self.db.char.tracker.journey
+end
+
 function Traveler:GetActiveJourney()
-    local journeyIndex = self.db.char.tracker.journey
-    if journeyIndex > 0 and journeyIndex <= #self.journeys then
-        return self.journeys[journeyIndex]
+    local index = self:GetActiveJourneyIndex()
+    if index >= 1 and index <= #self.journeys then
+        return self.journeys[index]
     end
+end
+
+function Traveler:GetActiveChapterIndex()
+    return self.db.char.tracker.chapter
 end
 
 function Traveler:GetActiveChapter(journey)
-    local chapterIndex = self.db.char.tracker.chapter
-    if journey ~= nil and chapterIndex > 0 and chapterIndex <= #journey.chapters then
-        return journey.chapters[chapterIndex]
+    local index = self:GetActiveChapterIndex()
+    if journey ~= nil and index >= 1 and index <= #journey.chapters then
+        return journey.chapters[index]
     end
-end
-
-function Traveler:GetActiveChapterState(journey)
-    local chapterIndex = self.db.char.tracker.chapter
-    if self.db.char.state.chapters == nil then
-        self.db.char.state.chapters = {}
-    end
-    if self.db.char.state.chapters[chapterIndex] == nil then
-        self.db.char.state.chapters[chapterIndex] = {
-            steps = {}
-        }
-    end
-    return self.db.char.state.chapters[chapterIndex]
 end
 
 function Traveler:JourneyAddChapter(title)

@@ -73,10 +73,12 @@ function Traveler:OnQuestLogUpdate()
     end
 
     -- Check if progress quest is complete
+    local hasChanges = false
     for questId,_ in pairs(self.questProgress) do
         if C_QuestLog.IsComplete(questId) then
             self:JourneyAddQuestComplete(questId)
             self.questProgress[questId] = true
+            hasChanges = true
         end
     end
 
@@ -87,6 +89,6 @@ function Traveler:OnQuestLogUpdate()
         end
     end
 
-    -- Update Tracker
-    self.Tracker:Update()
+    -- Update Tracker if there's any changes
+    if hasChanges then self.Tracker:Update() end
 end
