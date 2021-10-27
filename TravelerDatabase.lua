@@ -6,25 +6,32 @@ local LibDeflate = LibStub:GetLibrary("LibDeflate")
 
 local databaseDefaults = {
     profile = {
-        general = {
-            debug = false
-        },
-        tracker = {
+        window = {
             locked = false,
             width = 300,
             height = 300,
-            relativeTo = "CENTER",
+            relativePoint = "CENTER",
             x = 0,
             y = 0,
-            alpha = 0.5,
+            backgroundColor = {
+                r = 0,
+                g = 0,
+                b = 0,
+                a = 0.5
+            },
             fontSize = 12,
             lineSpacing = 2,
-            showLevel = true,
+            showQuestLevel = true,
+            showCompletedSteps = false,
+            showSkippedSteps = true
+        },
+        advanced = {
+            debug = false,
             updateFrequency = 0.5
         }
     },
     char = {
-        tracker = {
+        window = {
             show = true,
             journey = -1,
             chapter = 1
@@ -66,20 +73,20 @@ function Traveler:DeserializeDatabase()
         if result then self.journey = deserialized end
     end
 
-    if self.db.char.tracker.journey == -1 then return end
-    if self.db.char.tracker.journey > #self.journeys then
-        self.db.char.tracker.journey = -1
+    if self.db.char.window.journey == -1 then return end
+    if self.db.char.window.journey > #self.journeys then
+        self.db.char.window.journey = -1
         return
     end
 
-    local journey = self.journeys[self.db.char.tracker.journey]
+    local journey = self.journeys[self.db.char.window.journey]
     if #journey.chapters <= 0 then
-        self.db.char.tracker.chapter = -1
+        self.db.char.window.chapter = -1
         return
     end
 
-    if self.db.char.tracker.chapter <= 0 or self.db.char.tracker.chapter > #journey.chapters then
-        self.db.char.tracker.chapter = 1
+    if self.db.char.window.chapter <= 0 or self.db.char.window.chapter > #journey.chapters then
+        self.db.char.window.chapter = 1
     end
 end
 

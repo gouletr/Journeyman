@@ -14,10 +14,10 @@ function DataSourceQuestie:IsInitialized()
     return QuestieDB ~= nil and QuestieDB.QueryQuest ~= nil and type(QuestieDB.QueryQuest) == "function"
 end
 
-function DataSourceQuestie:GetQuestName(questId)
+function DataSourceQuestie:GetQuestName(questId, showLevel)
     local name = QuestieDB.QueryQuestSingle(questId, "name");
     local level, _ = QuestieLib:GetTbcLevel(questId)
-    if Traveler.db.profile.tracker.showLevel then
+    if showLevel then
         name = QuestieLib:GetQuestString(questId, name, level, true)
     end
     return name

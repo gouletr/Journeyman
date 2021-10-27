@@ -27,7 +27,7 @@ function Traveler:OnDisable()
 end
 
 function Traveler:Debug(...)
-    if self.db.profile.general.debug then
+    if self.db.profile.advanced.debug then
         self:Print("[DEBUG] " .. ...)
     end
 end

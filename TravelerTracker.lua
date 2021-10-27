@@ -12,34 +12,53 @@ local QUEST_COLOR_YELLOW = "|cFFFFFF00"
 local QUEST_COLOR_GREEN = "|cFF40C040"
 local QUEST_COLOR_GREY = "|cFFC0C0C0"
 
+local function CreateLabel(name, parent)
+    local label = CreateFrame("FRAME", name, parent)
+    local fontString = label:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    fontString:SetAllPoints(label)
+    fontString:SetFontObject("GameFontNormal")
+    label.fontString = fontString
+
+    label.SetText = function(self, ...) self.fontString:SetFormattedText(...) end
+    label.SetSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
+    label.SetJustifyH = function(self, value) self.fontString:SetJustifyH(value) end
+    label.SetJustifyV = function(self, value) self.fontString:SetJustifyV(value) end
+    label.SetWordWrap = function(self, value) self.fontString:SetWordWrap(value) end
+    label.SetMaxLines = function(self, value) self.fontString:SetMaxLines(value) end
+
+    return label
+end
+
 function Tracker:Initialize()
     self:ResetState()
 
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
-    frame:SetWidth(Traveler.db.profile.tracker.width)
-    frame:SetHeight(Traveler.db.profile.tracker.height)
-    frame:SetPoint(Traveler.db.profile.tracker.relativeTo, UIParent, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y)
+    frame:SetWidth(Traveler.db.profile.window.width)
+    frame:SetHeight(Traveler.db.profile.window.height)
+    frame:SetPoint(Traveler.db.profile.window.relativePoint, UIParent, Traveler.db.profile.window.relativePoint, Traveler.db.profile.window.x, Traveler.db.profile.window.y)
     frame:SetMovable(true)
     frame:SetResizable(true)
     frame:SetMinResize(200, 200)
     frame:EnableMouse(true)
     frame:SetScript("OnMouseDown", function(self, button)
-        if (not Traveler.db.profile.tracker.locked and button == "LeftButton") then
+        if not Traveler.db.profile.window.locked and button == "LeftButton" then
             frame:StartMoving()
         end
     end)
     frame:SetScript("OnMouseUp", function(self, button)
         if button == "LeftButton" then
             frame:StopMovingOrSizing()
-            local _
-            _, _, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y = frame:GetPoint()
-            Tracker:Update()
+            local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
+            Traveler.db.profile.window.relativePoint = relativePoint
+            Traveler.db.profile.window.x = offsetX
+            Traveler.db.profile.window.y = offsetY
+            Tracker:UpdateImmediate()
         end
     end)
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetAllPoints(frame)
-    frame.bg:SetColorTexture(0, 0, 0, Traveler.db.profile.tracker.alpha)
+    frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
     frame:Hide()
     self.frame = frame
 
@@ -51,8 +70,8 @@ function Tracker:Initialize()
     closeButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
     closeButton:SetScript("OnClick", function()
-        Traveler.db.char.tracker.show = false
-        Tracker.frame:Hide()
+        Traveler.db.char.window.show = false
+        Tracker:UpdateImmediate()
     end)
     self.closeButton = closeButton
 
@@ -61,9 +80,8 @@ function Tracker:Initialize()
     lockButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
     lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT")
     lockButton:SetScript("OnClick", function()
-        Traveler.db.profile.tracker.locked = not Traveler.db.profile.tracker.locked
-        self:UpdateLockButton()
-        self:UpdateResizeButton()
+        Traveler.db.profile.window.locked = not Traveler.db.profile.window.locked
+        Tracker:UpdateImmediate()
     end)
     self.lockButton = lockButton
 
@@ -78,9 +96,9 @@ function Tracker:Initialize()
     nextChapterButton:SetScript("OnClick", function()
         local journey = Traveler:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.tracker.chapter < #journey.chapters then
-                Traveler.db.char.tracker.chapter = Traveler.db.char.tracker.chapter + 1
-                Tracker:Update()
+            if Traveler.db.char.window.chapter < #journey.chapters then
+                Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
+                Tracker:UpdateImmediate()
             end
         end
     end)
@@ -97,24 +115,21 @@ function Tracker:Initialize()
     prevChapterButton:SetScript("OnClick", function()
         local journey = Traveler:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.tracker.chapter > 1 then
-                Traveler.db.char.tracker.chapter = Traveler.db.char.tracker.chapter - 1
-                Tracker:Update()
+            if Traveler.db.char.window.chapter > 1 then
+                Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
+                Tracker:UpdateImmediate()
             end
         end
     end)
     self.prevChapterButton = prevChapterButton
 
     -- Chapter title
-    local chapterTitle = CreateFrame("FRAME", nil, frame)
+    local chapterTitle = CreateLabel(nil, frame)
     chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
-    chapterTitle.fontString = chapterTitle:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    chapterTitle.fontString:SetAllPoints(chapterTitle)
-    chapterTitle.fontString:SetJustifyH("LEFT")
-    chapterTitle.fontString:SetJustifyV("CENTER")
-    chapterTitle.fontString:SetFontObject("GameFontNormal")
-    chapterTitle.SetText = function(self, text) self.fontString:SetText(text) end
+    chapterTitle:SetJustifyH("LEFT")
+    chapterTitle:SetJustifyV("CENTER")
+    chapterTitle:SetSize(Traveler.db.profile.window.fontSize)
     self.chapterTitle = chapterTitle
 
     -- Create resize button
@@ -125,17 +140,21 @@ function Tracker:Initialize()
     resizeButton:SetHighlightTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight")
     resizeButton:SetPushedTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down")
     resizeButton:SetScript("OnMouseDown", function(_, button)
-        if (not Traveler.db.profile.tracker.locked and button == "LeftButton") then
+        if not Traveler.db.profile.window.locked and button == "LeftButton" then
             frame:StartSizing("BOTTOMRIGHT")
         end
     end)
     resizeButton:SetScript("OnMouseUp", function(_, button)
         if button == "LeftButton" then
             frame:StopMovingOrSizing()
-            local _
-            _, _, Traveler.db.profile.tracker.relativeTo, Traveler.db.profile.tracker.x, Traveler.db.profile.tracker.y = frame:GetPoint()
-            Traveler.db.profile.tracker.width, Traveler.db.profile.tracker.height = frame:GetSize()
-            Tracker:Update()
+            local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
+            Traveler.db.profile.window.relativePoint = relativePoint
+            Traveler.db.profile.window.x = offsetX
+            Traveler.db.profile.window.y = offsetY
+            local width, height = frame:GetSize()
+            Traveler.db.profile.window.width = width
+            Traveler.db.profile.window.height = height
+            Tracker:UpdateImmediate()
         end
     end)
     self.resizeButton = resizeButton
@@ -157,36 +176,9 @@ function Tracker:Initialize()
     self.scrollChild = scrollChild
 
     -- Install update ticker
-    self.ticker = C_Timer.NewTicker(Traveler.db.profile.tracker.updateFrequency, function()
-        if Tracker.NeedUpdate and Traveler.DataSource.IsInitialized() then
-            Tracker.playerLevel = UnitLevel("player")
-            Tracker.playerGreenRange = GetQuestGreenRange("player")
-            Tracker.currentQuestLog = {}
-            local entriesCount, questCount = GetNumQuestLogEntries()
-            for i=1,entriesCount do
-                local _, _, _, isHeader, _, isComplete, _, questID = GetQuestLogTitle(i)
-                if not isHeader then
-                    Tracker.currentQuestLog[questID] = {
-                        isComplete = isComplete == 1
-                    }
-                end
-            end
-
-            Tracker:UpdateLockButton()
-            Tracker:UpdateNextChapterButton()
-            Tracker:UpdatePreviousChapterButton()
-            Tracker:UpdateChapterTitle()
-            Tracker:UpdateResizeButton()
-            Tracker:UpdateScrollFrame()
-            Tracker:UpdateSteps()
-
-            if Traveler.db.char.tracker.show then
-                Tracker.frame:Show()
-            else
-                Tracker.frame:Hide()
-            end
-
-            Tracker.NeedUpdate = false
+    self.ticker = C_Timer.NewTicker(Traveler.db.profile.advanced.updateFrequency, function()
+        if self.NeedUpdate then
+            self:UpdateImmediate()
         end
     end)
 end
@@ -205,8 +197,44 @@ function Tracker:Update()
     self.NeedUpdate = true
 end
 
+function Tracker:UpdateImmediate()
+    if not Traveler.DataSource.IsInitialized() then
+        return
+    end
+
+    self.playerLevel = UnitLevel("player")
+    self.playerGreenRange = GetQuestGreenRange("player")
+    self.currentQuestLog = {}
+    local entriesCount, questCount = GetNumQuestLogEntries()
+    for i=1,entriesCount do
+        local _, _, _, isHeader, _, isComplete, _, questID = GetQuestLogTitle(i)
+        if not isHeader then
+            self.currentQuestLog[questID] = {
+                isComplete = isComplete == 1
+            }
+        end
+    end
+
+    self:UpdateFrame()
+    self:UpdateLockButton()
+    self:UpdateNextChapterButton()
+    self:UpdatePreviousChapterButton()
+    self:UpdateChapterTitle()
+    self:UpdateResizeButton()
+    self:UpdateScrollFrame()
+    self:UpdateSteps()
+
+    self.frame:SetShown(Traveler.db.char.window.show)
+    self.NeedUpdate = false
+end
+
+function Tracker:UpdateFrame()
+    self.frame:SetSize(Traveler.db.profile.window.width, Traveler.db.profile.window.height)
+    self.frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
+end
+
 function Tracker:UpdateLockButton()
-    if Traveler.db.profile.tracker.locked then
+    if Traveler.db.profile.window.locked then
         self.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
         self.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
         self.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
@@ -218,7 +246,7 @@ function Tracker:UpdateLockButton()
 end
 
 function Tracker:UpdateResizeButton()
-    if Traveler.db.profile.tracker.locked then
+    if Traveler.db.profile.window.locked then
         self.resizeButton:Hide()
     else
         self.resizeButton:Show()
@@ -250,6 +278,7 @@ function Tracker:UpdateChapterTitle()
     local chapter = Traveler:GetActiveChapter(journey)
     if chapter ~= nil then
         local index = Traveler:GetActiveChapterIndex()
+        self.chapterTitle:SetSize(Traveler.db.profile.window.fontSize)
         self.chapterTitle:SetText("Chapter " .. index .. ": " .. chapter.title)
     end
 end
@@ -332,41 +361,29 @@ function Tracker:GetNextLine()
 
     local line
     if self.lineIndex > #self.lines then
-        line = CreateFrame("FRAME", nil, self.scrollChild)
-        line:SetWidth(self.frame:GetWidth())
-        line:SetHeight(Traveler.db.profile.tracker.fontSize + Traveler.db.profile.tracker.lineSpacing)
+        line = CreateLabel(nil, self.scrollChild)
         if self.lineIndex == 1 then
             line:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT")
         else
             line:SetPoint("TOPLEFT", self.lines[self.lineIndex - 1], "BOTTOMLEFT")
         end
-
-        local fontString = line:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        fontString:SetAllPoints(line)
-        fontString:SetJustifyH("LEFT")
-        fontString:SetFontObject("GameFontNormal")
-        fontString:SetWordWrap(true)
-        fontString:SetMaxLines(1)
-        line.fontString = fontString
+        line:SetJustifyH("LEFT")
+        line:SetWordWrap(true)
 
         line.index = self.lineIndex
-        line.SetText = function(self, text)
-            self.fontString:SetText(text)
-            local wrapLineCount = math.ceil(self.fontString:GetUnboundedStringWidth() / Tracker.frame:GetWidth())
-            self:SetWidth(Tracker.frame:GetWidth())
-            self:SetHeight((Traveler.db.profile.tracker.fontSize * wrapLineCount) + Traveler.db.profile.tracker.lineSpacing)
-            if self.index == 1 then
-                self:SetPoint("TOPLEFT", Tracker.scrollChild, "TOPLEFT")
-            else
-                self:SetPoint("TOPLEFT", Tracker.lines[self.index - 1], "BOTTOMLEFT")
-            end
-            self.fontString:SetMaxLines(wrapLineCount)
+        local oldSetText = line.SetText
+        line.SetText = function(self, ...)
+            oldSetText(self, ...)
+            self:SetSize(Traveler.db.profile.window.fontSize)
+            self:SetWidth(Tracker.scrollChild:GetWidth())
+            self:SetHeight((Traveler.db.profile.window.fontSize * self.fontString:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
         end
 
         self.lines[#self.lines + 1] = line
     else
         line = self.lines[self.lineIndex]
     end
+
     self.lineIndex = self.lineIndex + 1
     return line
 end
@@ -421,7 +438,7 @@ function Tracker:GetColoredText(state, text)
 end
 
 function Tracker:GetColoredQuestText(step, state)
-    local text = Traveler.DataSource:GetQuestName(step.data)
+    local text = Traveler.DataSource:GetQuestName(step.data, Traveler.db.profile.window.showQuestLevel)
     if state.isComplete then
         return STEP_COLOR_COMPLETE .. text .. "|r"
     else

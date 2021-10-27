@@ -40,7 +40,7 @@ function Traveler:JourneyImportFromCharacter()
 end
 
 function Traveler:GetActiveJourneyIndex()
-    return self.db.char.tracker.journey
+    return self.db.char.window.journey
 end
 
 function Traveler:GetActiveJourney()
@@ -51,7 +51,7 @@ function Traveler:GetActiveJourney()
 end
 
 function Traveler:GetActiveChapterIndex()
-    return self.db.char.tracker.chapter
+    return self.db.char.window.chapter
 end
 
 function Traveler:GetActiveChapter(journey)
