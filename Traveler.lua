@@ -9,6 +9,7 @@ local Traveler = addon.Traveler
 function Traveler:OnInitialize()
     self:InitializeDatabase()
     self:InitializeOptions()
+    self.State:Initialize()
     self:InitializeHooks()
     self:InitializeEvents()
     self:InitializeJourney()
@@ -16,20 +17,56 @@ function Traveler:OnInitialize()
 end
 
 function Traveler:OnEnable()
-    self:RegisterChatCommand("journey", function()
-        self:Print(dump(self.journey))
-    end, true)
-    self.Tracker:Update()
+    self.State:Reset()
 end
 
 function Traveler:OnDisable()
     self.Tracker:Shutdown()
+    self.State:Shutdown()
 end
 
-function Traveler:Debug(...)
+function Traveler:Debug(fmt, ...)
     if self.db.profile.advanced.debug then
-        self:Print("[DEBUG] " .. ...)
+        self:Print("[DEBUG] " .. string.format(fmt, ...))
     end
+end
+
+function Traveler:GetQuestLogNumEntries()
+    if C_QuestLog.GetNumQuestLogEntries ~= nil then
+        return C_QuestLog.GetNumQuestLogEntries()
+    else
+        return GetNumQuestLogEntries()
+    end
+end
+
+function Traveler:GetQuestLogInfo(questLogIndex)
+    if C_QuestLog.GetInfo ~= nil then
+        local info = C_QuestLog.GetInfo(questLogIndex)
+        if info ~= nil then
+            return {
+                questId = info.questID,
+                isHeader = info.isHeader,
+                isComplete = info.isComplete
+            }
+        end
+    else
+        local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isBounty, isStory, isHidden, isScaling = GetQuestLogTitle(questLogIndex)
+        return {
+            questId = questID,
+            isHeader = isHeader,
+            isComplete = isComplete == 1
+        }
+    end
+end
+
+function Traveler:GetQuestLogIsComplete(questId)
+    for i = 1, self:GetQuestLogNumEntries() do
+        local info = self:GetQuestLogInfo(i)
+        if info ~= nil and not info.isHeader and info.questId == questId then
+            return info.isComplete
+        end
+    end
+    return false
 end
 
 function dump(o)

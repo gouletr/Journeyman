@@ -8,10 +8,6 @@ Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
 Traveler.STEP_TYPE_FLY_TO = "FLYTO"
 Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 
-function Traveler:IsStepQuest(step)
-    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
-end
-
 function Traveler:InitializeJourney()
     if self.journeys == nil then
         self.journeys = {}
@@ -37,6 +33,10 @@ function Traveler:JourneyImportFromCharacter()
         local journey = TableDeepCopy(self.journey)
         ArrayAdd(self.journeys, journey)
     end
+end
+
+function Traveler:IsStepQuest(step)
+    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
 function Traveler:GetActiveJourneyIndex()
@@ -121,6 +121,10 @@ end
 
 function Traveler:JourneyAddQuestTurnIn(questId)
     self:JourneyCurrentChapterAddStep(self.STEP_TYPE_TURNIN_QUEST, questId)
+end
+
+function Traveler:JourneyAddBindHearthstone(location)
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_BIND_HEARTHSTONE, location)
 end
 
 function Traveler:JourneyRemoveQuest(questId)

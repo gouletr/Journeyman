@@ -29,6 +29,7 @@ Locales\Locales.xml
 Traveler.lua
 TravelerDatabase.lua
 TravelerOptions.lua
+TravelerState.lua
 TravelerHooks.lua
 TravelerEvents.lua
 TravelerJourneys.lua

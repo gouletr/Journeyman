@@ -108,7 +108,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showSkippedSteps ~= value then
                         self.db.profile.window.showSkippedSteps = value
-                        self.Tracker:UpdateImmediate()
+                        self.State:Reset()
                     end
                 end
             },
@@ -122,7 +122,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showCompletedSteps ~= value then
                         self.db.profile.window.showCompletedSteps = value
-                        self.Tracker:UpdateImmediate()
+                        self.State:Reset()
                     end
                 end
             },
@@ -240,8 +240,7 @@ function Traveler:GetGeneralOptionsTable()
                         self.db.char.window.journey = value
                         self.db.char.window.chapter = 1
                         self.db.char.state = {}
-                        self.Tracker:ResetState()
-                        self.Tracker:UpdateImmediate()
+                        self.State:Reset()
                     end
                 end,
                 get = function(info) return self.db.char.window.journey end
@@ -301,6 +300,7 @@ function Traveler:GetAdvancedOptionsTable()
                     if self.db.profile.advanced.updateFrequency ~= value then
                         self.db.profile.advanced.updateFrequency = value
                         C_UI.Reload()
+                    end
                 end
             },
             header = {
