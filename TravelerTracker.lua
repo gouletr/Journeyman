@@ -334,60 +334,57 @@ end
 function Tracker:UpdateSteps()
     -- Group steps per chronological location, and determine if they are complete
     local groups = {}
-    for _, stepState in ipairs(Traveler.State.steps) do
-        if stepState.location ~= nil then
+    for _, step in ipairs(Traveler.State.steps) do
+        if step.location then
             local lastGroup = groups[#groups]
-            if lastGroup == nil or lastGroup.location == nil or lastGroup.location.name ~= stepState.location.name then
-                groups[#groups + 1] = {
-                    location = stepState.location,
-                    isComplete = stepState.isComplete,
-                    steps = { stepState }
-                }
+            if lastGroup == nil or lastGroup.location == nil or lastGroup.location.name ~= step.location.name then
+                Traveler.Utils:Add(groups, { isComplete = step.isComplete, location = step.location, steps = { step } })
             else
-                lastGroup.steps[#lastGroup.steps + 1] = stepState
-                lastGroup.isComplete = lastGroup.isComplete and stepState.isComplete
+                lastGroup.steps[#lastGroup.steps + 1] = step
+                lastGroup.isComplete = lastGroup.isComplete and step.isComplete
             end
         else
-            groups[#groups + 1] = {
-                isComplete = stepState.isComplete,
-                steps = { stepState }
-            }
+            Traveler.Utils:Add(groups, { isComplete = step.isComplete, steps = { step } })
         end
     end
 
     -- Iterate steps in each group
     self.lineIndex = 1
     local waypointSet = false
-    for _, groupState in ipairs(groups) do
-        if groupState.location then
-            if not groupState.isComplete or Traveler.db.profile.window.showCompletedSteps then
+    for _, group in ipairs(groups) do
+        if group.location then
+            if Traveler.db.profile.window.showCompletedSteps or not group.isComplete then
                 local prefix
-                if groupState.location.type == "NPC" then
+                if group.location.type == "NPC" then
                     prefix = "Go talk to"
-                elseif groupState.location.type == "Object" then
+                elseif group.location.type == "Object" then
                     prefix = "Go to"
                 end
                 if prefix then
-                    self:GetNextLine():SetStepText(groupState, "%s %s", prefix, self:GetColoredLocationText(groupState, groupState.location.name))
+                    self:GetNextLine():SetStepText(group, "%s %s", prefix, self:GetColoredLocationText(group.location.name, group.isComplete))
                 end
             end
         end
 
-        for _, stepState in ipairs(groupState.steps) do
-            if not stepState.isComplete or Traveler.db.profile.window.showCompletedSteps then
-                if stepState.step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                    self:GetNextLine():SetStepText(stepState, "    Accept %s", self:GetColoredQuestText(stepState, stepState.step.data))
-                elseif stepState.step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                    self:GetNextLine():SetStepText(stepState, "Complete %s", self:GetColoredQuestText(stepState, stepState.step.data))
-                elseif stepState.step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                    self:GetNextLine():SetStepText(stepState, "    Turn-in %s", self:GetColoredQuestText(stepState, stepState.step.data))
-                elseif stepState.step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                    self:GetNextLine():SetStepText(stepState, "Bind %s to %s", self:GetColoredItemText(stepState, 6948), self:GetColoredLocationText(stepState, stepState.step.data))
+        for _, step in ipairs(group.steps) do
+            if not step.isComplete or Traveler.db.profile.window.showCompletedSteps then
+                if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+                    self:GetNextLine():SetStepText(step, "    Accept %s", self:GetColoredQuestText(step.data, step.isComplete))
+                elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+                    self:GetNextLine():SetStepText(step, "Complete %s", self:GetColoredQuestText(step.data, step.isComplete))
+                elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+                    self:GetNextLine():SetStepText(step, "    Turn-in %s", self:GetColoredQuestText(step.data, step.isComplete))
+                elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+                    self:GetNextLine():SetStepText(step, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
+                elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+                    self:GetNextLine():SetStepText(step, "Bind %s to %s", self:GetColoredItemText(step, 6948), self:GetColoredLocationText(step.data, step.isComplete))
+                else
+                    Traveler:Debug("Tracker.UpdateSteps: Step type %s not implemented.", step.type)
                 end
             end
 
-            if Traveler.db.profile.autoSetWaypoint and not waypointSet and not stepState.isComplete then
-                self:SetWaypoint(stepState, false)
+            if Traveler.db.profile.autoSetWaypoint and not waypointSet and not step.isComplete then
+                self:SetWaypoint(step, false)
                 waypointSet = true
             end
         end
@@ -412,8 +409,8 @@ function Tracker:GetNextLine()
         line:SetWordWrap(true)
 
         line.index = self.lineIndex
-        line.SetStepText = function(self, state, fmt, ...)
-            if state.isComplete then
+        line.SetStepText = function(self, step, fmt, ...)
+            if step.isComplete then
                 self:SetText("|c%s%s|r", STEP_COLOR_COMPLETE, string.format(fmt, ...))
             else
                 self:SetText(fmt, ...)
@@ -423,7 +420,7 @@ function Tracker:GetNextLine()
             self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" and IsControlKeyDown() then
-                    Tracker:SetWaypoint(state, true)
+                    Tracker:SetWaypoint(step, true)
                 end
             end)
             self:Show()
@@ -438,25 +435,18 @@ function Tracker:GetNextLine()
     return line
 end
 
-function Tracker:GetColoredText(state, text)
-    if state.isComplete then
-        return STEP_COLOR_COMPLETE .. text .. "|r"
-    else
-        return text
+function Tracker:GetColoredLocationText(location, isComplete)
+    if location and not isComplete then
+        return string.format("|c%s%s|r", LOCATION_COLOR, location)
     end
-end
-
-function Tracker:GetColoredLocationText(state, location)
-    if location == nil then return "" end
-    if not state.isComplete then return string.format("|c%s%s|r", LOCATION_COLOR, location) end
     return location
 end
 
-function Tracker:GetColoredQuestText(state, questId)
+function Tracker:GetColoredQuestText(questId, isComplete)
     local questName = Traveler.DataSource:GetQuestName(questId, Traveler.db.profile.window.showQuestLevel)
     if questName == nil then return string.format("quest:%s", questId) end
 
-    if not state.isComplete then
+    if not isComplete then
         local questLevel = Traveler.DataSource:GetQuestLevel(questId)
         if questLevel ~= nil then
             local colorHex
@@ -479,15 +469,16 @@ function Tracker:GetColoredQuestText(state, questId)
     return questName
 end
 
-function Tracker:GetColoredItemText(state, itemId)
+function Tracker:GetColoredItemText(step, itemId)
     local itemName, itemLink, itemQuality = GetItemInfo(itemId)
+
     if itemName == nil then
         local item = Item:CreateFromItemID(itemId)
         item:ContinueOnItemLoad(function() Tracker:UpdateImmediate() end)
         return string.format("item:%s", itemId)
     end
 
-    if not state.isComplete then
+    if not step.isComplete then
         local _, _, _, colorHex = GetItemQualityColor(itemQuality)
         return string.format("|c%s%s|r", colorHex, itemName)
     end
@@ -495,13 +486,13 @@ function Tracker:GetColoredItemText(state, itemId)
     return itemName
 end
 
-function Tracker:SetWaypoint(state, force)
+function Tracker:SetWaypoint(step, force)
     if TomTom and TomTom.AddWaypoint then
         if Traveler.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(Traveler.db.char.waypoint)
         end
 
-        local location = Traveler.State:GetStepLocation(state.step)
+        local location = Traveler.State:GetStepLocation(step)
         if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
             Traveler.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
         end

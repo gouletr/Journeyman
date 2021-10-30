@@ -31,7 +31,7 @@ end
 function Traveler:JourneyImportFromCharacter()
     if self.journey ~= nil then
         local journey = TableDeepCopy(self.journey)
-        ArrayAdd(self.journeys, journey)
+        self.Utils:Add(self.journeys, journey)
     end
 end
 
@@ -67,12 +67,12 @@ function Traveler:JourneyAddChapter(title)
         level = UnitLevel("player"),
         steps = {}
     }
-    ArrayAdd(self.journey.chapters, chapter)
+    self.Utils:Add(self.journey.chapters, chapter)
     return chapter
 end
 
 function Traveler:JourneyRemoveEmptyChapters()
-    ArrayRemoveIf(self.journey.chapters, function(i)
+    self.Utils:RemoveIf(self.journey.chapters, function(i)
         local chapter = self.journey.chapters[i]
         return #chapter.steps == 0
     end)
@@ -101,7 +101,7 @@ function Traveler:JourneyChapterAddStep(chapter, type, data)
         type = type,
         data = data
     }
-    ArrayAdd(chapter.steps, step)
+    self.Utils:Add(chapter.steps, step)
     self:Debug("Chapter '"..chapter.title.."' added step "..type.." "..data)
     return step
 end
@@ -129,7 +129,7 @@ end
 
 function Traveler:JourneyRemoveQuest(questId)
     for _,chapter in ipairs(self.journey.chapters) do
-        ArrayRemoveIf(chapter.steps, function(i)
+        self.Utils:RemoveIf(chapter.steps, function(i)
             local step = chapter.steps[i]
             return self:IsStepQuest(step) and step.data == questId
         end)
@@ -139,55 +139,4 @@ end
 
 function Traveler:JourneyAddFlyTo(slot, name)
     self:JourneyCurrentChapterAddStep(self.STEP_TYPE_FLY_TO, { slot, name })
-end
-
-function ArrayAdd(array, value)
-    array[#array+1] = value
-end
-
-function ArrayRemove(array, value)
-    if array == nil then return end
-    local j, n = 1, #array
-    for i = 1, n do
-        if array[i] ~= value then
-            if i ~= j then
-                array[j] = array[i]
-                array[i] = nil
-            end
-            j = j + 1
-        else
-            array[i] = nil
-        end
-    end
-end
-
-function ArrayRemoveIf(array, func)
-    if array == nil then return end
-    local j, n = 1, #array
-    for i = 1, n do
-        if not func(i) then
-            if i ~= j then
-                array[j] = array[i]
-                array[i] = nil
-            end
-            j = j + 1
-        else
-            array[i] = nil
-        end
-    end
-end
-
-function TableDeepCopy(original)
-    local original_type = type(original)
-    local copy
-    if original_type == 'table' then
-        copy = {}
-        for original_key, original_value in next, original, nil do
-            copy[TableDeepCopy(original_key)] = TableDeepCopy(original_value)
-        end
-        setmetatable(copy, TableDeepCopy(getmetatable(original)))
-    else -- number, string, boolean, etc
-        copy = original
-    end
-    return copy
 end
