@@ -53,13 +53,13 @@ local function GetStepLocation(step)
     if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
         return Traveler.DataSource:GetNearestQuestStarter(step.data)
     elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-        -- todo
+        return Traveler.DataSource:GetNearestQuestObjective(step.data)
     elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
         return Traveler.DataSource:GetNearestQuestFinisher(step.data)
     elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-        --todo
+        return Traveler.DataSource:GetNearestFlightMaster()
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-        --todo
+        return Traveler.DataSource:GetInnkeeperLocation(step.data)
     end
 end
 

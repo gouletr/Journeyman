@@ -501,7 +501,7 @@ function Tracker:SetWaypoint(state)
         end
 
         if location then
-            Traveler.db.char.waypoint = TomTom:AddWaypoint(location.uiMapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
+            Traveler.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
         end
     end
 end
