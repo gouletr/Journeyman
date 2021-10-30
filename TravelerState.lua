@@ -31,22 +31,26 @@ local function IsStepComplete(step)
         elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
             -- Check if quest is in quest log and complete
             return questInfo ~= nil and questInfo.isComplete
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            -- Check if quest is turned-in (redundancy)
+            return C_QuestLog.IsQuestFlaggedCompleted(step.data)
         end
     else
         if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
-            if GetBindLocation() == step.data then
-                return true
-            end
+            return GetBindLocation() == step.data
         end
 
         -- If next step is complete, consider this step complete
-        local nextState = State.steps[step.index + 1]
-        if nextStep then
-            return IsStepComplete(nextStep)
+        if step.type == Traveler.STEP_TYPE_FLY_TO or step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+            local nextState = State.steps[step.index + 1]
+            if nextStep then
+                return IsStepComplete(nextStep)
+            end
         end
     end
-    return false
+
+    Traveler:Error("Step type %s not implemented.", step.type)
 end
 
 local function FindStep(type, data)
@@ -103,28 +107,52 @@ function State:UpdateImmediate()
         end
     end
 
-    -- Find first step index
+    -- Find first incomplete step index
+    local firstIncompleteStepIndex = 1
+    for i, step in ipairs(self.steps) do
+        if step.isComplete == nil or not step.isComplete then
+            break
+        end
+        firstIncompleteStepIndex = firstIncompleteStepIndex + 1
+    end
+
+    -- Determine first step index
     local firstStepIndex = 1
     if not Traveler.db.profile.window.showCompletedSteps then
-        for i, step in ipairs(self.steps) do
-            if not step.isComplete then
-                firstStepIndex = i
+        firstStepIndex = firstIncompleteStepIndex
+    end
+
+    -- Find last incomplete step index
+    local lastStepIndex = #self.steps
+    if Traveler.db.profile.window.stepsShown > 0 then
+        local count = 0
+        local lastIncompleteStepIndex = firstStepIndex
+        for i = firstStepIndex, #self.steps do
+            local step = self.steps[i]
+            lastIncompleteStepIndex = i
+            if step.isComplete ~= nil and not step.isComplete then
+                count = count + 1
+            end
+            if count == Traveler.db.profile.window.stepsShown then
                 break
             end
         end
+        lastStepIndex = lastIncompleteStepIndex
     end
 
     -- Update steps
-    Traveler:Debug("Updating step range %d to %d", firstStepIndex, #self.steps)
-    for i = firstStepIndex, #self.steps do
+    Traveler:Debug("Updating step range %d to %d", firstStepIndex, lastStepIndex)
+    for i = firstStepIndex, lastStepIndex do
         local step = self.steps[i]
-        step.isComplete = IsStepComplete(step)
-        step.location = self:GetStepLocation(step)
+        if step then
+            step.isComplete = IsStepComplete(step)
+            step.location = self:GetStepLocation(step)
+        end
     end
 
-    Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
     self.needUpdate = false
 
+    Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
     Traveler.Tracker:UpdateImmediate()
 end
 
@@ -175,5 +203,7 @@ function State:GetStepLocation(step)
         return Traveler.DataSource:GetNearestFlightMaster()
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
         return Traveler.DataSource:GetInnkeeperLocation(step.data)
+    else
+        Traveler:Error("Step type %s not implemented.", step.type)
     end
 end

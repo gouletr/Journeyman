@@ -31,6 +31,12 @@ function Traveler:Debug(fmt, ...)
     end
 end
 
+function Traveler:Error(fmt, ...)
+    local text = string.format(fmt, ...)
+    self:Print("[ERROR] " .. text)
+    error(text)
+end
+
 function Traveler:GetQuestLogNumEntries()
     if C_QuestLog.GetNumQuestLogEntries ~= nil then
         return C_QuestLog.GetNumQuestLogEntries()

@@ -351,7 +351,9 @@ function Tracker:UpdateSteps()
     -- Iterate steps in each group
     self.lineIndex = 1
     local waypointSet = false
+    local stepsCount = 0
     for _, group in ipairs(groups) do
+        -- Display group header
         if group.location then
             if Traveler.db.profile.window.showCompletedSteps or not group.isComplete then
                 local prefix
@@ -366,6 +368,7 @@ function Tracker:UpdateSteps()
             end
         end
 
+        -- Display all steps of group
         for _, step in ipairs(group.steps) do
             if not step.isComplete or Traveler.db.profile.window.showCompletedSteps then
                 if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
@@ -379,13 +382,22 @@ function Tracker:UpdateSteps()
                 elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
                     self:GetNextLine():SetStepText(step, "Bind %s to %s", self:GetColoredItemText(step, 6948), self:GetColoredLocationText(step.data, step.isComplete))
                 else
-                    Traveler:Debug("Tracker.UpdateSteps: Step type %s not implemented.", step.type)
+                    Traveler:Error("Step type %s not implemented.", step.type)
                 end
             end
 
+            -- Auto set waypoint if its the first incomplete step
             if Traveler.db.profile.autoSetWaypoint and not waypointSet and not step.isComplete then
                 self:SetWaypoint(step, false)
                 waypointSet = true
+            end
+        end
+
+        -- Stop if we reach number of steps shown
+        if not group.isComplete then
+            stepsCount = stepsCount + 1
+            if Traveler.db.profile.window.stepsShown ~= 0 and stepsCount >= Traveler.db.profile.window.stepsShown then
+                break
             end
         end
     end
