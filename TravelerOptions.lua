@@ -63,6 +63,46 @@ function Traveler:GetGeneralOptionsTable()
                 end,
                 get = function(info) return self.db.char.window.journey end
             },
+            reserved1 = {
+                order = 2,
+                type = "description",
+                name = "",
+                width = Percent(0.5)
+            },
+            autoSetWaypoint = {
+                order = 3,
+                type = "toggle",
+                name = L["AUTO_SET_WAYPOINT"],
+                desc = L["AUTO_SET_WAYPOINT_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.autoSetWaypoint end,
+                set = function(info, value)
+                    if self.db.profile.autoSetWaypoint ~= value then
+                        self.db.profile.autoSetWaypoint = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
+            autoSetWaypointMin = {
+                order = 4,
+                type = "range",
+                name = L["AUTO_SET_WAYPOINT_MIN"],
+                desc = L["AUTO_SET_WAYPOINT_MIN_DESC"],
+                min = 0,
+                softMin = 0,
+                softMax = 100,
+                step = 1,
+                bigStep = 5,
+                disabled = function() return not self.db.profile.autoSetWaypoint end,
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.autoSetWaypointMin end,
+                set = function(info, value)
+                    if self.db.profile.autoSetWaypointMin ~= value then
+                        self.db.profile.autoSetWaypointMin = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
             windowHeader = {
                 order = 20,
                 type = "header",

@@ -5,15 +5,15 @@ local Traveler = addon.Traveler
 local State = {}
 Traveler.State = State
 
-local function IsStepComplete(stepIndex, step)
-    if Traveler:IsStepQuest(step) then
+local function IsStepComplete(state)
+    if Traveler:IsStepQuest(state.step) then
         -- Check if quest is already turned-in
-        if C_QuestLog.IsQuestFlaggedCompleted(step.data) then
+        if C_QuestLog.IsQuestFlaggedCompleted(state.step.data) then
             return true
         end
 
         -- Check if quest is exclusive to some other quests
-        local exclusiveTo = Traveler.DataSource:GetQuestExclusiveTo(step.data)
+        local exclusiveTo = Traveler.DataSource:GetQuestExclusiveTo(state.step.data)
         if exclusiveTo ~= nil then
             for _, questId in ipairs(exclusiveTo) do
                 -- Check if exclusive quest is in quest log or already turned-in
@@ -24,42 +24,36 @@ local function IsStepComplete(stepIndex, step)
         end
 
         -- Per quest step type checks
-        local questInfo = State.currentQuestLog[step.data]
-        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+        local questInfo = State.currentQuestLog[state.step.data]
+        if state.step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
             -- Check if quest is in quest log
             return questInfo ~= nil
-        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+        elseif state.step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
             -- Check if quest is in quest log and complete
             return questInfo ~= nil and questInfo.isComplete
         end
     else
-        if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+        if state.step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
-            if GetBindLocation() == step.data then
+            if GetBindLocation() == state.step.data then
                 return true
             end
         end
 
         -- If next step is complete, consider this step complete
-        local nextStep = State.chapter.steps[stepIndex + 1]
-        if nextStep ~= nil then
-            return IsStepComplete(nextStep, stepIndex + 1)
+        local nextState = State.steps[state.index + 1]
+        if nextStep then
+            return IsStepComplete(nextStep)
         end
     end
     return false
 end
 
-local function GetStepLocation(step)
-    if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-        return Traveler.DataSource:GetNearestQuestStarter(step.data)
-    elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-        return Traveler.DataSource:GetNearestQuestObjective(step.data)
-    elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-        return Traveler.DataSource:GetNearestQuestFinisher(step.data)
-    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-        return Traveler.DataSource:GetNearestFlightMaster()
-    elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-        return Traveler.DataSource:GetInnkeeperLocation(step.data)
+local function FindState(type, data)
+    for _, state in ipairs(State.steps) do
+        if state.step.type == type and state.step.data == data then
+            return state
+        end
     end
 end
 
@@ -75,12 +69,17 @@ end
 
 function State:Reset()
     self.steps = {}
-
     self.journey = Traveler:GetActiveJourney()
-    if self.journey == nil then return end
-
     self.chapter = Traveler:GetActiveChapter(self.journey)
-    if self.chapter == nil then return end
+
+    if self.chapter then
+        for i, step in ipairs(self.chapter.steps or {}) do
+            self.steps[i] = {
+                step = step,
+                index = i
+            }
+        end
+    end
 
     self:Update()
 end
@@ -92,71 +91,93 @@ end
 function State:UpdateImmediate()
     if not Traveler.DataSource.IsInitialized() then return end
 
-    if self.journey == nil or self.chapter == nil then
-        self.needUpdate = false
-        return
-    end
+    if self.journey and self.chapter then
+        local now = GetTimePreciseSec()
 
-    local now = GetTimePreciseSec()
-
-    self.currentQuestLog = {}
-    local entriesCount = Traveler:GetQuestLogNumEntries()
-    for i = 1, entriesCount do
-        local info = Traveler:GetQuestLogInfo(i)
-        if info ~= nil and not info.isHeader then
-            State.currentQuestLog[info.questId] = {
-                isComplete = info.isComplete
-            }
+        -- Get current quest log
+        self.currentQuestLog = {}
+        local entriesCount = Traveler:GetQuestLogNumEntries()
+        for i = 1, entriesCount do
+            local info = Traveler:GetQuestLogInfo(i)
+            if info and not info.isHeader then
+                State.currentQuestLog[info.questId] = {
+                    isComplete = info.isComplete
+                }
+            end
         end
-    end
 
-    for i, step in ipairs(self.chapter.steps) do
-        local state = self.steps[i]
-        if state == nil then
-            self.steps[i] = {
-                step = step,
-                isComplete = IsStepComplete(i, step),
-                location = GetStepLocation(step)
-            }
-        else
-            state.isComplete = IsStepComplete(i, step)
+        -- Find first incomplete step index
+        local firstStepIndex = 1
+        if not Traveler.db.profile.window.showCompletedSteps then
+            for i, state in ipairs(self.steps) do
+                if not state.isComplete then
+                    firstStepIndex = i
+                    break
+                end
+            end
         end
-    end
 
-    Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
+        -- Update steps range state
+        Traveler:Debug("Updating state range %d to %d", firstStepIndex, #self.steps)
+        for i = firstStepIndex, #self.steps do
+            local state = self.steps[i]
+            state.isComplete = IsStepComplete(state)
+            state.location = self:GetStepLocation(state.step)
+        end
+
+        Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
+    end
     self.needUpdate = false
 
     Traveler.Tracker:UpdateImmediate()
 end
 
 function State:OnQuestAccepted(questId)
-    self:SetStepComplete({ type = Traveler.STEP_TYPE_ACCEPT_QUEST, data = questId })
+    local state = FindState(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
+    if state then
+        state.isComplete = true
+    end
+    self:Update()
+end
+
+function State:OnQuestProgress(questId)
+    local state = FindState(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
+    if state then
+        state.isComplete = IsStepComplete(state)
+    end
+    self:Update()
 end
 
 function State:OnQuestTurnedIn(questId)
-    self:SetStepComplete({ type = Traveler.STEP_TYPE_TURNIN_QUEST, data = questId })
+    local state = FindState(Traveler.STEP_TYPE_TURNIN_QUEST, questId)
+    if state then
+        state.isComplete = true
+    end
+    self:Update()
 end
 
 function State:OnQuestAbandoned(questId)
-    self:Update()
-end
-
-function State:OnQuestLogUpdate()
-    self:Update()
+    self:Reset()
 end
 
 function State:OnHearthstoneBound(location)
-    self:SetStepComplete({ type = Traveler.STEP_TYPE_BIND_HEARTHSTONE, data = location })
+    local state = FindState(Traveler.STEP_TYPE_BIND_HEARTHSTONE, location)
+    if state then
+        state.isComplete = true
+    end
+    self:Update()
 end
 
-function State:SetStepComplete(step)
-    for i, state in ipairs(self.steps) do
-        if not state.isComplete then
-            if state.step.type == step.type and state.step.data == step.data then
-                state.isComplete = true
-                self:Update()
-                return
-            end
-        end
+function State:GetStepLocation(step)
+    if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+        return Traveler.DataSource:GetNearestQuestStarter(step.data)
+    elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+        return Traveler.DataSource:GetNearestQuestObjective(step.data)
+    elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+        return Traveler.DataSource:GetNearestQuestFinisher(step.data)
+    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+        return Traveler.DataSource:GetNearestFlightMaster()
+    elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+        return Traveler.DataSource:GetInnkeeperLocation(step.data)
     end
 end

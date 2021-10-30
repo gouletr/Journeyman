@@ -31,18 +31,28 @@ function Traveler:InitializeEvents()
         end
     end)
 
+    self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
+        if self.questProgress == nil then
+            self.questProgress = {}
+        end
+        self.questProgress[questId] = true
+    end)
+
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        self:OnQuestLogUpdate()
+        if self.questProgress then
+            for questId, _ in pairs(self.questProgress) do
+                self:OnQuestProgress(questId)
+            end
+            self.questProgress = nil
+        end
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
-        Traveler:Debug("Confirm binder to %s", location)
         self.bindLocation = location
     end)
 
     self:RegisterEvent("HEARTHSTONE_BOUND", function(event)
         if self.bindLocation ~= nil then
-            Traveler:Debug("Heathstone bound to %s", self.bindLocation)
             self:OnHearthstoneBound(self.bindLocation)
             self.bindLocation = nil
         end
@@ -77,8 +87,8 @@ function Traveler:OnQuestAbandoned(questId)
     self:JourneyRemoveQuest(questId)
 end
 
-function Traveler:OnQuestLogUpdate()
-    self.State:OnQuestLogUpdate()
+function Traveler:OnQuestProgress(questId)
+    self.State:OnQuestProgress(questId)
 end
 
 function Traveler:OnHearthstoneBound(location)

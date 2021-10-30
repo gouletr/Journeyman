@@ -29,9 +29,10 @@ local databaseDefaults = {
             showSkippedSteps = true,
         },
         autoSetWaypoint = true,
+        autoSetWaypointMin = 15,
         advanced = {
             debug = false,
-            updateFrequency = 0.5
+            updateFrequency = 1.0
         }
     },
     char = {

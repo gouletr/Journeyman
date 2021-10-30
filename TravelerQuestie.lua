@@ -72,7 +72,7 @@ local function GetNearestObject(objects, player)
     end
 
     if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName }
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = "Object" }
     end
 end
 
@@ -95,7 +95,7 @@ local function GetNearestNPC(npcs, player)
     end
 
     if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName }
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = "NPC" }
     end
 end
 
@@ -103,17 +103,15 @@ local function GetNearestObjectiveSpawn(objective, player)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestType
 
-    if next(objective.spawnList) then
-        for spawnId, spawnData in pairs(objective.spawnList) do
-            local nearest = GetNearestSpawn(spawnData.Spawns, player)
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = spawnData.Name
-                bestType = spawnData.Type
-            end
+    for spawnId, spawnData in pairs(objective.spawnList or {}) do
+        local nearest = GetNearestSpawn(spawnData.Spawns, player)
+        if nearest and (nearest.distance < bestDistance) then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = spawnData.Name
+            bestType = spawnData.Type
         end
     end
 
@@ -150,30 +148,28 @@ function DataSourceQuestie:GetNearestQuestStarter(questId)
 
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestType
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
 
-    if quest.Starts then
-        local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-        for starterType, starters in pairs(quest.Starts) do
-            if starterType == "GameObject" then
-                local nearest = GetNearestObject(starters, { x = playerX, y = playerY, mapId = playerMapId })
-                if nearest and (nearest.distance < bestDistance) then
-                    bestDistance = nearest.distance
-                    bestX = nearest.x
-                    bestY = nearest.y
-                    bestMapId = nearest.mapId
-                    bestName = nearest.name
-                    bestType = "Object"
-                end
-            elseif starterType == "NPC" then
-                local nearest = GetNearestNPC(starters, { x = playerX, y = playerY, mapId = playerMapId })
-                if nearest and (nearest.distance < bestDistance) then
-                    bestDistance = nearest.distance
-                    bestX = nearest.x
-                    bestY = nearest.y
-                    bestMapId = nearest.mapId
-                    bestName = nearest.name
-                    bestType = "NPC"
-                end
+    for starterType, starters in pairs(quest.Starts or {}) do
+        if starterType == "GameObject" then
+            local nearest = GetNearestObject(starters, { x = playerX, y = playerY, mapId = playerMapId })
+            if nearest and (nearest.distance < bestDistance) then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = nearest.name
+                bestType = nearest.type
+            end
+        elseif starterType == "NPC" then
+            local nearest = GetNearestNPC(starters, { x = playerX, y = playerY, mapId = playerMapId })
+            if nearest and (nearest.distance < bestDistance) then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = nearest.name
+                bestType = nearest.type
             end
         end
     end
@@ -191,34 +187,30 @@ function DataSourceQuestie:GetNearestQuestObjective(questId)
     local bestX, bestY, bestMapId, bestName, bestType
     local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
 
-    if quest.Objectives then
-        for i, objective in ipairs(quest.Objectives) do
-            if not objective.Needed or objective.Needed ~= objective.Collected then
-                local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
-                if nearest and (nearest.distance < bestDistance) then
-                    bestDistance = nearest.distance
-                    bestX = nearest.x
-                    bestY = nearest.y
-                    bestMapId = nearest.mapId
-                    bestName = nearest.name
-                    bestType = nearest.type
-                end
+    for i, objective in ipairs(quest.Objectives or {}) do
+        if not objective.Needed or objective.Needed ~= objective.Collected then
+            local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
+            if nearest and (nearest.distance < bestDistance) then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = nearest.name
+                bestType = nearest.type
             end
         end
     end
 
-    if next(quest.SpecialObjectives) then
-        for _, objective in ipairs(quest.SpecialObjectives) do
-            if not objective.Needed or objective.Needed ~= objective.Collected then
-                local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
-                if nearest and (nearest.distance < bestDistance) then
-                    bestDistance = nearest.distance
-                    bestX = nearest.x
-                    bestY = nearest.y
-                    bestMapId = nearest.mapId
-                    bestName = nearest.name
-                    bestType = nearest.type
-                end
+    for _, objective in ipairs(quest.SpecialObjectives or {}) do
+        if not objective.Needed or objective.Needed ~= objective.Collected then
+            local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
+            if nearest and (nearest.distance < bestDistance) then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = nearest.name
+                bestType = nearest.type
             end
         end
     end

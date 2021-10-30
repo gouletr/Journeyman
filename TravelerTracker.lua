@@ -359,15 +359,17 @@ function Tracker:UpdateSteps()
     self.lineIndex = 1
     local waypointSet = false
     for _, groupState in ipairs(groups) do
-        if groupState.location ~= nil then
+        if groupState.location then
             if not groupState.isComplete or Traveler.db.profile.window.showCompletedSteps then
-                local prefix = ""
+                local prefix
                 if groupState.location.type == "NPC" then
                     prefix = "Go talk to"
-                else
+                elseif groupState.location.type == "Object" then
                     prefix = "Go to"
                 end
-                self:GetNextLine():SetStepText(groupState, "%s %s", prefix, self:GetColoredLocationText(groupState, groupState.location.name))
+                if prefix then
+                    self:GetNextLine():SetStepText(groupState, "%s %s", prefix, self:GetColoredLocationText(groupState, groupState.location.name))
+                end
             end
         end
 
@@ -385,7 +387,7 @@ function Tracker:UpdateSteps()
             end
 
             if Traveler.db.profile.autoSetWaypoint and not waypointSet and not stepState.isComplete then
-                self:SetWaypoint(stepState)
+                self:SetWaypoint(stepState, false)
                 waypointSet = true
             end
         end
@@ -419,7 +421,11 @@ function Tracker:GetNextLine()
             self:SetFontSize(Traveler.db.profile.window.fontSize)
             self:SetWidth(Tracker.scrollChild:GetWidth())
             self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
-            self:SetScript("OnClick", function(self) Tracker:SetWaypoint(state) end)
+            self:SetScript("OnClick", function(self, button)
+                if button == "LeftButton" and IsControlKeyDown() then
+                    Tracker:SetWaypoint(state, true)
+                end
+            end)
             self:Show()
         end
 
@@ -489,18 +495,14 @@ function Tracker:GetColoredItemText(state, itemId)
     return itemName
 end
 
-function Tracker:SetWaypoint(state)
+function Tracker:SetWaypoint(state, force)
     if TomTom and TomTom.AddWaypoint then
         if Traveler.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(Traveler.db.char.waypoint)
         end
 
-        local location = state.location
-        if not location and state.step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-            location = Traveler.DataSource:GetNearestQuestObjective(state.step.data)
-        end
-
-        if location then
+        local location = Traveler.State:GetStepLocation(state.step)
+        if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
             Traveler.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
         end
     end
