@@ -18,6 +18,7 @@ end
 
 function Traveler:OnEnable()
     self.State:Reset()
+    self.Tracker:Update()
 end
 
 function Traveler:OnDisable()

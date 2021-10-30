@@ -12,10 +12,10 @@ function Traveler:InitializeOptions()
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable(), "traveler")
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
-    aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
-    aceConfigDialog:AddToBlizOptions(addonName, "Journeys", addonName, "journeys")
-    aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
-    aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
+    self.generalOptions = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
+    self.journeysOptions = aceConfigDialog:AddToBlizOptions(addonName, "Journeys", addonName, "journeys")
+    self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
+    self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
 function Traveler:GetOptionsTable()
@@ -36,17 +36,44 @@ function Traveler:GetGeneralOptionsTable()
         type = "group",
         name = "General",
         args = {
-            windowHeader = {
+            journeyHeader = {
                 order = 0,
+                type = "header",
+                name = L["JOURNEY_OPTIONS"]
+            },
+            journey = {
+                order = 1,
+                type = "select",
+                name = L["SELECT_JOURNEY"],
+                desc = L["SELECT_JOURNEY_DESC"],
+                width = Percent(0.5),
+                values = function()
+                    local values = {}
+                    for i,v in ipairs(self.journeys) do
+                        values[i] = v.title
+                    end
+                    return values
+                end,
+                set = function(info, value)
+                    if self.db.char.window.journey ~= value then
+                        self.db.char.window.journey = value
+                        self.db.char.window.chapter = 1
+                        self.State:Reset()
+                    end
+                end,
+                get = function(info) return self.db.char.window.journey end
+            },
+            windowHeader = {
+                order = 20,
                 type = "header",
                 name = L["WINDOW_OPTIONS"]
             },
             show = {
-                order = 1,
+                order = 21,
                 type = "toggle",
                 name = L["SHOW_WINDOW"],
                 desc = L["SHOW_WINDOW_DESC"],
-                width = Percent(0.25),
+                width = Percent(0.5),
                 get = function(info) return self.db.char.window.show end,
                 set = function(info, value)
                     if self.db.char.window.show ~= value then
@@ -56,11 +83,11 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             locked = {
-                order = 2,
+                order = 22,
                 type = "toggle",
                 name = L["LOCK_WINDOW"],
                 desc = L["LOCK_WINDOW_DESC"],
-                width = Percent(0.25),
+                width = Percent(0.5),
                 get = function(info) return self.db.profile.window.locked end,
                 set = function(info, value)
                     if self.db.profile.window.locked ~= value then
@@ -69,8 +96,22 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
+            showScrollBar = {
+                order = 23,
+                type = "toggle",
+                name = L["SHOW_SCROLL_BAR"],
+                desc = L["SHOW_SCROLL_BAR_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.showScrollBar end,
+                set = function(info, value)
+                    if self.db.profile.window.showScrollBar ~= value then
+                        self.db.profile.window.showScrollBar = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
             resetPosition = {
-                order = 3,
+                order = 24,
                 type = "execute",
                 name = L["RESET_POSITION"],
                 desc = L["RESET_POSITION_DESC"],
@@ -84,50 +125,8 @@ function Traveler:GetGeneralOptionsTable()
                     self.Tracker:UpdateImmediate()
                 end
             },
-            showQuestLevel = {
-                order = 4,
-                type = "toggle",
-                name = L["SHOW_QUEST_LEVEL"],
-                desc = L["SHOW_QUEST_LEVEL_DESC"],
-                width = Percent(0.25),
-                get = function(info) return self.db.profile.window.showQuestLevel end,
-                set = function(info, value)
-                    if self.db.profile.window.showQuestLevel ~= value then
-                        self.db.profile.window.showQuestLevel = value
-                        self.Tracker:UpdateImmediate()
-                    end
-                end
-            },
-            showSkippedSteps = {
-                order = 5,
-                type = "toggle",
-                name = L["SHOW_SKIPPED_STEPS"],
-                desc = L["SHOW_SKIPPED_STEPS_DESC"],
-                width = Percent(0.25),
-                get = function(info) return self.db.profile.window.showSkippedSteps end,
-                set = function(info, value)
-                    if self.db.profile.window.showSkippedSteps ~= value then
-                        self.db.profile.window.showSkippedSteps = value
-                        self.State:Reset()
-                    end
-                end
-            },
-            showCompletedSteps = {
-                order = 6,
-                type = "toggle",
-                name = L["SHOW_COMPLETED_STEPS"],
-                desc = L["SHOW_COMPLETED_STEPS_DESC"],
-                width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showCompletedSteps end,
-                set = function(info, value)
-                    if self.db.profile.window.showCompletedSteps ~= value then
-                        self.db.profile.window.showCompletedSteps = value
-                        self.State:Reset()
-                    end
-                end
-            },
             width = {
-                order = 7,
+                order = 25,
                 type = "range",
                 name = L["WINDOW_WIDTH"],
                 desc = L["WINDOW_WIDTH_DESC"],
@@ -146,7 +145,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             height = {
-                order = 8,
+                order = 26,
                 type = "range",
                 name = L["WINDOW_HEIGHT"],
                 desc = L["WINDOW_HEIGHT_DESC"],
@@ -164,8 +163,93 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
+            windowStrata = {
+                order = 27,
+                type = "select",
+                name = L["WINDOW_STRATA"],
+                desc = L["WINDOW_STRATA_DESC"],
+                width = Percent(0.5),
+                values = {
+                    ["BACKGROUND"] = "BACKGROUND",
+                    ["LOW"] = "LOW",
+                    ["MEDIUM"] = "MEDIUM",
+                    ["HIGH"] = "HIGH",
+                    ["DIALOG"] = "DIALOG",
+                    ["FULLSCREEN"] = "FULLSCREEN",
+                    ["FULLSCREEN_DIALOG"] = "FULLSCREEN_DIALOG",
+                    ["TOOLTIP"] = "TOOLTIP"
+                },
+                sorting = {"BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG", "FULLSCREEN", "FULLSCREEN_DIALOG", "TOOLTIP"},
+                get = function(info) return self.db.profile.window.strata end,
+                set = function(info, value)
+                    if self.db.profile.window.strata ~= value then
+                        self.db.profile.window.strata = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
+            windowLevel = {
+                order = 28,
+                type = "range",
+                name = L["WINDOW_LEVEL"],
+                desc = L["WINDOW_LEVEL_DESC"],
+                min = 0,
+                max = 10000,
+                step = 1,
+                bigStep = 100,
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.level end,
+                set = function(info, value)
+                    if self.db.profile.window.level ~= value then
+                        self.db.profile.window.level = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
+            showQuestLevel = {
+                order = 29,
+                type = "toggle",
+                name = L["SHOW_QUEST_LEVEL"],
+                desc = L["SHOW_QUEST_LEVEL_DESC"],
+                width = Percent(1.0),
+                get = function(info) return self.db.profile.window.showQuestLevel end,
+                set = function(info, value)
+                    if self.db.profile.window.showQuestLevel ~= value then
+                        self.db.profile.window.showQuestLevel = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
+            showCompletedSteps = {
+                order = 30,
+                type = "toggle",
+                name = L["SHOW_COMPLETED_STEPS"],
+                desc = L["SHOW_COMPLETED_STEPS_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.showCompletedSteps end,
+                set = function(info, value)
+                    if self.db.profile.window.showCompletedSteps ~= value then
+                        self.db.profile.window.showCompletedSteps = value
+                        self.State:Reset()
+                    end
+                end
+            },
+            showSkippedSteps = {
+                order = 31,
+                type = "toggle",
+                name = L["SHOW_SKIPPED_STEPS"],
+                desc = L["SHOW_SKIPPED_STEPS_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.showSkippedSteps end,
+                set = function(info, value)
+                    if self.db.profile.window.showSkippedSteps ~= value then
+                        self.db.profile.window.showSkippedSteps = value
+                        self.State:Reset()
+                    end
+                end
+            },
             fontSize = {
-                order = 9,
+                order = 32,
                 type = "range",
                 name = L["FONT_SIZE"],
                 desc = L["FONT_SIZE_DESC"],
@@ -182,7 +266,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             lineSpacing = {
-                order = 10,
+                order = 33,
                 type = "range",
                 name = L["LINE_SPACING"],
                 desc = L["LINE_SPACING_DESC"],
@@ -199,7 +283,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             backgroundColor = {
-                order = 11,
+                order = 34,
                 type = "color",
                 name = L["WINDOW_BG_COLOR"],
                 desc = L["WINDOW_BG_COLOR_DESC"],
@@ -216,34 +300,6 @@ function Traveler:GetGeneralOptionsTable()
                     self.db.profile.window.backgroundColor.a = a
                     self.Tracker:UpdateImmediate()
                 end
-            },
-            journeyHeader = {
-                order = 20,
-                type = "header",
-                name = L["JOURNEY_OPTIONS"]
-            },
-            journey = {
-                order = 21,
-                type = "select",
-                name = L["SELECT_JOURNEY"],
-                desc = L["SELECT_JOURNEY_DESC"],
-                width = Percent(0.25),
-                values = function()
-                    local values = {}
-                    for i,v in ipairs(self.journeys) do
-                        values[i] = v.title
-                    end
-                    return values
-                end,
-                set = function(info, value)
-                    if self.db.char.window.journey ~= value then
-                        self.db.char.window.journey = value
-                        self.db.char.window.chapter = 1
-                        self.db.char.state = {}
-                        self.State:Reset()
-                    end
-                end,
-                get = function(info) return self.db.char.window.journey end
             }
         }
     }

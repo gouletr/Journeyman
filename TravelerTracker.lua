@@ -2,6 +2,9 @@ local addonName, addon = ...
 local L = addon.Locale
 local Traveler = addon.Traveler
 
+local AceGUI = LibStub("AceGUI-3.0")
+local TomTom = TomTom
+
 local Tracker = {}
 local HEADER_HEIGHT = 24
 local STEP_COLOR_COMPLETE = "FFA0A0A0"
@@ -13,19 +16,18 @@ local QUEST_COLOR_GREEN = "FF40C040"
 local QUEST_COLOR_GREY = "FFC0C0C0"
 
 local function CreateLabel(name, parent)
-    local label = CreateFrame("FRAME", name, parent)
+    local label = CreateFrame("BUTTON", name, parent)
     local fontString = label:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fontString:SetAllPoints(label)
     fontString:SetFontObject("GameFontNormal")
     label.fontString = fontString
-
     label.SetText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
-    label.SetSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
+    label.SetFontSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
     label.SetJustifyH = function(self, value) self.fontString:SetJustifyH(value) end
     label.SetJustifyV = function(self, value) self.fontString:SetJustifyV(value) end
     label.SetWordWrap = function(self, value) self.fontString:SetWordWrap(value) end
     label.SetMaxLines = function(self, value) self.fontString:SetMaxLines(value) end
-
+    label.GetNumLines = function(self) return self.fontString:GetNumLines() end
     return label
 end
 
@@ -34,12 +36,14 @@ function Tracker:Initialize()
 
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
+    frame:SetFrameStrata(Traveler.db.profile.window.strata)
+    frame:SetFrameLevel(Traveler.db.profile.window.level)
     frame:SetWidth(Traveler.db.profile.window.width)
     frame:SetHeight(Traveler.db.profile.window.height)
     frame:SetPoint(Traveler.db.profile.window.relativePoint, UIParent, Traveler.db.profile.window.relativePoint, Traveler.db.profile.window.x, Traveler.db.profile.window.y)
     frame:SetMovable(true)
     frame:SetResizable(true)
-    frame:SetMinResize(200, 200)
+    frame:SetMinResize(200, 100)
     frame:EnableMouse(true)
     frame:SetScript("OnMouseDown", function(self, button)
         if not Traveler.db.profile.window.locked and button == "LeftButton" then
@@ -129,7 +133,7 @@ function Tracker:Initialize()
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
     chapterTitle:SetJustifyH("LEFT")
     chapterTitle:SetJustifyV("CENTER")
-    chapterTitle:SetSize(Traveler.db.profile.window.fontSize)
+    chapterTitle:SetFontSize(Traveler.db.profile.window.fontSize)
     self.chapterTitle = chapterTitle
 
     -- Create resize button
@@ -165,6 +169,11 @@ function Tracker:Initialize()
     scrollFrame:SetHeight(frame:GetHeight() - HEADER_HEIGHT)
     scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -HEADER_HEIGHT)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    if Traveler.db.profile.window.showScrollBar then
+        scrollFrame.ScrollBar:SetAlpha(1)
+    else
+        scrollFrame.ScrollBar:SetAlpha(0)
+    end
     self.scrollFrame = scrollFrame
 
     -- Scroll child
@@ -174,6 +183,29 @@ function Tracker:Initialize()
     scrollChild:SetHeight(scrollFrame:GetHeight())
     scrollChild:SetAllPoints(scrollFrame)
     self.scrollChild = scrollChild
+
+    -- Journey Selection Label
+    local journeySelectionLabel = CreateLabel(nil, scrollChild)
+    journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Traveler.db.profile.window.fontSize + 4)
+    journeySelectionLabel:SetWordWrap(true)
+    journeySelectionLabel:SetMaxLines(10)
+    journeySelectionLabel:SetText(L["NO_JOURNEY_SELECTED"])
+    journeySelectionLabel:SetFontSize(12)
+    journeySelectionLabel:SetWidth(scrollChild:GetWidth() - 48)
+    journeySelectionLabel:SetHeight(12 * journeySelectionLabel:GetNumLines())
+    self.journeySelectionLabel = journeySelectionLabel
+
+    -- Journey Selection Button
+    local journeySelectionButton = CreateFrame("BUTTON", nil, scrollChild, "UIPanelButtonTemplate")
+    journeySelectionButton:SetPoint("TOP", journeySelectionLabel, "BOTTOM", 0, -4)
+    journeySelectionButton:SetWidth(150)
+    journeySelectionButton:SetHeight(24)
+    journeySelectionButton:SetText(L["OPEN_OPTIONS"])
+    journeySelectionButton:SetScript("OnClick", function()
+        InterfaceOptionsFrame_OpenToCategory(Traveler.generalOptions)
+        InterfaceOptionsFrame_OpenToCategory(Traveler.generalOptions)
+    end)
+    self.journeySelectionButton = journeySelectionButton
 
     -- Install update ticker
     self.ticker = C_Timer.NewTicker(Traveler.db.profile.advanced.updateFrequency, function()
@@ -204,6 +236,7 @@ function Tracker:UpdateImmediate()
     self:UpdateChapterTitle()
     self:UpdateResizeButton()
     self:UpdateScrollFrame()
+    self:UpdateJourneySelection()
     self:UpdateSteps()
 
     self.frame:SetShown(Traveler.db.char.window.show)
@@ -213,6 +246,8 @@ function Tracker:UpdateImmediate()
 end
 
 function Tracker:UpdateFrame()
+    self.frame:SetFrameStrata(Traveler.db.profile.window.strata)
+    self.frame:SetFrameLevel(Traveler.db.profile.window.level)
     self.frame:SetSize(Traveler.db.profile.window.width, Traveler.db.profile.window.height)
     self.frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
 end
@@ -260,18 +295,40 @@ end
 function Tracker:UpdateChapterTitle()
     local journey = Traveler:GetActiveJourney()
     local chapter = Traveler:GetActiveChapter(journey)
+
+    local title
     if chapter ~= nil then
         local index = Traveler:GetActiveChapterIndex()
-        self.chapterTitle:SetSize(Traveler.db.profile.window.fontSize)
-        self.chapterTitle:SetText("Chapter " .. index .. ": " .. chapter.title)
+        title = string.format(L["CHAPTER_TITLE"], index, chapter.title)
+    else
+        title = L["MISSING_CHAPTER_TITLE"]
     end
+
+    self.chapterTitle:SetFontSize(Traveler.db.profile.window.fontSize)
+    self.chapterTitle:SetText(title)
 end
 
 function Tracker:UpdateScrollFrame()
     self.scrollFrame:SetWidth(self.frame:GetWidth())
     self.scrollFrame:SetHeight(self.frame:GetHeight() - HEADER_HEIGHT)
+    if Traveler.db.profile.window.showScrollBar then
+        self.scrollFrame.ScrollBar:SetAlpha(1)
+    else
+        self.scrollFrame.ScrollBar:SetAlpha(0)
+    end
     self.scrollChild:SetWidth(self.scrollFrame:GetWidth())
     self.scrollChild:SetHeight(self.scrollFrame:GetHeight())
+end
+
+function Tracker:UpdateJourneySelection()
+    local shown = Traveler:GetActiveJourney() == nil
+    if shown then
+        self.journeySelectionLabel:SetFontSize(12)
+        self.journeySelectionLabel:SetWidth(self.scrollChild:GetWidth() - 48)
+        self.journeySelectionLabel:SetHeight(12 * self.journeySelectionLabel:GetNumLines())
+    end
+    self.journeySelectionLabel:SetShown(shown)
+    self.journeySelectionButton:SetShown(shown)
 end
 
 function Tracker:UpdateSteps()
@@ -300,6 +357,7 @@ function Tracker:UpdateSteps()
 
     -- Iterate steps in each group
     self.lineIndex = 1
+    local waypointSet = false
     for _, groupState in ipairs(groups) do
         if groupState.location ~= nil then
             if not groupState.isComplete or Traveler.db.profile.window.showCompletedSteps then
@@ -324,6 +382,11 @@ function Tracker:UpdateSteps()
                 elseif stepState.step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
                     self:GetNextLine():SetStepText(stepState, "Bind %s to %s", self:GetColoredItemText(stepState, 6948), self:GetColoredLocationText(stepState, stepState.step.data))
                 end
+            end
+
+            if Traveler.db.profile.autoSetWaypoint and not waypointSet and not stepState.isComplete then
+                self:SetWaypoint(stepState)
+                waypointSet = true
             end
         end
     end
@@ -353,9 +416,10 @@ function Tracker:GetNextLine()
             else
                 self:SetText(fmt, ...)
             end
-            self:SetSize(Traveler.db.profile.window.fontSize)
+            self:SetFontSize(Traveler.db.profile.window.fontSize)
             self:SetWidth(Tracker.scrollChild:GetWidth())
-            self:SetHeight((Traveler.db.profile.window.fontSize * self.fontString:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
+            self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
+            self:SetScript("OnClick", function(self) Tracker:SetWaypoint(state) end)
             self:Show()
         end
 
@@ -423,6 +487,23 @@ function Tracker:GetColoredItemText(state, itemId)
     end
 
     return itemName
+end
+
+function Tracker:SetWaypoint(state)
+    if TomTom and TomTom.AddWaypoint then
+        if Traveler.db.char.waypoint and TomTom.RemoveWaypoint then
+            TomTom:RemoveWaypoint(Traveler.db.char.waypoint)
+        end
+
+        local location = state.location
+        if not location and state.step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            location = Traveler.DataSource:GetNearestQuestObjective(state.step.data)
+        end
+
+        if location then
+            Traveler.db.char.waypoint = TomTom:AddWaypoint(location.uiMapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
+        end
+    end
 end
 
 Traveler.Tracker = Tracker

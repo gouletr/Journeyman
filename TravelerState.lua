@@ -124,9 +124,9 @@ function State:UpdateImmediate()
     end
 
     Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
+    self.needUpdate = false
 
     Traveler.Tracker:UpdateImmediate()
-    self.needUpdate = false
 end
 
 function State:OnQuestAccepted(questId)

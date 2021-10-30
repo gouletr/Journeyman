@@ -13,6 +13,8 @@ local databaseDefaults = {
             relativePoint = "CENTER",
             x = 0,
             y = 0,
+            strata = "MEDIUM",
+            level = 0,
             backgroundColor = {
                 r = 0,
                 g = 0,
@@ -21,10 +23,12 @@ local databaseDefaults = {
             },
             fontSize = 12,
             lineSpacing = 2,
+            showScrollBar = false,
             showQuestLevel = true,
             showCompletedSteps = false,
-            showSkippedSteps = true
+            showSkippedSteps = true,
         },
+        autoSetWaypoint = true,
         advanced = {
             debug = false,
             updateFrequency = 0.5
@@ -35,8 +39,7 @@ local databaseDefaults = {
             show = true,
             journey = -1,
             chapter = 1
-        },
-        state = {}
+        }
     }
 }
 
