@@ -27,7 +27,7 @@ local databaseDefaults = {
             showQuestLevel = true,
             showCompletedSteps = false,
             showSkippedSteps = true,
-            stepsShown = 5
+            stepsShown = 3
         },
         autoSetWaypoint = true,
         autoSetWaypointMin = 15,

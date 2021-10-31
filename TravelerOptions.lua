@@ -198,6 +198,7 @@ function Traveler:GetGeneralOptionsTable()
                 name = L["STEPS_SHOWN"],
                 desc = L["STEPS_SHOWN_DESC"],
                 min = 0,
+                softMin = 1,
                 softMax = 25,
                 step = 1,
                 width = Percent(0.5),

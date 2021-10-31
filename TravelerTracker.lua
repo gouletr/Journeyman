@@ -340,69 +340,30 @@ function Tracker:UpdateJourneySelection()
 end
 
 function Tracker:UpdateSteps()
-    -- Group steps per chronological location, and determine if they are complete
-    local groups = {}
+    -- Group steps per chronological location
+    local steps = {}
     for _, step in ipairs(Traveler.State.steps) do
         if step.location and step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST then
-            local lastGroup = groups[#groups]
-            if lastGroup == nil or lastGroup.location == nil or lastGroup.location.name ~= step.location.name then
-                Traveler.Utils:Add(groups, { isComplete = step.isComplete, location = step.location, steps = { step } })
+            local lastStep = steps[#steps]
+            if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
+                Traveler.Utils:Add(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
             else
-                Traveler.Utils:Add(lastGroup.steps, step)
-                lastGroup.isComplete = lastGroup.isComplete and step.isComplete
+                Traveler.Utils:Add(lastStep.children, step)
+                lastStep.isComplete = lastStep.isComplete and step.isComplete
             end
         else
-            Traveler.Utils:Add(groups, { isComplete = step.isComplete, isObjective = true, steps = { step } })
+            Traveler.Utils:Add(steps, step)
         end
     end
 
-    -- Iterate steps in each group
+    -- Display steps recursively
     self.lineIndex = 1
-    local waypointSet = false
+    self.waypointSet = false
     local stepsCount = 0
-    for _, group in ipairs(groups) do
-        -- Display group header
-        if group.location and not group.isObjective then
-            if Traveler.db.profile.window.showCompletedSteps or not group.isComplete then
-                local prefix
-                if group.location.type == "NPC" then
-                    prefix = "Go talk to"
-                elseif group.location.type == "Object" then
-                    prefix = "Go to"
-                end
-                if prefix then
-                    self:GetNextLine():SetStepText(group, "%s %s", prefix, self:GetColoredLocationText(group.location.name, group.isComplete))
-                end
-            end
-        end
-
-        -- Display all steps of group
-        for _, step in ipairs(group.steps) do
-            if not step.isComplete or Traveler.db.profile.window.showCompletedSteps then
-                if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                    self:GetNextLine():SetStepText(step, "    Accept %s", self:GetColoredQuestText(step.data, step.isComplete))
-                elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                    self:GetNextLine():SetStepText(step, "Complete %s", self:GetColoredQuestText(step.data, step.isComplete))
-                elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                    self:GetNextLine():SetStepText(step, "    Turn-in %s", self:GetColoredQuestText(step.data, step.isComplete))
-                elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-                    self:GetNextLine():SetStepText(step, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
-                elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                    self:GetNextLine():SetStepText(step, "Bind %s to %s", self:GetColoredItemText(step, 6948), self:GetColoredLocationText(step.data, step.isComplete))
-                else
-                    Traveler:Error("Step type %s not implemented.", step.type)
-                end
-            end
-
-            -- Auto set waypoint if its the first incomplete step
-            if Traveler.db.profile.autoSetWaypoint and not waypointSet and not step.isComplete then
-                self:SetWaypoint(step, false)
-                waypointSet = true
-            end
-        end
-
-        -- Stop if we reach number of steps shown
-        if not group.isComplete then
+    for i = 1, #steps do
+        local step = steps[i]
+        self:DisplayStep(steps[i])
+        if not step.isComplete then -- only count incomplete steps
             stepsCount = stepsCount + 1
             if Traveler.db.profile.window.stepsShown > 0 and stepsCount >= Traveler.db.profile.window.stepsShown then
                 break
@@ -416,27 +377,78 @@ function Tracker:UpdateSteps()
     end
 end
 
+function Tracker:DisplayStep(step, depth)
+    if depth == nil then
+        depth = 0
+    end
+
+    if step.isComplete and not Traveler.db.profile.window.showCompletedSteps then
+        return
+    end
+
+    if step.hasChildren then
+        -- Display step prefix
+        if step.location then
+            local prefix
+            if step.location.type == "NPC" then
+                prefix = "Go talk to"
+            else
+                prefix = "Go to"
+            end
+            self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredLocationText(step.location.name, step.isComplete))
+        else
+            Traveler:Error("Unknown location for step %s", dump(step))
+        end
+        -- Display child steps
+        for _, child in ipairs(step.children) do
+            self:DisplayStep(child, depth + 1)
+        end
+    else
+        -- Display step
+        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+            self:GetNextLine():SetStepText(step, depth, "Accept %s", self:GetColoredQuestText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            self:GetNextLine():SetStepText(step, depth, "Complete %s", self:GetColoredQuestText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            self:GetNextLine():SetStepText(step, depth, "Turn-in %s", self:GetColoredQuestText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+            self:GetNextLine():SetStepText(step, depth, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, 6948), self:GetColoredLocationText(step.data, step.isComplete))
+        else
+            Traveler:Error("Step type %s not implemented.", step.type)
+        end
+        -- Auto set waypoint if its the first incomplete step
+        if Traveler.db.profile.autoSetWaypoint and not self.waypointSet and not step.isComplete then
+            self:SetWaypoint(step, false)
+            self.waypointSet = true
+        end
+    end
+end
+
 function Tracker:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
         line = CreateLabel(nil, self.scrollChild, true)
-        if self.lineIndex == 1 then
-            line:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT")
-        else
-            line:SetPoint("TOPLEFT", self.lines[self.lineIndex - 1], "BOTTOMLEFT")
-        end
         line:SetJustifyH("LEFT")
         line:SetWordWrap(true)
-
         line.index = self.lineIndex
-        line.SetStepText = function(self, step, fmt, ...)
+        line.SetStepText = function(self, step, depth, fmt, ...)
+            self:SetPoint("LEFT", Tracker.scrollChild, "LEFT", Traveler.db.profile.window.fontSize * depth, 0)
+            if self.index == 1 then
+                self:SetPoint("TOP", Tracker.scrollChild, "TOP", 0, -Traveler.db.profile.window.fontSize * (self.index - 1))
+            else
+                self:SetPoint("TOP", Tracker.lines[self.index - 1], "BOTTOM", 0, 0)
+            end
+
             if step.isComplete then
                 self:SetText("|c%s%s|r", STEP_COLOR_COMPLETE, string.format(fmt, ...))
             else
                 self:SetText(fmt, ...)
             end
+
             self:SetFontSize(Traveler.db.profile.window.fontSize)
-            self:SetWidth(Tracker.scrollChild:GetWidth())
+            self:SetWidth(Tracker.scrollChild:GetWidth() - (Traveler.db.profile.window.fontSize * depth))
             self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" and IsControlKeyDown() then
@@ -513,7 +525,7 @@ function Tracker:SetWaypoint(step, force)
         end
 
         local location = step.location
-        if step.steps == nil then
+        if not step.isGroup then
             location = Traveler.State:GetStepLocation(step)
         end
         if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
