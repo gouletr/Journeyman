@@ -1,9 +1,10 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
+local L = addon.Locale
 
 function Traveler:InitializeEvents()
     self.questTurnedIn = {}
+    self.questProgress = {}
 
     -- This is too late to serialize data, doesn't work
     --self:RegisterEvent("PLAYER_LOGOUT", function(event)
@@ -32,18 +33,25 @@ function Traveler:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
-        if self.questProgress == nil then
-            self.questProgress = {}
-        end
         self.questProgress[questId] = true
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        if self.questProgress then
-            for questId, _ in pairs(self.questProgress) do
-                self:OnQuestProgress(questId)
+        self.State:UpdateQuestLog()
+
+        -- Fire OnQuestCompleted event
+        local completedQuests = {}
+        for questId, _ in ipairs(self.questProgress) do
+            local info = self.State:GetQuestLogInfo(questId)
+            if info and info.isComplete then
+                completedQuests[questId] = true
+                self:OnQuestCompleted(questId)
             end
-            self.questProgress = nil
+        end
+
+        -- Remove completed quests from watch
+        for questId, _ in ipairs(completedQuests) do
+            self.questProgress[questId] = nil
         end
     end)
 
@@ -60,10 +68,6 @@ function Traveler:InitializeEvents()
 end
 
 function Traveler:OnPlayerLeavingWorld()
-    self:SerializeDatabase()
-end
-
-function Traveler:OnPlayerLogOut()
     self:SerializeDatabase()
 end
 
@@ -85,10 +89,6 @@ end
 function Traveler:OnQuestAbandoned(questId)
     self.State:OnQuestAbandoned(questId)
     self:JourneyRemoveQuest(questId)
-end
-
-function Traveler:OnQuestProgress(questId)
-    self.State:OnQuestProgress(questId)
 end
 
 function Traveler:OnHearthstoneBound(location)

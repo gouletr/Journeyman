@@ -1,6 +1,6 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
+local L = addon.Locale
 
 function Traveler:InitializeHooks()
     self:Hook("TakeTaxiNode", "OnTakeTaxiNode", true)

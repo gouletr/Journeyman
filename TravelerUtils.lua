@@ -1,7 +1,6 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
-
+local L = addon.Locale
 local Utils = {}
 Traveler.Utils = Utils
 

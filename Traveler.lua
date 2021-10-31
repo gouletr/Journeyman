@@ -1,10 +1,10 @@
 local addonName, addon = ...
-
 addon.Traveler = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceHook-3.0", "AceEvent-3.0", "AceConsole-3.0")
 addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
-local L = addon.Locale
 local Traveler = addon.Traveler
+local L = addon.Locale
+local TomTom = TomTom
 
 function Traveler:OnInitialize()
     self:InitializeDatabase()
@@ -32,9 +32,11 @@ function Traveler:Debug(fmt, ...)
 end
 
 function Traveler:Error(fmt, ...)
-    local text = string.format(fmt, ...)
-    self:Print("[ERROR] " .. text)
-    error(text)
+    if self.db.profile.advanced.debug then
+        local text = string.format(fmt, ...)
+        self:Print("[ERROR] " .. text)
+        error(text)
+    end
 end
 
 function Traveler:GetQuestLogNumEntries()

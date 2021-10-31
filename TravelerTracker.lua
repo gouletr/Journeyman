@@ -1,11 +1,9 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
-
-local AceGUI = LibStub("AceGUI-3.0")
-local TomTom = TomTom
-
+local L = addon.Locale
 local Tracker = {}
+Traveler.Tracker = Tracker
+
 local HEADER_HEIGHT = 24
 local STEP_COLOR_COMPLETE = "FFA0A0A0"
 local LOCATION_COLOR = "FFFFFFFF"
@@ -396,7 +394,7 @@ function Tracker:UpdateSteps()
         -- Stop if we reach number of steps shown
         if not group.isComplete then
             stepsCount = stepsCount + 1
-            if Traveler.db.profile.window.stepsShown ~= 0 and stepsCount >= Traveler.db.profile.window.stepsShown then
+            if Traveler.db.profile.window.stepsShown > 0 and stepsCount >= Traveler.db.profile.window.stepsShown then
                 break
             end
         end
@@ -510,5 +508,3 @@ function Tracker:SetWaypoint(step, force)
         end
     end
 end
-
-Traveler.Tracker = Tracker

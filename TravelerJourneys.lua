@@ -1,6 +1,6 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
+local L = addon.Locale
 
 Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"

@@ -1,6 +1,8 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
+local L = addon.Locale
+local DataSourceQuestie = {}
+Traveler.DataSource = DataSourceQuestie
 
 local HBD = LibStub("HereBeDragons-2.0")
 local QuestieDB = QuestieLoader and QuestieLoader:ImportModule("QuestieDB")
@@ -8,8 +10,6 @@ local QuestiePlayer = QuestieLoader and QuestieLoader:ImportModule("QuestiePlaye
 local QuestieMap = QuestieLoader and QuestieLoader:ImportModule("QuestieMap")
 local QuestieLib = QuestieLoader and QuestieLoader:ImportModule("QuestieLib")
 local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
-
-local DataSourceQuestie = {}
 
 local function GetNearestSpawn(spawns, player)
     local bestDistance = 999999999
@@ -137,6 +137,16 @@ function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
 end
 
+function DataSourceQuestie:GetQuestHasRequiredRace(questId)
+    local requiredRaces = QuestieDB.QueryQuestSingle(questId, "requiredRaces")
+    return QuestiePlayer:HasRequiredRace(requiredRaces)
+end
+
+function DataSourceQuestie:GetQuestHasRequiredClass(questId)
+    local requiredClasses = QuestieDB.QueryQuestSingle(questId, "requiredClasses")
+    return QuestiePlayer:HasRequiredClass(requiredClasses)
+end
+
 function DataSourceQuestie:GetQuestExclusiveTo(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest ~= nil then return quest.exclusiveTo end
@@ -239,5 +249,3 @@ end
 
 function DataSourceQuestie:GetInnkeeperLocation(location)
 end
-
-Traveler.DataSource = DataSourceQuestie

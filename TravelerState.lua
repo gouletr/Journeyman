@@ -1,7 +1,6 @@
 local addonName, addon = ...
-local L = addon.Locale
 local Traveler = addon.Traveler
-
+local L = addon.Locale
 local State = {}
 Traveler.State = State
 
@@ -72,17 +71,7 @@ function State:Shutdown()
 end
 
 function State:Reset()
-    self.steps = {}
-
-    local journey = Traveler:GetActiveJourney()
-    local chapter = Traveler:GetActiveChapter(journey)
-    if chapter then
-        for i, step in ipairs(chapter.steps or {}) do
-            self.steps[i] = Traveler.Utils:Clone(step)
-            self.steps[i].index = i
-        end
-    end
-
+    self.steps = nil
     self:Update()
 end
 
@@ -95,17 +84,32 @@ function State:UpdateImmediate()
 
     local now = GetTimePreciseSec()
 
-    -- Get current quest log
-    self.currentQuestLog = {}
-    local entriesCount = Traveler:GetQuestLogNumEntries()
-    for i = 1, entriesCount do
-        local info = Traveler:GetQuestLogInfo(i)
-        if info and not info.isHeader then
-            State.currentQuestLog[info.questId] = {
-                isComplete = info.isComplete
-            }
+    -- Clone steps
+    if self.steps == nil then
+        self.steps = {}
+        local journey = Traveler:GetActiveJourney()
+        local chapter = Traveler:GetActiveChapter(journey)
+        if chapter then
+            local index = 1
+            for _, step in ipairs(chapter.steps or {}) do
+                -- Check if step is ever doable
+                local doable = true
+                if Traveler:IsStepQuest(step) then
+                    doable = Traveler.DataSource:GetQuestHasRequiredRace(step.data) and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
+                end
+
+                -- Clone step only if ever doable
+                if doable then
+                    self.steps[index] = Traveler.Utils:Clone(step)
+                    self.steps[index].index = index
+                    index = index + 1
+                end
+            end
         end
     end
+
+    -- Get current quest log
+    self:UpdateQuestLog()
 
     -- Find first incomplete step index
     local firstIncompleteStepIndex = 1
@@ -140,7 +144,7 @@ function State:UpdateImmediate()
         lastStepIndex = lastIncompleteStepIndex
     end
 
-    -- Update steps
+    -- Update step range
     Traveler:Debug("Updating step range %d to %d", firstStepIndex, lastStepIndex)
     for i = firstStepIndex, lastStepIndex do
         local step = self.steps[i]
@@ -156,6 +160,19 @@ function State:UpdateImmediate()
     Traveler.Tracker:UpdateImmediate()
 end
 
+function State:UpdateQuestLog()
+    self.currentQuestLog = {}
+    local entriesCount = Traveler:GetQuestLogNumEntries()
+    for i = 1, entriesCount do
+        local info = Traveler:GetQuestLogInfo(i)
+        if info and not info.isHeader then
+            self.currentQuestLog[info.questId] = {
+                isComplete = info.isComplete
+            }
+        end
+    end
+end
+
 function State:OnQuestAccepted(questId)
     local step = FindStep(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
     if step then
@@ -164,10 +181,10 @@ function State:OnQuestAccepted(questId)
     self:Update()
 end
 
-function State:OnQuestProgress(questId)
+function State:OnQuestCompleted(questId)
     local step = FindStep(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
     if step then
-        step.isComplete = IsStepComplete(step)
+        step.isComplete = true
     end
     self:Update()
 end
@@ -206,4 +223,8 @@ function State:GetStepLocation(step)
     else
         Traveler:Error("Step type %s not implemented.", step.type)
     end
+end
+
+function State:GetQuestLogInfo(questId)
+    return self.currentQuestLog[questId]
 end
