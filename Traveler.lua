@@ -4,7 +4,6 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local Traveler = addon.Traveler
 local L = addon.Locale
-local TomTom = TomTom
 
 function Traveler:OnInitialize()
     self:InitializeDatabase()

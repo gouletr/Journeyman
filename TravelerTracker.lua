@@ -4,6 +4,8 @@ local L = addon.Locale
 local Tracker = {}
 Traveler.Tracker = Tracker
 
+local TomTom = TomTom
+
 local HEADER_HEIGHT = 24
 local STEP_COLOR_COMPLETE = "FFA0A0A0"
 local LOCATION_COLOR = "FFFFFFFF"
@@ -338,7 +340,7 @@ function Tracker:UpdateSteps()
             if lastGroup == nil or lastGroup.location == nil or lastGroup.location.name ~= step.location.name then
                 Traveler.Utils:Add(groups, { isComplete = step.isComplete, location = step.location, steps = { step } })
             else
-                lastGroup.steps[#lastGroup.steps + 1] = step
+                Traveler.Utils:Add(lastGroup.steps, step)
                 lastGroup.isComplete = lastGroup.isComplete and step.isComplete
             end
         else
