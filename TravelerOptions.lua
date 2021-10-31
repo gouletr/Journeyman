@@ -164,21 +164,6 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
-            -- resetPosition = {
-                -- order = 24,
-                -- type = "execute",
-                -- name = L["RESET_POSITION"],
-                -- desc = L["RESET_POSITION_DESC"],
-                -- width = Percent(0.5),
-                -- func = function()
-                    -- self.db.profile.window.relativePoint = "CENTER"
-                    -- self.db.profile.window.x = 0
-                    -- self.db.profile.window.y = 0
-                    -- self.Tracker.frame:ClearAllPoints()
-                    -- self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
-                    -- self.Tracker:UpdateImmediate()
-                -- end
-            -- },
             showCompletedSteps = {
                 order = 25,
                 type = "toggle",
@@ -189,7 +174,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showCompletedSteps ~= value then
                         self.db.profile.window.showCompletedSteps = value
-                        self.State:Reset()
+                        self.State:UpdateImmediate()
                     end
                 end
             },
@@ -203,7 +188,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showSkippedSteps ~= value then
                         self.db.profile.window.showSkippedSteps = value
-                        self.State:Reset()
+                        self.State:UpdateImmediate()
                     end
                 end
             },
@@ -220,15 +205,24 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.stepsShown ~= value then
                         self.db.profile.window.stepsShown = value
-                        self.State:Reset()
+                        self.State:UpdateImmediate()
                     end
                 end
             },
-            reserved2 = {
+            resetPosition = {
                 order = 28,
-                type = "description",
-                name = "",
-                width = Percent(0.5)
+                type = "execute",
+                name = L["RESET_POSITION"],
+                desc = L["RESET_POSITION_DESC"],
+                width = Percent(0.5),
+                func = function()
+                    self.db.profile.window.relativePoint = "CENTER"
+                    self.db.profile.window.x = 0
+                    self.db.profile.window.y = 0
+                    self.Tracker.frame:ClearAllPoints()
+                    self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
+                    self.Tracker:UpdateImmediate()
+                end
             },
             width = {
                 order = 29,
@@ -237,7 +231,7 @@ function Traveler:GetGeneralOptionsTable()
                 desc = L["WINDOW_WIDTH_DESC"],
                 min = 200,
                 softMin = 200,
-                softMax = 800,
+                softMax = 1000,
                 step = 1,
                 bigStep = 10,
                 width = Percent(0.5),
@@ -254,9 +248,9 @@ function Traveler:GetGeneralOptionsTable()
                 type = "range",
                 name = L["WINDOW_HEIGHT"],
                 desc = L["WINDOW_HEIGHT_DESC"],
-                min = 200,
-                softMin = 200,
-                softMax = 800,
+                min = 100,
+                softMin = 100,
+                softMax = 1000,
                 step = 1,
                 bigStep = 10,
                 width = Percent(0.5),

@@ -75,6 +75,21 @@ function State:Reset()
     self:Update()
 end
 
+function State:ResetIsComplete()
+    if self.steps == nil then
+        return
+    end
+
+    for i = 1, #self.steps do
+        local step = self.steps[i]
+        if step then
+            step.isComplete = nil
+        end
+    end
+
+    self:Update()
+end
+
 function State:Update()
     self.needUpdate = true
 end
@@ -150,7 +165,9 @@ function State:UpdateImmediate()
         local step = self.steps[i]
         if step then
             step.isComplete = IsStepComplete(step)
-            step.location = self:GetStepLocation(step)
+            if step.location == nil then
+                step.location = self:GetStepLocation(step)
+            end
         end
     end
 
@@ -198,7 +215,7 @@ function State:OnQuestTurnedIn(questId)
 end
 
 function State:OnQuestAbandoned(questId)
-    self:Reset()
+    self:ResetIsComplete()
 end
 
 function State:OnHearthstoneBound(location)

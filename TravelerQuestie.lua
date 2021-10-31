@@ -53,35 +53,12 @@ local function GetNearestSpawn(spawns, player)
     end
 end
 
-local function GetNearestObject(objects, player)
-    local bestDistance = 999999999
-    local bestX, bestY, bestMapId, bestName
-
-    for _, objectId in ipairs(objects or {}) do
-        local obj = QuestieDB:GetObject(objectId)
-        if obj and obj.spawns then
-            local nearest = GetNearestSpawn(obj.spawns, player)
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = obj.name
-            end
-        end
-    end
-
-    if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = "Object" }
-    end
-end
-
 local function GetNearestNPC(npcs, player)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName
 
-    for _, npcId in ipairs(npcs or {}) do
-        local npc = QuestieDB:GetNPC(npcId)
+    for i = 1, #npcs do
+        local npc = QuestieDB:GetNPC(npcs[i])
         if npc and npc.spawns then
             local nearest = GetNearestSpawn(npc.spawns, player)
             if nearest and (nearest.distance < bestDistance) then
@@ -99,19 +76,105 @@ local function GetNearestNPC(npcs, player)
     end
 end
 
-local function GetNearestObjectiveSpawn(objective, player)
+local function GetNearestObject(objects, player)
+    local bestDistance = 999999999
+    local bestX, bestY, bestMapId, bestName
+
+    for i = 1, #objects do
+        local obj = QuestieDB:GetObject(objects[i])
+        if obj and obj.spawns then
+            local nearest = GetNearestSpawn(obj.spawns, player)
+            if nearest and (nearest.distance < bestDistance) then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = obj.name
+            end
+        end
+    end
+
+    if bestX and bestY and bestMapId then
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = "Object" }
+    end
+end
+
+local function GetNearestItem(items, player)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestType
 
-    for spawnId, spawnData in pairs(objective.spawnList or {}) do
-        local nearest = GetNearestSpawn(spawnData.Spawns, player)
+    for i = 1, #items do
+        local item = QuestieDB:GetItem(items[i])
+        if item then
+            if item.spawns then
+                local nearest = GetNearestSpawn(item.spawns, player)
+                if nearest and (nearest.distance < bestDistance) then
+                    bestDistance = nearest.distance
+                    bestX = nearest.x
+                    bestY = nearest.y
+                    bestMapId = nearest.mapId
+                    bestName = nearest.name
+                    bestType = "Item"
+                end
+            end
+            if item.npcDrops then
+                local nearest = GetNearestNPC(item.npcDrops, player)
+                if nearest and (nearest.distance < bestDistance) then
+                    bestDistance = nearest.distance
+                    bestX = nearest.x
+                    bestY = nearest.y
+                    bestMapId = nearest.mapId
+                    bestName = nearest.name
+                    bestType = nearest.type
+                end
+            end
+            if item.objectDrops then
+                local nearest = GetNearestObject(item.objectDrops, player)
+                if nearest and (nearest.distance < bestDistance) then
+                    bestDistance = nearest.distance
+                    bestX = nearest.x
+                    bestY = nearest.y
+                    bestMapId = nearest.mapId
+                    bestName = nearest.name
+                    bestType = nearest.type
+                end
+            end
+        end
+    end
+
+    if bestX and bestY and bestMapId then
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = bestType }
+    end
+end
+
+local function GetNearestQuestLocation(entities)
+    local bestDistance = 999999999
+    local bestX, bestY, bestMapId, bestName, bestType
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    local player = { x = playerX, y = playerY, mapId = playerMapId }
+
+    for i = 1, #entities do
+        local entity = entities[i]
+        local nearest
+        if entity.NPC then
+            nearest = GetNearestNPC(entity.NPC, player)
+        elseif entity.GameObject then
+            nearest = GetNearestObject(entity.GameObject, player)
+        elseif entity.Type == "monster" then
+            nearest = GetNearestNPC({ entity.Id }, player)
+        elseif entity.Type == "object" then
+            nearest = GetNearestObject({ entity.Id }, player)
+        elseif entity.Type == "item" then
+            nearest = GetNearestItem({ entity.Id }, player)
+        end
+
         if nearest and (nearest.distance < bestDistance) then
             bestDistance = nearest.distance
             bestX = nearest.x
             bestY = nearest.y
             bestMapId = nearest.mapId
-            bestName = spawnData.Name
-            bestType = spawnData.Type
+            bestName = nearest.name
+            bestType = nearest.type
         end
     end
 
@@ -154,93 +217,22 @@ end
 
 function DataSourceQuestie:GetNearestQuestStarter(questId)
     local quest = QuestieDB:GetQuest(questId)
-    if quest == nil then return nil end
-
-    local bestDistance = 999999999
-    local bestX, bestY, bestMapId, bestName, bestType
-    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-
-    for starterType, starters in pairs(quest.Starts or {}) do
-        if starterType == "GameObject" then
-            local nearest = GetNearestObject(starters, { x = playerX, y = playerY, mapId = playerMapId })
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = nearest.name
-                bestType = nearest.type
-            end
-        elseif starterType == "NPC" then
-            local nearest = GetNearestNPC(starters, { x = playerX, y = playerY, mapId = playerMapId })
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = nearest.name
-                bestType = nearest.type
-            end
-        end
-    end
-
-    if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = bestType }
+    if quest and quest.Starts then
+        return GetNearestQuestLocation({ quest.Starts })
     end
 end
 
 function DataSourceQuestie:GetNearestQuestObjective(questId)
     local quest = QuestieDB:GetQuest(questId)
-    if quest == nil then return nil end
-
-    local bestDistance = 999999999
-    local bestX, bestY, bestMapId, bestName, bestType
-    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-
-    for i, objective in ipairs(quest.Objectives or {}) do
-        if not objective.Needed or objective.Needed ~= objective.Collected then
-            local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = nearest.name
-                bestType = nearest.type
-            end
-        end
-    end
-
-    for _, objective in ipairs(quest.SpecialObjectives or {}) do
-        if not objective.Needed or objective.Needed ~= objective.Collected then
-            local nearest = GetNearestObjectiveSpawn(objective, { x = playerX, y = playerY, mapId = playerMapId })
-            if nearest and (nearest.distance < bestDistance) then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = nearest.name
-                bestType = nearest.type
-            end
-        end
-    end
-
-    if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, type = bestType }
+    if quest and quest.ObjectiveData then
+        return GetNearestQuestLocation(quest.ObjectiveData)
     end
 end
 
 function DataSourceQuestie:GetNearestQuestFinisher(questId)
     local quest = QuestieDB:GetQuest(questId)
-    if quest == nil then return nil end
-
-    if quest.Finisher then
-        local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-        if quest.Finisher.Type == "object" then
-            return GetNearestObject({ quest.Finisher.Id }, { x = playerX, y = playerY, mapId = playerMapId })
-        elseif quest.Finisher.Type == "monster" then
-            return GetNearestNPC({ quest.Finisher.Id }, { x = playerX, y = playerY, mapId = playerMapId })
-        end
+    if quest and quest.Finisher then
+        return GetNearestQuestLocation({ quest.Finisher })
     end
 end
 

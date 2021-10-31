@@ -15,11 +15,18 @@ local QUEST_COLOR_YELLOW = "FFFFFF00"
 local QUEST_COLOR_GREEN = "FF40C040"
 local QUEST_COLOR_GREY = "FFC0C0C0"
 
-local function CreateLabel(name, parent)
-    local label = CreateFrame("BUTTON", name, parent)
+local function CreateLabel(name, parent, clickable)
+    local label
+    if clickable then
+        label = CreateFrame("BUTTON", name, parent)
+    else
+        label = CreateFrame("Frame", name, parent)
+    end
+
     local fontString = label:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fontString:SetAllPoints(label)
     fontString:SetFontObject("GameFontNormal")
+
     label.fontString = fontString
     label.SetText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
     label.SetFontSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
@@ -51,7 +58,7 @@ function Tracker:Initialize()
         end
     end)
     frame:SetScript("OnMouseUp", function(self, button)
-        if button == "LeftButton" then
+        if not Traveler.db.profile.window.locked and button == "LeftButton" then
             frame:StopMovingOrSizing()
             local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
             Traveler.db.profile.window.relativePoint = relativePoint
@@ -138,6 +145,7 @@ function Tracker:Initialize()
 
     -- Create resize button
     local resizeButton = CreateFrame("BUTTON", nil, frame)
+    resizeButton:SetFrameLevel(10)
     resizeButton:SetSize(12, 12)
     resizeButton:SetPoint("BOTTOMRIGHT")
     resizeButton:SetNormalTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Up")
@@ -149,7 +157,7 @@ function Tracker:Initialize()
         end
     end)
     resizeButton:SetScript("OnMouseUp", function(_, button)
-        if button == "LeftButton" then
+        if not Traveler.db.profile.window.locked and button == "LeftButton" then
             frame:StopMovingOrSizing()
             local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
             Traveler.db.profile.window.relativePoint = relativePoint
@@ -335,7 +343,7 @@ function Tracker:UpdateSteps()
     -- Group steps per chronological location, and determine if they are complete
     local groups = {}
     for _, step in ipairs(Traveler.State.steps) do
-        if step.location then
+        if step.location and step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST then
             local lastGroup = groups[#groups]
             if lastGroup == nil or lastGroup.location == nil or lastGroup.location.name ~= step.location.name then
                 Traveler.Utils:Add(groups, { isComplete = step.isComplete, location = step.location, steps = { step } })
@@ -344,7 +352,7 @@ function Tracker:UpdateSteps()
                 lastGroup.isComplete = lastGroup.isComplete and step.isComplete
             end
         else
-            Traveler.Utils:Add(groups, { isComplete = step.isComplete, steps = { step } })
+            Traveler.Utils:Add(groups, { isComplete = step.isComplete, isObjective = true, steps = { step } })
         end
     end
 
@@ -354,7 +362,7 @@ function Tracker:UpdateSteps()
     local stepsCount = 0
     for _, group in ipairs(groups) do
         -- Display group header
-        if group.location then
+        if group.location and not group.isObjective then
             if Traveler.db.profile.window.showCompletedSteps or not group.isComplete then
                 local prefix
                 if group.location.type == "NPC" then
@@ -411,7 +419,7 @@ end
 function Tracker:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = CreateLabel(nil, self.scrollChild)
+        line = CreateLabel(nil, self.scrollChild, true)
         if self.lineIndex == 1 then
             line:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT")
         else
@@ -504,7 +512,10 @@ function Tracker:SetWaypoint(step, force)
             TomTom:RemoveWaypoint(Traveler.db.char.waypoint)
         end
 
-        local location = Traveler.State:GetStepLocation(step)
+        local location = step.location
+        if step.steps == nil then
+            location = Traveler.State:GetStepLocation(step)
+        end
         if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
             Traveler.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
         end

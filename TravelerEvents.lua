@@ -37,21 +37,23 @@ function Traveler:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        self.State:UpdateQuestLog()
-
-        -- Fire OnQuestCompleted event
         local completedQuests = {}
-        for questId, _ in ipairs(self.questProgress) do
-            local info = self.State:GetQuestLogInfo(questId)
-            if info and info.isComplete then
-                completedQuests[questId] = true
-                self:OnQuestCompleted(questId)
+        if next(self.questProgress) then
+            self.State:UpdateQuestLog()
+            for questId, _ in pairs(self.questProgress) do
+                local info = self.State:GetQuestLogInfo(questId)
+                if info and info.isComplete then
+                    self:OnQuestCompleted(questId)
+                    completedQuests[questId] = true
+                end
             end
         end
-
-        -- Remove completed quests from watch
-        for questId, _ in ipairs(completedQuests) do
-            self.questProgress[questId] = nil
+        if not next(completedQuests) then
+            self.State:ResetIsComplete()
+        else
+            for questId, _ in pairs(completedQuests) do
+                self.questProgress[questId] = nil
+            end
         end
     end)
 
