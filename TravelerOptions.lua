@@ -136,8 +136,37 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
-            showScrollBar = {
+            clamped = {
                 order = 23,
+                type = "toggle",
+                name = L["CLAMP_WINDOW"],
+                desc = L["CLAMP_WINDOW_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.clamped end,
+                set = function(info, value)
+                    if self.db.profile.window.clamped ~= value then
+                        self.db.profile.window.clamped = value
+                        self.Tracker:UpdateImmediate()
+                    end
+                end
+            },
+            resetPosition = {
+                order = 24,
+                type = "execute",
+                name = L["RESET_POSITION"],
+                desc = L["RESET_POSITION_DESC"],
+                width = Percent(0.5),
+                func = function()
+                    self.db.profile.window.relativePoint = "CENTER"
+                    self.db.profile.window.x = 0
+                    self.db.profile.window.y = 0
+                    self.Tracker.frame:ClearAllPoints()
+                    self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
+                    self.Tracker:UpdateImmediate()
+                end
+            },
+            showScrollBar = {
+                order = 25,
                 type = "toggle",
                 name = L["SHOW_SCROLL_BAR"],
                 desc = L["SHOW_SCROLL_BAR_DESC"],
@@ -151,7 +180,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             showQuestLevel = {
-                order = 24,
+                order = 26,
                 type = "toggle",
                 name = L["SHOW_QUEST_LEVEL"],
                 desc = L["SHOW_QUEST_LEVEL_DESC"],
@@ -165,7 +194,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             showCompletedSteps = {
-                order = 25,
+                order = 27,
                 type = "toggle",
                 name = L["SHOW_COMPLETED_STEPS"],
                 desc = L["SHOW_COMPLETED_STEPS_DESC"],
@@ -179,7 +208,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             showSkippedSteps = {
-                order = 26,
+                order = 28,
                 type = "toggle",
                 name = L["SHOW_SKIPPED_STEPS"],
                 desc = L["SHOW_SKIPPED_STEPS_DESC"],
@@ -193,7 +222,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             stepsShown = {
-                order = 27,
+                order = 29,
                 type = "range",
                 name = L["STEPS_SHOWN"],
                 desc = L["STEPS_SHOWN_DESC"],
@@ -210,23 +239,33 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
-            resetPosition = {
-                order = 28,
-                type = "execute",
-                name = L["RESET_POSITION"],
-                desc = L["RESET_POSITION_DESC"],
+            reserved2 = {
+                order = 30,
+                type = "description",
+                name = "",
+                width = Percent(0.004)
+            },
+            backgroundColor = {
+                order = 31,
+                type = "color",
+                name = L["WINDOW_BG_COLOR"],
+                desc = L["WINDOW_BG_COLOR_DESC"],
+                hasAlpha = true,
                 width = Percent(0.5),
-                func = function()
-                    self.db.profile.window.relativePoint = "CENTER"
-                    self.db.profile.window.x = 0
-                    self.db.profile.window.y = 0
-                    self.Tracker.frame:ClearAllPoints()
-                    self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
+                get = function(info)
+                    local color = self.db.profile.window.backgroundColor
+                    return color.r, color.g, color.b, color.a
+                end,
+                set = function(info, r, g, b, a)
+                    self.db.profile.window.backgroundColor.r = r
+                    self.db.profile.window.backgroundColor.g = g
+                    self.db.profile.window.backgroundColor.b = b
+                    self.db.profile.window.backgroundColor.a = a
                     self.Tracker:UpdateImmediate()
                 end
             },
             width = {
-                order = 29,
+                order = 32,
                 type = "range",
                 name = L["WINDOW_WIDTH"],
                 desc = L["WINDOW_WIDTH_DESC"],
@@ -245,7 +284,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             height = {
-                order = 30,
+                order = 33,
                 type = "range",
                 name = L["WINDOW_HEIGHT"],
                 desc = L["WINDOW_HEIGHT_DESC"],
@@ -264,7 +303,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             fontSize = {
-                order = 31,
+                order = 34,
                 type = "range",
                 name = L["FONT_SIZE"],
                 desc = L["FONT_SIZE_DESC"],
@@ -281,7 +320,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             lineSpacing = {
-                order = 32,
+                order = 35,
                 type = "range",
                 name = L["LINE_SPACING"],
                 desc = L["LINE_SPACING_DESC"],
@@ -297,27 +336,8 @@ function Traveler:GetGeneralOptionsTable()
                     end
                 end
             },
-            backgroundColor = {
-                order = 33,
-                type = "color",
-                name = L["WINDOW_BG_COLOR"],
-                desc = L["WINDOW_BG_COLOR_DESC"],
-                hasAlpha = true,
-                width = Percent(1.0),
-                get = function(info)
-                    local color = self.db.profile.window.backgroundColor
-                    return color.r, color.g, color.b, color.a
-                end,
-                set = function(info, r, g, b, a)
-                    self.db.profile.window.backgroundColor.r = r
-                    self.db.profile.window.backgroundColor.g = g
-                    self.db.profile.window.backgroundColor.b = b
-                    self.db.profile.window.backgroundColor.a = a
-                    self.Tracker:UpdateImmediate()
-                end
-            },
             windowStrata = {
-                order = 34,
+                order = 36,
                 type = "select",
                 name = L["WINDOW_STRATA"],
                 desc = L["WINDOW_STRATA_DESC"],
@@ -342,7 +362,7 @@ function Traveler:GetGeneralOptionsTable()
                 end
             },
             windowLevel = {
-                order = 35,
+                order = 37,
                 type = "range",
                 name = L["WINDOW_LEVEL"],
                 desc = L["WINDOW_LEVEL_DESC"],

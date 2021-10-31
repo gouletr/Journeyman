@@ -43,6 +43,7 @@ function Tracker:Initialize()
 
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
+    frame:SetClampedToScreen(Traveler.db.profile.window.clamped)
     frame:SetFrameStrata(Traveler.db.profile.window.strata)
     frame:SetFrameLevel(Traveler.db.profile.window.level)
     frame:SetWidth(Traveler.db.profile.window.width)
@@ -254,6 +255,7 @@ function Tracker:UpdateImmediate()
 end
 
 function Tracker:UpdateFrame()
+    self.frame:SetClampedToScreen(Traveler.db.profile.window.clamped)
     self.frame:SetFrameStrata(Traveler.db.profile.window.strata)
     self.frame:SetFrameLevel(Traveler.db.profile.window.level)
     self.frame:SetSize(Traveler.db.profile.window.width, Traveler.db.profile.window.height)
