@@ -15,29 +15,6 @@ local QUEST_COLOR_YELLOW = "FFFFFF00"
 local QUEST_COLOR_GREEN = "FF40C040"
 local QUEST_COLOR_GREY = "FFC0C0C0"
 
-local function CreateLabel(name, parent, clickable)
-    local label
-    if clickable then
-        label = CreateFrame("BUTTON", name, parent)
-    else
-        label = CreateFrame("Frame", name, parent)
-    end
-
-    local fontString = label:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    fontString:SetAllPoints(label)
-    fontString:SetFontObject("GameFontNormal")
-
-    label.fontString = fontString
-    label.SetText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
-    label.SetFontSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
-    label.SetJustifyH = function(self, value) self.fontString:SetJustifyH(value) end
-    label.SetJustifyV = function(self, value) self.fontString:SetJustifyV(value) end
-    label.SetWordWrap = function(self, value) self.fontString:SetWordWrap(value) end
-    label.SetMaxLines = function(self, value) self.fontString:SetMaxLines(value) end
-    label.GetNumLines = function(self) return self.fontString:GetNumLines() end
-    return label
-end
-
 function Tracker:Initialize()
     self.lines = {}
 
@@ -136,7 +113,7 @@ function Tracker:Initialize()
     self.prevChapterButton = prevChapterButton
 
     -- Chapter title
-    local chapterTitle = CreateLabel(nil, frame)
+    local chapterTitle = Traveler.Utils:CreateLabel(nil, frame)
     chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
     chapterTitle:SetJustifyH("LEFT")
@@ -194,7 +171,7 @@ function Tracker:Initialize()
     self.scrollChild = scrollChild
 
     -- Journey Selection Label
-    local journeySelectionLabel = CreateLabel(nil, scrollChild)
+    local journeySelectionLabel = Traveler.Utils:CreateLabel(nil, scrollChild)
     journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Traveler.db.profile.window.fontSize + 4)
     journeySelectionLabel:SetWordWrap(true)
     journeySelectionLabel:SetMaxLines(10)
@@ -431,7 +408,7 @@ end
 function Tracker:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = CreateLabel(nil, self.scrollChild, true)
+        line = Traveler.Utils:CreateLabel(nil, self.scrollChild, true)
         line:SetJustifyH("LEFT")
         line:SetWordWrap(true)
         line.index = self.lineIndex
