@@ -527,7 +527,7 @@ function Tracker:SetWaypoint(step, force)
         end
 
         local location = step.location
-        if not step.isGroup then
+        if not step.hasChildren then
             location = Traveler.State:GetStepLocation(step)
         end
         if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
