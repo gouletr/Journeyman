@@ -113,7 +113,7 @@ function Tracker:Initialize()
     self.prevChapterButton = prevChapterButton
 
     -- Chapter title
-    local chapterTitle = Traveler.Utils:CreateLabel(nil, frame)
+    local chapterTitle = Traveler.GUI:CreateLabel("FRAME", nil, frame)
     chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
     chapterTitle:SetJustifyH("LEFT")
@@ -171,7 +171,7 @@ function Tracker:Initialize()
     self.scrollChild = scrollChild
 
     -- Journey Selection Label
-    local journeySelectionLabel = Traveler.Utils:CreateLabel(nil, scrollChild)
+    local journeySelectionLabel = Traveler.GUI:CreateLabel("FRAME", nil, scrollChild)
     journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Traveler.db.profile.window.fontSize + 4)
     journeySelectionLabel:SetWordWrap(true)
     journeySelectionLabel:SetMaxLines(10)
@@ -408,7 +408,7 @@ end
 function Tracker:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = Traveler.Utils:CreateLabel(nil, self.scrollChild, true)
+        line = Traveler.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild, true)
         line:SetJustifyH("LEFT")
         line:SetWordWrap(true)
         line.index = self.lineIndex

@@ -28,6 +28,7 @@ Locales\Locales.xml
 # Addon files
 Traveler.lua
 TravelerUtils.lua
+TravelerGUI.lua
 TravelerDatabase.lua
 TravelerOptions.lua
 TravelerState.lua

@@ -53,28 +53,3 @@ function Utils:RemoveIf(t, f)
         end
     end
 end
-
-function Utils:CreateLabel(name, parent, clickable)
-    local label
-    if clickable then
-        label = CreateFrame("BUTTON", name, parent, BackdropTemplateMixin and "BackdropTemplate")
-    else
-        label = CreateFrame("FRAME", name, parent, BackdropTemplateMixin and "BackdropTemplate")
-    end
-
-    local fontString = label:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    fontString:SetAllPoints(label)
-    fontString:SetFontObject("GameFontNormal")
-
-    label.fontString = fontString
-    label.SetText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
-    label.SetFontSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
-    label.SetTextColor = function(self, r, g, b, a) self.fontString:SetTextColor(r, g, b, a) end
-    label.SetJustifyH = function(self, value) self.fontString:SetJustifyH(value) end
-    label.SetJustifyV = function(self, value) self.fontString:SetJustifyV(value) end
-    label.SetWordWrap = function(self, value) self.fontString:SetWordWrap(value) end
-    label.SetMaxLines = function(self, value) self.fontString:SetMaxLines(value) end
-    label.GetTextColor = function(self) return self.fontString:GetTextColor() end
-    label.GetNumLines = function(self) return self.fontString:GetNumLines() end
-    return label
-end

@@ -18,8 +18,8 @@ function Traveler:InitializeOptions()
     self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
     self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 
-    local journeysEditor = self:GetJourneysEditor()
-    InterfaceOptions_AddCategory(journeysEditor)
+    self.journeyEditor = self:GetJourneyEditor()
+    InterfaceOptions_AddCategory(self.journeyEditor)
 end
 
 function Traveler:GetOptionsTable()
@@ -396,8 +396,10 @@ function Traveler:GetJourneysOptionsTable()
                 type = "execute",
                 name = L["IMPORT_JOURNEY"],
                 desc = L["IMPORT_JOURNEY_DESC"],
-                func = function() self:JourneyImportFromCharacter() end,
-                width = "full"
+                width = "full",
+                func = function()
+                    self:JourneyImportFromCharacter()
+                end
             },
             journeys = {
                 type = "select",
@@ -464,142 +466,96 @@ function Traveler:GetAdvancedOptionsTable()
     }
 end
 
-function Traveler:GetJourneysEditor()
-    local frame = CreateFrame("FRAME", "MainFrame", InterfaceOptionsFramePanelContainer)
+function Traveler:GetJourneyEditor()
+    local frame = CreateFrame("FRAME", "Journeys Editor", UIParent)
     frame.name = "Journeys Editor"
-    frame.parent = "Traveler"
+    frame.parent = addonName
+    frame:Hide()
+    frame:SetScript("OnShow", function(self)
+        self.refresh()
+    end)
 
-    local title = Traveler.Utils:CreateLabel("Title", frame)
-    title:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15)
-    title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -10, -45)
+    local content = CreateFrame("FRAME", "Content", frame)
+    content:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15)
+    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 10)
+
+    local title = Traveler.GUI:CreateLabel("FRAME", "Title", content)
+    title:SetPoint("TOPLEFT")
+    title:SetPoint("BOTTOMRIGHT", content, "TOPRIGHT", 0, -30)
     title:SetJustifyH("LEFT")
     title:SetJustifyV("TOP")
     title:SetFontSize(16)
     title:SetText("%s v%s - Journey Editor", addonName, addonVersion)
 
-    local content = CreateFrame("FRAME", "Content", frame)
-    content:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -45)
-    content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 10)
-
-    local journeyList = self:CreateListView("JourneyList", content)
-    journeyList:SetPoint("TOPLEFT", content, "TOPLEFT")
-    journeyList:SetPoint("BOTTOMRIGHT", content, "TOP", -24, -200)
-    journeyList:SetTitle(L["SELECT_JOURNEY"])
-    journeyList.GetValues = function(self)
-        local journeys = {}
-        for i, journey in ipairs(Traveler.journeys) do
-            journeys[i] = journey.title
+    local journeySelector = self:CreateSelector("Journeys", content)
+    journeySelector:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
+    journeySelector:SetPoint("BOTTOMRIGHT", title, "BOTTOM", 0, -110)
+    journeySelector:SetTitle(L["SELECT_JOURNEY"])
+    journeySelector.list.GetValues = function(self)
+        local values = {}
+        for i, v in ipairs(Traveler.journeys) do
+            values[i] = v.title
         end
-        return journeys
-    end
-    journeyList.CreateRow = function(self, index, parent)
-        local row = Traveler.Utils:CreateLabel("Row" .. index, parent, true)
-        row:SetJustifyH("LEFT")
-        row:SetJustifyV("CENTER")
-        row:SetFontSize(10)
-        row:SetTextColor(1, 1, 1, 1)
-        row.highlight = row:CreateTexture(nil, "BACKGROUND")
-        row.highlight:SetAllPoints(row)
-        row.highlight:SetTexture("Interface/QuestFrame/UI-QuestLogTitleHighlight")
-        row.highlight:SetBlendMode("ADD")
-        row.highlight:SetVertexColor(0, 0, 0)
-        row:SetScript("OnEnter", function(self, motion)
-            if self.list.selectedIndex == self.index then
-                self.highlight:SetVertexColor(1, 1, 0)
-            else
-                self.highlight:SetVertexColor(.196, .388, .8)
-            end
-        end)
-        row:SetScript("OnLeave", function(self, motion)
-            if self.list.selectedIndex == self.index then
-                self.highlight:SetVertexColor(1, 1, 0)
-            else
-                self.highlight:SetVertexColor(0, 0, 0)
-            end
-        end)
-        row:SetScript("OnClick", function(self, button, down)
-            self.list.selectedIndex = self.index
-            self.list:Refresh()
-        end)
-        return row
-    end
-    journeyList.SetValue = function(self, row, value)
-        row.value = value
-        row:SetText(value)
-        if self.selectedIndex == row.index then
-            row.highlight:SetVertexColor(1, 1, 0)
-        else
-            row.highlight:SetVertexColor(0, 0, 0)
-        end
+        return values
     end
 
-    local chaptersList = CreateFrame("SCROLLFRAME", nil, content, "UIPanelScrollFrameTemplate")
-    chaptersList:SetPoint("TOPLEFT", content, "TOP")
-    chaptersList:SetPoint("BOTTOMRIGHT", content, "TOPRIGHT", -24, -200)
+    local chapterSelector = self:CreateSelector("Chapters", content)
+    chapterSelector:SetPoint("TOPLEFT", title, "BOTTOM")
+    chapterSelector:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, -110)
+    chapterSelector:SetTitle(L["SELECT_CHAPTER"])
+    chapterSelector.list.GetValues = function(self)
+        local values = {}
+        local journeyIndex = journeySelector.list.selectedIndex
+        if journeyIndex > 0 and journeyIndex <= #Traveler.journeys then
+            local journey = Traveler.journeys[journeyIndex]
+            for i, v in ipairs(journey.chapters) do
+                values[i] = v.title
+            end
+        end
+        return values
+    end
+
+    journeySelector.list:AddListener("OnSelectionChanged", function(self)
+        chapterSelector.list.selectedIndex = -1
+        chapterSelector:Refresh()
+    end)
 
     frame.refresh = function()
-        journeyList:Refresh()
+        xpcall(function()
+            journeySelector:Refresh()
+            chapterSelector:Refresh()
+        end, geterrorhandler())
     end
 
     return frame
 end
 
-function Traveler:CreateListView(name, parent)
+function Traveler:CreateSelector(name, parent)
     local frame = CreateFrame("FRAME", name, parent)
 
-    local titleLabel = Traveler.Utils:CreateLabel("Title", frame)
-    titleLabel:SetPoint("TOPLEFT", frame, "TOPLEFT")
-    titleLabel:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -16)
-    titleLabel:SetJustifyH("LEFT")
-    titleLabel:SetJustifyV("TOP")
-    titleLabel:SetFontSize(12)
-    frame.titleLabel = titleLabel
+    local title = Traveler.GUI:CreateLabel("FRAME", "Title", frame)
+    title:SetPoint("TOPLEFT")
+    title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
+    title:SetJustifyH("LEFT")
+    title:SetJustifyV("CENTER")
+    title:SetFontSize(12)
+    frame.title = title
 
-    local scrollFrame = CreateFrame("SCROLLFRAME", "ScrollFrame", frame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", titleLabel, "BOTTOMLEFT")
-    scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
-    frame.scrollFrame = scrollFrame
+    local container = Traveler.GUI:CreateGroup("FRAME", "Container", frame)
+    container:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
+    container:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 
-    local scrollChild = CreateFrame("FRAME", "ScrollChild", frame)
-    scrollFrame:SetScrollChild(scrollChild)
-    scrollChild:SetAllPoints(scrollFrame)
-    frame.scrollChild = scrollChild
+    local list = Traveler.GUI:CreateListView("FRAME", "List", container)
+    list:SetPoint("TOPLEFT", 5, -5)
+    list:SetPoint("BOTTOMRIGHT", -5, 5)
+    frame.list = list
 
     frame.SetTitle = function(self, fmt, ...)
-        self.titleLabel:SetText(fmt, ...)
-    end
-
-    frame.rows = {}
-    frame.rowHeight = 18
-    frame.selectedIndex = -1
-    frame.GetRow = function(self, index)
-        local row
-        if index > #self.rows then
-            row = self:CreateRow(index, self.scrollChild)
-            row.index = index
-            row.list = self
-            if index == 1 then
-                row:SetPoint("TOPLEFT", self.scrollChild, "TOPLEFT")
-                row:SetPoint("BOTTOMRIGHT", self.scrollChild, "TOPRIGHT", 0, -self.rowHeight)
-            else
-                row:SetPoint("TOPLEFT", self.rows[index - 1], "BOTTOMLEFT")
-                row:SetPoint("BOTTOMRIGHT", self.rows[index - 1], "BOTTOMRIGHT", 0, -self.rowHeight)
-            end
-            Traveler.Utils:Add(self.rows, row)
-        else
-            row = self.rows[index]
-        end
-        return row
+        title:SetText(fmt, ...)
     end
 
     frame.Refresh = function(self)
-        local values = self:GetValues()
-        for i, v in ipairs(values) do
-            local row = self:GetRow(i)
-            if row then
-                self:SetValue(row, v)
-            end
-        end
+        list:Refresh()
     end
 
     return frame

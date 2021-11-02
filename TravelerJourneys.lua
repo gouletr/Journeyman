@@ -30,7 +30,7 @@ end
 
 function Traveler:JourneyImportFromCharacter()
     if self.journey ~= nil then
-        local journey = TableDeepCopy(self.journey)
+        local journey = self.Utils:Clone(self.journey)
         self.Utils:Add(self.journeys, journey)
     end
 end
