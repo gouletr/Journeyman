@@ -7,9 +7,9 @@ function Traveler:InitializeEvents()
     self.questProgress = {}
 
     -- This is too late to serialize data, doesn't work
-    --self:RegisterEvent("PLAYER_LOGOUT", function(event)
-    --    self:SerializeDatabase()
-    --end)
+    -- self:RegisterEvent("PLAYER_LOGOUT", function(event)
+        -- self:SerializeDatabase()
+    -- end)
 
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
         self:SerializeDatabase()
@@ -62,7 +62,7 @@ function Traveler:InitializeEvents()
     end)
 
     self:RegisterEvent("HEARTHSTONE_BOUND", function(event)
-        if self.bindLocation ~= nil then
+        if self.bindLocation then
             self:OnHearthstoneBound(self.bindLocation)
             self.bindLocation = nil
         end

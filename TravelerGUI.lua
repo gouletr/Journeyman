@@ -100,9 +100,11 @@ function GUI:CreateListView(frameType, name, parent, template, id)
         row.SetValue = function(self, value)
             self:SetText(value)
             if self.list.selectedIndex == self.index then
-                row.highlightTexture:SetVertexColor(1, 1, 0)
+                self.highlightTexture:SetVertexColor(1, 1, 0)
+            elseif row:IsMouseOver() then
+                self.highlightTexture:SetVertexColor(.196, .388, .8)
             else
-                row.highlightTexture:SetVertexColor(0, 0, 0)
+                self.highlightTexture:SetVertexColor(0, 0, 0)
             end
         end
 
@@ -130,19 +132,10 @@ function GUI:CreateListView(frameType, name, parent, template, id)
         return row
     end
 
-    frame.AddListener = function(self, event, func)
-        if self[event] == nil then
-            self[event] = {}
-        end
-        Traveler.Utils:Add(self[event], func)
-    end
-
     frame.SelectionChanged = function(self)
         self:Refresh()
-        if self.OnSelectionChanged then
-            for i, v in ipairs(self.OnSelectionChanged) do
-                v(self)
-            end
+        if self["OnSelectionChanged"] then
+            self:OnSelectionChanged()
         end
     end
 
@@ -150,11 +143,19 @@ function GUI:CreateListView(frameType, name, parent, template, id)
         self.content:SetSize(self.scrollFrame:GetWidth(), self.scrollFrame:GetHeight())
 
         local values = self.GetValues()
-        for i, v in ipairs(values) do
+        local index = 1
+        for i, v in ipairs(values or {}) do
             local row = self:GetRow(i)
             if row then
                 row:SetValue(v)
             end
+            row:Show()
+            index = index + 1
+        end
+
+        -- Hide unused rows
+        for i = index, #self.rows do
+            self.rows[i]:Hide()
         end
     end
 

@@ -1,7 +1,92 @@
 local addonName, addon = ...
 local Traveler = addon.Traveler
 local L = addon.Locale
+local Journey = {}
+Traveler.Journey = Journey
 
+local tinsert = table.insert
+local tremove = table.remove
+
+function Journey:CreateJourney(title)
+    if Traveler.journeys == nil then
+        Traveler.journeys = {}
+    end
+
+    local journey = { title = title, chapters = {} }
+    tinsert(Traveler.journeys, journey)
+
+    return journey
+end
+
+function Journey:GetJourney(index)
+    if Traveler.journeys and index > 0 and index <= #Traveler.journeys then
+        return Traveler.journeys[index]
+    end
+end
+
+function Journey:DeleteJourney(index)
+    if Traveler.journeys and index > 0 and index <= #Traveler.journeys then
+        tremove(Traveler.journeys, index)
+        return true
+    end
+    return false
+end
+
+function Journey:CreateChapter(journey, title)
+    if journey then
+        if journey.chapters == nil then
+            journey.chapters = {}
+        end
+
+        local chapter = { title = title, steps = {} }
+        tinsert(journey.chapters, chapter)
+
+        return chapter
+    end
+end
+
+function Journey:GetChapter(journey, index)
+    if journey and journey.chapters and index > 0 and index <= #journey.chapters then
+        return journey.chapters[index]
+    end
+end
+
+function Journey:DeleteChapter(journey, index)
+    if journey and journey.chapters and index > 0 and index <= #journey.chapters then
+        tremove(journey.chapters, index)
+        return true
+    end
+    return false
+end
+
+function Journey:CreateStep(chapter, type, data)
+    if chapter then
+        if chapter.steps == nil then
+            chapter.steps = {}
+        end
+
+        local step = { type = type, data = data }
+        tinsert(chapter.steps, step)
+
+        return step
+    end
+end
+
+function Journey:GetStep(chapter, index)
+    if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
+        return chapter.steps[index]
+    end
+end
+
+function Journey:DeleteStep(chapter, index)
+    if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
+        tremove(chapter.steps, index)
+        return true
+    end
+    return false
+end
+
+Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
 Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"

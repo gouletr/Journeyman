@@ -42,7 +42,7 @@ function Tracker:Initialize()
             Traveler.db.profile.window.relativePoint = relativePoint
             Traveler.db.profile.window.x = offsetX
             Traveler.db.profile.window.y = offsetY
-            Tracker:UpdateImmediate()
+            Tracker:Update(true)
         end
     end)
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
@@ -60,7 +60,7 @@ function Tracker:Initialize()
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
     closeButton:SetScript("OnClick", function()
         Traveler.db.char.window.show = false
-        Tracker:UpdateImmediate()
+        Tracker:Update(true)
     end)
     self.closeButton = closeButton
 
@@ -70,7 +70,7 @@ function Tracker:Initialize()
     lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT")
     lockButton:SetScript("OnClick", function()
         Traveler.db.profile.window.locked = not Traveler.db.profile.window.locked
-        Tracker:UpdateImmediate()
+        Tracker:Update(true)
     end)
     self.lockButton = lockButton
 
@@ -87,7 +87,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter < #journey.chapters then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
-                Traveler.State:Reset()
+                Traveler.State:Reset(true)
             end
         end
     end)
@@ -106,7 +106,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter > 1 then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
-                Traveler.State:Reset()
+                Traveler.State:Reset(true)
             end
         end
     end)
@@ -144,7 +144,7 @@ function Tracker:Initialize()
             local width, height = frame:GetSize()
             Traveler.db.profile.window.width = width
             Traveler.db.profile.window.height = height
-            Tracker:UpdateImmediate()
+            Tracker:Update(true)
         end
     end)
     self.resizeButton = resizeButton
@@ -185,7 +185,7 @@ function Tracker:Initialize()
     local journeySelectionButton = CreateFrame("BUTTON", nil, scrollChild, "UIPanelButtonTemplate")
     journeySelectionButton:SetPoint("TOP", journeySelectionLabel, "BOTTOM", 0, -4)
     journeySelectionButton:SetWidth(150)
-    journeySelectionButton:SetHeight(24)
+    journeySelectionButton:SetHeight(22)
     journeySelectionButton:SetText(L["OPEN_OPTIONS"])
     journeySelectionButton:SetScript("OnClick", function()
         InterfaceOptionsFrame_OpenToCategory(Traveler.generalOptions)
@@ -203,8 +203,11 @@ function Tracker:Shutdown()
     self.ticker:Cancel()
 end
 
-function Tracker:Update()
+function Tracker:Update(immediate)
     self.needUpdate = true
+    if immediate then
+        self:UpdateImmediate()
+    end
 end
 
 function Tracker:UpdateImmediate()
@@ -393,7 +396,7 @@ function Tracker:DisplayStep(step, depth)
         elseif step.type == Traveler.STEP_TYPE_FLY_TO then
             self:GetNextLine():SetStepText(step, depth, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, 6948), self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
@@ -485,7 +488,7 @@ function Tracker:GetColoredItemText(step, itemId)
 
     if itemName == nil then
         local item = Item:CreateFromItemID(itemId)
-        item:ContinueOnItemLoad(function() Tracker:UpdateImmediate() end)
+        item:ContinueOnItemLoad(function() Tracker:Update() end)
         return string.format("item:%s", itemId)
     end
 

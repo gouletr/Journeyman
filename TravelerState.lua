@@ -70,9 +70,9 @@ function State:Shutdown()
     self.ticker:Cancel()
 end
 
-function State:Reset()
+function State:Reset(immediate)
     self.steps = nil
-    self:Update()
+    self:Update(immediate)
 end
 
 function State:ResetIsComplete()
@@ -90,8 +90,11 @@ function State:ResetIsComplete()
     self:Update()
 end
 
-function State:Update()
+function State:Update(immediate)
     self.needUpdate = true
+    if immediate then
+        self:UpdateImmediate()
+    end
 end
 
 function State:UpdateImmediate()
@@ -107,17 +110,20 @@ function State:UpdateImmediate()
         if chapter then
             local index = 1
             for _, step in ipairs(chapter.steps or {}) do
-                -- Check if step is ever doable
-                local doable = true
-                if Traveler:IsStepQuest(step) then
-                    doable = Traveler.DataSource:GetQuestHasRequiredRace(step.data) and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
-                end
+                -- Skip undefined steps
+                if step.type and step.data and step.type ~= Traveler.STEP_TYPE_UNDEFINED then
+                    -- Check if step is ever doable
+                    local doable = true
+                    if Traveler:IsStepQuest(step) then
+                        doable = Traveler.DataSource:GetQuestHasRequiredRace(step.data) and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
+                    end
 
-                -- Clone step only if ever doable
-                if doable then
-                    self.steps[index] = Traveler.Utils:Clone(step)
-                    self.steps[index].index = index
-                    index = index + 1
+                    -- Clone step only if ever doable
+                    if doable then
+                        self.steps[index] = Traveler.Utils:Clone(step)
+                        self.steps[index].index = index
+                        index = index + 1
+                    end
                 end
             end
         end

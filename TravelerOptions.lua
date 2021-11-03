@@ -62,7 +62,7 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.journey ~= value then
                         self.db.char.window.journey = value
                         self.db.char.window.chapter = 1
-                        self.State:Reset()
+                        self.State:Reset(true)
                     end
                 end,
                 get = function(info) return self.db.char.window.journey end
@@ -83,7 +83,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypoint ~= value then
                         self.db.profile.autoSetWaypoint = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -103,7 +103,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypointMin ~= value then
                         self.db.profile.autoSetWaypointMin = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -122,7 +122,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -136,7 +136,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.locked ~= value then
                         self.db.profile.window.locked = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -150,7 +150,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.clamped ~= value then
                         self.db.profile.window.clamped = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -166,7 +166,7 @@ function Traveler:GetGeneralOptionsTable()
                     self.db.profile.window.y = 0
                     self.Tracker.frame:ClearAllPoints()
                     self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
-                    self.Tracker:UpdateImmediate()
+                    self.Tracker:Update(true)
                 end
             },
             showScrollBar = {
@@ -179,7 +179,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showScrollBar ~= value then
                         self.db.profile.window.showScrollBar = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -193,7 +193,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showQuestLevel ~= value then
                         self.db.profile.window.showQuestLevel = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -207,7 +207,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showCompletedSteps ~= value then
                         self.db.profile.window.showCompletedSteps = value
-                        self.State:UpdateImmediate()
+                        self.State:Update(true)
                     end
                 end
             },
@@ -221,7 +221,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showSkippedSteps ~= value then
                         self.db.profile.window.showSkippedSteps = value
-                        self.State:UpdateImmediate()
+                        self.State:Update(true)
                     end
                 end
             },
@@ -239,7 +239,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.stepsShown ~= value then
                         self.db.profile.window.stepsShown = value
-                        self.State:UpdateImmediate()
+                        self.State:Update(true)
                     end
                 end
             },
@@ -265,7 +265,7 @@ function Traveler:GetGeneralOptionsTable()
                     self.db.profile.window.backgroundColor.g = g
                     self.db.profile.window.backgroundColor.b = b
                     self.db.profile.window.backgroundColor.a = a
-                    self.Tracker:UpdateImmediate()
+                    self.Tracker:Update(true)
                 end
             },
             width = {
@@ -283,7 +283,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.width ~= value then
                         self.db.profile.window.width = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -302,7 +302,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.height ~= value then
                         self.db.profile.window.height = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -319,7 +319,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.fontSize ~= value then
                         self.db.profile.window.fontSize = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -336,7 +336,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.lineSpacing ~= value then
                         self.db.profile.window.lineSpacing = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -361,7 +361,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.strata ~= value then
                         self.db.profile.window.strata = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             },
@@ -379,7 +379,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.level ~= value then
                         self.db.profile.window.level = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
             }
@@ -425,16 +425,23 @@ function Traveler:GetAdvancedOptionsTable()
         name = "Advanced",
         type = "group",
         args = {
-            updateFrequency = {
+            updateHeader = {
                 order = 0,
+                type = "header",
+                name = L["Update Options"]
+            },
+            updateFrequency = {
+                order = 1,
                 type = "range",
                 name = L["UPDATE_FREQUENCY"],
                 desc = L["UPDATE_FREQUENCY_DESC"],
                 min = 0.1,
                 max = 5,
                 step = 0.1,
-                width = "full",
+                bigStep = 0.1,
+                width = Percent(0.5),
                 confirm = true,
+                confirmText = L["Changing this setting requires a UI reload, proceed?"],
                 get = function(info) return self.db.profile.advanced.updateFrequency end,
                 set = function(info, value)
                     if self.db.profile.advanced.updateFrequency ~= value then
@@ -443,10 +450,16 @@ function Traveler:GetAdvancedOptionsTable()
                     end
                 end
             },
+            updateFrequencyDesc = {
+                order = 2,
+                type = "description",
+                name = L["This option controls the frequency of update checks. Decreasing the value will cause the addon to periodically check more often if any state or window updates are needed. It is recommended to not change this value."],
+                width = Percent(1.0)
+            },
             header = {
                 order = 10,
                 type = "header",
-                name = "Debugging Options"
+                name = L["Debugging Options"]
             },
             debug = {
                 order = 11,
@@ -458,9 +471,15 @@ function Traveler:GetAdvancedOptionsTable()
                 set = function(info, value)
                     if self.db.profile.advanced.debug ~= value then
                         self.db.profile.advanced.debug = value
-                        self.Tracker:UpdateImmediate()
+                        self.Tracker:Update(true)
                     end
                 end
+            },
+            debugDesc = {
+                order = 12,
+                type = "description",
+                name = L["This option controls whether or not debugging information and tools are enabled. This can add a great deal of spam in the console and should not be needed unless debugging the addon."],
+                width = Percent(1.0)
             }
         }
     }
@@ -505,9 +524,8 @@ function Traveler:GetJourneyEditor()
     chapterSelector:SetTitle(L["SELECT_CHAPTER"])
     chapterSelector.list.GetValues = function(self)
         local values = {}
-        local journeyIndex = journeySelector.list.selectedIndex
-        if journeyIndex > 0 and journeyIndex <= #Traveler.journeys then
-            local journey = Traveler.journeys[journeyIndex]
+        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+        if journey then
             for i, v in ipairs(journey.chapters) do
                 values[i] = v.title
             end
@@ -515,15 +533,220 @@ function Traveler:GetJourneyEditor()
         return values
     end
 
-    journeySelector.list:AddListener("OnSelectionChanged", function(self)
-        chapterSelector.list.selectedIndex = -1
-        chapterSelector:Refresh()
+    local newJourneyButton = CreateFrame("BUTTON", "NewJourney", content, "UIPanelButtonTemplate")
+    newJourneyButton:SetPoint("TOPLEFT", journeySelector, "BOTTOMLEFT")
+    newJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOM", 0, -22)
+    newJourneyButton:SetText(L["NEW_JOURNEY"])
+    newJourneyButton:SetScript("OnClick", function(self, button, down)
+        if Traveler.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
+            journeySelector.list.selectedIndex = #Traveler.journeys
+            chapterSelector.list.selectedIndex = -1
+            stepSelector.list.selectedIndex = -1
+            frame.refresh()
+        end
     end)
+
+    StaticPopupDialogs[addonName .. "_DELETE_JOURNEY"] = {
+        text = L["DELETE_JOURNEY"] .. "?",
+        showAlert = true,
+        button1 = ACCEPT,
+        button2 = CANCEL,
+        OnAccept = function()
+            if Traveler.Journey:DeleteJourney(journeySelector.list.selectedIndex) then
+                journeySelector.list.selectedIndex = -1
+                chapterSelector.list.selectedIndex = -1
+                stepSelector.list.selectedIndex = -1
+                frame.refresh()
+            end
+        end,
+        sound = SOUNDKIT.IG_MAINMENU_OPEN,
+        hideOnEscape = true,
+    }
+    local deleteJourneyButton = CreateFrame("BUTTON", "DeleteJourney", content, "UIPanelButtonTemplate")
+    deleteJourneyButton:SetPoint("TOPLEFT", journeySelector, "BOTTOM")
+    deleteJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOMRIGHT", 0, -22)
+    deleteJourneyButton:SetText(L["DELETE_JOURNEY"])
+    deleteJourneyButton:SetScript("OnClick", function(self, button, down)
+        StaticPopup_Show(addonName .. "_DELETE_JOURNEY")
+    end)
+
+    local newChapterButton = CreateFrame("BUTTON", "NewChapter", content, "UIPanelButtonTemplate")
+    newChapterButton:SetPoint("TOPLEFT", chapterSelector, "BOTTOMLEFT")
+    newChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOM", 0, -22)
+    newChapterButton:SetText(L["NEW_CHAPTER"])
+    newChapterButton:SetScript("OnClick", function(self, button, down)
+        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+        if Traveler.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
+            chapterSelector.list.selectedIndex = #journey.chapters
+            stepSelector.list.selectedIndex = -1
+            frame.refresh()
+        end
+    end)
+
+    StaticPopupDialogs[addonName .. "_DELETE_CHAPTER"] = {
+        text = L["DELETE_CHAPTER"] .. "?",
+        showAlert = true,
+        button1 = ACCEPT,
+        button2 = CANCEL,
+        OnAccept = function()
+            local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+            if Traveler.Journey:DeleteChapter(journey, chapterSelector.list.selectedIndex) then
+                chapterSelector.list.selectedIndex = -1
+                stepSelector.list.selectedIndex = -1
+                frame.refresh()
+            end
+        end,
+        sound = SOUNDKIT.IG_MAINMENU_OPEN,
+        hideOnEscape = true,
+    }
+    local deleteChapterButton = CreateFrame("BUTTON", "DeleteChapter", content, "UIPanelButtonTemplate")
+    deleteChapterButton:SetPoint("TOPLEFT", chapterSelector, "BOTTOM")
+    deleteChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOMRIGHT", 0, -22)
+    deleteChapterButton:SetText(L["DELETE_CHAPTER"])
+    deleteChapterButton:SetScript("OnClick", function(self, button, down)
+        StaticPopup_Show(addonName .. "_DELETE_CHAPTER")
+    end)
+
+    local stepSelector = self:CreateSelector("Steps", content)
+    stepSelector:SetPoint("TOPLEFT", newJourneyButton, "BOTTOMLEFT", 0, -15)
+    stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
+    stepSelector:SetTitle(L["SELECT_STEP"])
+    stepSelector.list.GetValues = function(self)
+        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+        local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
+        if chapter then
+            return chapter.steps
+        end
+    end
+    stepSelector.list.CreateRow = function(self, index, parent)
+        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent, true)
+        row:SetJustifyH("LEFT")
+        row:SetJustifyV("CENTER")
+        row:SetFontSize(10)
+        row:SetTextColor(1, 1, 1, 1)
+
+        local highlightTexture = row:CreateTexture(nil, "BACKGROUND")
+        highlightTexture:SetAllPoints(row)
+        highlightTexture:SetTexture("Interface/QuestFrame/UI-QuestLogTitleHighlight")
+        highlightTexture:SetBlendMode("ADD")
+        highlightTexture:SetVertexColor(0, 0, 0)
+        row.highlightTexture = highlightTexture
+
+        row.SetValue = function(self, step)
+            if step.type == Traveler.STEP_TYPE_UNDEFINED then
+                self:SetText(L["<Undefined Step>"])
+            elseif step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+                self:SetText(L["Accept %s"], Traveler.DataSource:GetQuestName(step.data, true))
+            elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+                self:SetText(L["Complete %s"], Traveler.DataSource:GetQuestName(step.data, true))
+            elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+                self:SetText(L["Turn-in %s"], Traveler.DataSource:GetQuestName(step.data, true))
+            elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+                self:SetText(L["Fly to %s"], step.data)
+            elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+                self:SetText(L["Bind %s to %s"], Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end), step.data)
+            else
+                Traveler:Error("Step type %s not implemented.", step.type)
+            end
+
+            if self.list.selectedIndex == self.index then
+                self.highlightTexture:SetVertexColor(1, 1, 0)
+            elseif row:IsMouseOver() then
+                self.highlightTexture:SetVertexColor(.196, .388, .8)
+            else
+                self.highlightTexture:SetVertexColor(0, 0, 0)
+            end
+        end
+
+        row:SetScript("OnEnter", function(self, motion)
+            if self.list.selectedIndex == self.index then
+                self.highlightTexture:SetVertexColor(1, 1, 0)
+            else
+                self.highlightTexture:SetVertexColor(.196, .388, .8)
+            end
+        end)
+
+        row:SetScript("OnLeave", function(self, motion)
+            if self.list.selectedIndex == self.index then
+                self.highlightTexture:SetVertexColor(1, 1, 0)
+            else
+                self.highlightTexture:SetVertexColor(0, 0, 0)
+            end
+        end)
+
+        row:SetScript("OnClick", function(self, button, down)
+            self.list.selectedIndex = self.index
+            self.list:SelectionChanged()
+        end)
+
+        return row
+    end
+
+    local newStepButton = CreateFrame("BUTTON", "NewStep", content, "UIPanelButtonTemplate")
+    newStepButton:SetPoint("TOPLEFT", stepSelector, "BOTTOMLEFT")
+    newStepButton:SetPoint("BOTTOMRIGHT", stepSelector, "BOTTOM", 0, -22)
+    newStepButton:SetText(L["NEW_STEP"])
+    newStepButton:SetScript("OnClick", function(self, button, down)
+        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+        local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
+        if Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED) then
+            stepSelector.list.selectedIndex = #chapter.steps
+            frame.refresh()
+        end
+    end)
+
+    StaticPopupDialogs[addonName .. "_DELETE_STEP"] = {
+        text = L["DELETE_STEP"] .. "?",
+        showAlert = true,
+        button1 = ACCEPT,
+        button2 = CANCEL,
+        OnAccept = function()
+            local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+            local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
+            if Traveler.Journey:DeleteStep(chapter, stepSelector.list.selectedIndex) then
+                stepSelector.list.selectedIndex = -1
+                frame.refresh()
+            end
+        end,
+        sound = SOUNDKIT.IG_MAINMENU_OPEN,
+        hideOnEscape = true,
+    }
+    local deleteStepButton = CreateFrame("BUTTON", "DeleteStep", content, "UIPanelButtonTemplate")
+    deleteStepButton:SetPoint("TOPLEFT", stepSelector, "BOTTOM")
+    deleteStepButton:SetPoint("BOTTOMRIGHT", stepSelector, "BOTTOMRIGHT", 0, -22)
+    deleteStepButton:SetText(L["DELETE_STEP"])
+    deleteStepButton:SetScript("OnClick", function(self, button, down)
+        StaticPopup_Show(addonName .. "_DELETE_STEP")
+    end)
+
+    journeySelector.list.OnSelectionChanged = function(self)
+        chapterSelector.list.selectedIndex = -1
+        stepSelector.list.selectedIndex = -1
+        frame.refresh()
+    end
+
+    chapterSelector.list.OnSelectionChanged = function(self)
+        stepSelector.list.selectedIndex = -1
+        frame.refresh()
+    end
+
+    stepSelector.list.OnSelectionChanged = function(self)
+        frame.refresh()
+    end
 
     frame.refresh = function()
         xpcall(function()
             journeySelector:Refresh()
             chapterSelector:Refresh()
+            stepSelector:Refresh()
+
+            deleteJourneyButton:SetEnabled(journeySelector.list.selectedIndex ~= -1)
+
+            newChapterButton:SetEnabled(journeySelector.list.selectedIndex ~= -1)
+            deleteChapterButton:SetEnabled(chapterSelector.list.selectedIndex ~= -1)
+
+            newStepButton:SetEnabled(chapterSelector.list.selectedIndex ~= -1)
+            deleteStepButton:SetEnabled(stepSelector.list.selectedIndex ~= -1)
         end, geterrorhandler())
     end
 

@@ -5,6 +5,8 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local Traveler = addon.Traveler
 local L = addon.Locale
 
+Traveler.ITEM_HEARTHSTONE = 6948
+
 function Traveler:OnInitialize()
     self:InitializeDatabase()
     self:InitializeOptions()
@@ -74,6 +76,18 @@ function Traveler:GetQuestLogIsComplete(questId)
         end
     end
     return false
+end
+
+function Traveler:GetItemName(itemId, callback)
+    local itemName, itemLink, itemQuality = GetItemInfo(itemId)
+
+    if itemName == nil then
+        local item = Item:CreateFromItemID(itemId)
+        item:ContinueOnItemLoad(function() callback() end)
+        return string.format("item:%s", itemId)
+    end
+
+    return itemName
 end
 
 function dump(o)

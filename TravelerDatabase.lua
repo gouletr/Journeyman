@@ -52,21 +52,22 @@ function Traveler:InitializeDatabase()
 end
 
 function Traveler:SerializeDatabase()
-    if self.journeys ~= nil then
+    if self.journeys then
+        self.db.profile.journeys = {}
         for i,v in ipairs(self.journeys) do
             local result, serialized = self:Serialize(v)
             if result then self.db.profile.journeys[i] = serialized end
         end
     end
 
-    if self.journey ~= nil then
+    if self.journey then
         local result, serialized = self:Serialize(self.journey)
         if result then self.db.char.journey = serialized end
     end
 end
 
 function Traveler:DeserializeDatabase()
-    if self.db.profile.journeys ~= nil then
+    if self.db.profile.journeys then
         self.journeys = {}
         for i,v in ipairs(self.db.profile.journeys) do
             local result, deserialized = self:Deserialize(v)
@@ -74,7 +75,7 @@ function Traveler:DeserializeDatabase()
         end
     end
 
-    if self.db.char.journey ~= nil then
+    if self.db.char.journey then
         local result, deserialized = self:Deserialize(self.db.char.journey)
         if result then self.journey = deserialized end
     end
