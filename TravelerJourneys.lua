@@ -6,6 +6,7 @@ Traveler.Journey = Journey
 
 local tinsert = table.insert
 local tremove = table.remove
+local function tmove(t, from, to) table.insert(t, to, table.remove(t, from)) end
 
 function Journey:CreateJourney(title)
     if Traveler.journeys == nil then
@@ -22,6 +23,14 @@ function Journey:GetJourney(index)
     if Traveler.journeys and index > 0 and index <= #Traveler.journeys then
         return Traveler.journeys[index]
     end
+end
+
+function Journey:MoveJourney(from, to)
+    if Traveler.journeys and from > 0 and from <= #Traveler.journeys and to > 0 and to <= #Traveler.journeys then
+        tmove(Traveler.journeys, from, to)
+        return true
+    end
+    return false
 end
 
 function Journey:DeleteJourney(index)
@@ -51,6 +60,14 @@ function Journey:GetChapter(journey, index)
     end
 end
 
+function Journey:MoveChapter(journey, from, to)
+    if journey and journey.chapters and from > 0 and from <= #journey.chapters and to > 0 and to <= #journey.chapters then
+        tmove(journey.chapters, from, to)
+        return true
+    end
+    return false
+end
+
 function Journey:DeleteChapter(journey, index)
     if journey and journey.chapters and index > 0 and index <= #journey.chapters then
         tremove(journey.chapters, index)
@@ -78,6 +95,14 @@ function Journey:GetStep(chapter, index)
     end
 end
 
+function Journey:MoveStep(chapter, from, to)
+    if chapter and chapter.steps and from > 0 and from <= #chapter.steps and to > 0 and to <= #chapter.steps then
+        tmove(chapter.steps, from, to)
+        return true
+    end
+    return false
+end
+
 function Journey:DeleteStep(chapter, index)
     if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
         tremove(chapter.steps, index)
@@ -85,13 +110,6 @@ function Journey:DeleteStep(chapter, index)
     end
     return false
 end
-
-Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
-Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
-Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
-Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
-Traveler.STEP_TYPE_FLY_TO = "FLYTO"
-Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 
 function Traveler:InitializeJourney()
     if self.journeys == nil then

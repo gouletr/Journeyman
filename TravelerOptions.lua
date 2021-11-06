@@ -3,6 +3,38 @@ local addonVersion = GetAddOnMetadata(addonName, "version")
 local Traveler = addon.Traveler
 local L = addon.Locale
 
+Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
+Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
+Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
+Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
+Traveler.STEP_TYPE_FLY_TO = "FLYTO"
+Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
+
+local STEP_TYPE_DROPDOWN_UNDEFINED = L["Undefined"]
+local STEP_TYPE_DROPDOWN_ACCEPT_QUEST = L["Accept Quest"]
+local STEP_TYPE_DROPDOWN_COMPLETE_QUEST = L["Complete Quest"]
+local STEP_TYPE_DROPDOWN_TURNIN_QUEST = L["Turn-in Quest"]
+local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
+local STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE = L["Bind Hearthstone"]
+
+local StepTypeToDropDown = {
+    [Traveler.STEP_TYPE_UNDEFINED] = STEP_TYPE_DROPDOWN_UNDEFINED,
+    [Traveler.STEP_TYPE_ACCEPT_QUEST] = STEP_TYPE_DROPDOWN_ACCEPT_QUEST,
+    [Traveler.STEP_TYPE_COMPLETE_QUEST] = STEP_TYPE_DROPDOWN_COMPLETE_QUEST,
+    [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
+    [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
+    [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
+}
+
+local DropDownToStepType = {
+    [STEP_TYPE_DROPDOWN_UNDEFINED] = Traveler.STEP_TYPE_UNDEFINED,
+    [STEP_TYPE_DROPDOWN_ACCEPT_QUEST] = Traveler.STEP_TYPE_ACCEPT_QUEST,
+    [STEP_TYPE_DROPDOWN_COMPLETE_QUEST] = Traveler.STEP_TYPE_COMPLETE_QUEST,
+    [STEP_TYPE_DROPDOWN_TURNIN_QUEST] = Traveler.STEP_TYPE_TURNIN_QUEST,
+    [STEP_TYPE_DROPDOWN_FLY_TO] = Traveler.STEP_TYPE_FLY_TO,
+    [STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE] = Traveler.STEP_TYPE_BIND_HEARTHSTONE,
+}
+
 local function Percent(value)
     local windowWidth = 600
     local widthMultiplier = 170
@@ -18,8 +50,13 @@ function Traveler:InitializeOptions()
     self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
     self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 
-    self.journeyEditor = self:GetJourneyEditor()
-    InterfaceOptions_AddCategory(self.journeyEditor)
+    xpcall(function()
+        Traveler.editor = self:GetJourneyEditor()
+        InterfaceOptions_AddCategory(Traveler.editor)
+    end, geterrorhandler())
+
+    -- self.editor = self:GetJourneyEditor()
+    -- InterfaceOptions_AddCategory(self.editor)
 end
 
 function Traveler:GetOptionsTable()
@@ -517,6 +554,7 @@ function Traveler:GetJourneyEditor()
         end
         return values
     end
+    frame.journeySelector = journeySelector
 
     local chapterSelector = self:CreateSelector("Chapters", content)
     chapterSelector:SetPoint("TOPLEFT", title, "BOTTOM")
@@ -524,7 +562,7 @@ function Traveler:GetJourneyEditor()
     chapterSelector:SetTitle(L["SELECT_CHAPTER"])
     chapterSelector.list.GetValues = function(self)
         local values = {}
-        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
+        local journey = Traveler.editor:GetSelectedJourney()
         if journey then
             for i, v in ipairs(journey.chapters) do
                 values[i] = v.title
@@ -532,6 +570,7 @@ function Traveler:GetJourneyEditor()
         end
         return values
     end
+    frame.chapterSelector = chapterSelector
 
     local newJourneyButton = CreateFrame("BUTTON", "NewJourney", content, "UIPanelButtonTemplate")
     newJourneyButton:SetPoint("TOPLEFT", journeySelector, "BOTTOMLEFT")
@@ -539,9 +578,9 @@ function Traveler:GetJourneyEditor()
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
         if Traveler.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
-            journeySelector.list.selectedIndex = #Traveler.journeys
-            chapterSelector.list.selectedIndex = -1
-            stepSelector.list.selectedIndex = -1
+            Traveler.editor:SetSelectedJourneyIndex(#Traveler.journeys)
+            Traveler.editor:SetSelectedChapterIndex(-1)
+            Traveler.editor:SetSelectedStepIndex(-1)
             frame.refresh()
         end
     end)
@@ -552,10 +591,10 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            if Traveler.Journey:DeleteJourney(journeySelector.list.selectedIndex) then
-                journeySelector.list.selectedIndex = -1
-                chapterSelector.list.selectedIndex = -1
-                stepSelector.list.selectedIndex = -1
+            if Traveler.Journey:DeleteJourney(Traveler.editor:GetSelectedJourneyIndex()) then
+                Traveler.editor:SetSelectedJourneyIndex(-1)
+                Traveler.editor:SetSelectedChapterIndex(-1)
+                Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
             end
         end,
@@ -575,10 +614,10 @@ function Traveler:GetJourneyEditor()
     newChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOM", 0, -22)
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
-        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
-        if Traveler.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
-            chapterSelector.list.selectedIndex = #journey.chapters
-            stepSelector.list.selectedIndex = -1
+        local journey = Traveler.editor:GetSelectedJourney()
+        if journey and Traveler.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
+            Traveler.editor:SetSelectedChapterIndex(#journey.chapters)
+            Traveler.editor:SetSelectedStepIndex(-1)
             frame.refresh()
         end
     end)
@@ -589,10 +628,10 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
-            if Traveler.Journey:DeleteChapter(journey, chapterSelector.list.selectedIndex) then
-                chapterSelector.list.selectedIndex = -1
-                stepSelector.list.selectedIndex = -1
+            local journey = Traveler.editor:GetSelectedJourney()
+            if journey and Traveler.Journey:DeleteChapter(journey, Traveler.editor:GetSelectedChapterIndex()) then
+                Traveler.editor:SetSelectedChapterIndex(-1)
+                Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
             end
         end,
@@ -612,12 +651,13 @@ function Traveler:GetJourneyEditor()
     stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
     stepSelector:SetTitle(L["SELECT_STEP"])
     stepSelector.list.GetValues = function(self)
-        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
-        local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
+        local chapter = Traveler.editor:GetSelectedChapter()
         if chapter then
             return chapter.steps
         end
     end
+    frame.stepSelector = stepSelector
+
     stepSelector.list.CreateRow = function(self, index, parent)
         local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent, true)
         row:SetJustifyH("LEFT")
@@ -633,44 +673,73 @@ function Traveler:GetJourneyEditor()
         row.highlightTexture = highlightTexture
 
         row.SetValue = function(self, step)
-            if step.type == Traveler.STEP_TYPE_UNDEFINED then
-                self:SetText(L["<Undefined Step>"])
-            elseif step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                self:SetText(L["Accept %s"], Traveler.DataSource:GetQuestName(step.data, true))
-            elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                self:SetText(L["Complete %s"], Traveler.DataSource:GetQuestName(step.data, true))
-            elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                self:SetText(L["Turn-in %s"], Traveler.DataSource:GetQuestName(step.data, true))
-            elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-                self:SetText(L["Fly to %s"], step.data)
-            elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                self:SetText(L["Bind %s to %s"], Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end), step.data)
+            local text
+            if Traveler:IsStepQuest(step) then
+                local questName = Traveler.DataSource:GetQuestName(step.data, true)
+                if questName == nil then
+                    if step.data == nil then
+                        questName = "<No Value>"
+                    elseif type(step.data) ~= "number" then
+                        questName = "<Not a Quest Id>"
+                    else
+                        questName = string.format("quest:%d", step.data)
+                    end
+                end
+                if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+                    self:SetText(L["Accept %s"], questName)
+                elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+                    self:SetText(L["Complete %s"], questName)
+                elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+                    self:SetText(L["Turn-in %s"], questName)
+                else
+                    Traveler:Error("Step type %s not implemented.", step.type)
+                end
             else
-                Traveler:Error("Step type %s not implemented.", step.type)
+                if step.type == Traveler.STEP_TYPE_UNDEFINED then
+                    self:SetText("<%s>", L["Undefined"])
+                elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+                    local location = step.data
+                    if location == nil then
+                        location = "<No Value>"
+                    end
+                    self:SetText(L["Fly to %s"], location)
+                elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+                    local itemName = Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end)
+                    if itemName == nil then
+                        itemName = "<No Value>"
+                    end
+                    local location = step.data
+                    if location == nil then
+                        location = "<No Value>"
+                    end
+                    self:SetText(L["Bind %s to %s"], itemName, location)
+                else
+                    Traveler:Error("Step type %s not implemented.", step.type)
+                end
             end
 
             if self.list.selectedIndex == self.index then
-                self.highlightTexture:SetVertexColor(1, 1, 0)
+                self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             elseif row:IsMouseOver() then
-                self.highlightTexture:SetVertexColor(.196, .388, .8)
+                self.highlightTexture:SetVertexColor(.196, .388, .8) -- hover
             else
-                self.highlightTexture:SetVertexColor(0, 0, 0)
+                self.highlightTexture:SetVertexColor(0, 0, 0) -- none
             end
         end
 
         row:SetScript("OnEnter", function(self, motion)
             if self.list.selectedIndex == self.index then
-                self.highlightTexture:SetVertexColor(1, 1, 0)
+                self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             else
-                self.highlightTexture:SetVertexColor(.196, .388, .8)
+                self.highlightTexture:SetVertexColor(.196, .388, .8) -- hover
             end
         end)
 
         row:SetScript("OnLeave", function(self, motion)
             if self.list.selectedIndex == self.index then
-                self.highlightTexture:SetVertexColor(1, 1, 0)
+                self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             else
-                self.highlightTexture:SetVertexColor(0, 0, 0)
+                self.highlightTexture:SetVertexColor(0, 0, 0) -- none
             end
         end)
 
@@ -687,10 +756,9 @@ function Traveler:GetJourneyEditor()
     newStepButton:SetPoint("BOTTOMRIGHT", stepSelector, "BOTTOM", 0, -22)
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
-        local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
-        local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
-        if Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED) then
-            stepSelector.list.selectedIndex = #chapter.steps
+        local chapter = Traveler.editor:GetSelectedChapter()
+        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED) then
+            Traveler.editor:SetSelectedStepIndex(#chapter.steps)
             frame.refresh()
         end
     end)
@@ -701,10 +769,9 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local journey = Traveler.Journey:GetJourney(journeySelector.list.selectedIndex)
-            local chapter = Traveler.Journey:GetChapter(journey, chapterSelector.list.selectedIndex)
-            if Traveler.Journey:DeleteStep(chapter, stepSelector.list.selectedIndex) then
-                stepSelector.list.selectedIndex = -1
+            local chapter = Traveler.editor:GetSelectedChapter()
+            if chapter and Traveler.Journey:DeleteStep(chapter, Traveler.editor:GetSelectedStepIndex()) then
+                Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
             end
         end,
@@ -719,14 +786,19 @@ function Traveler:GetJourneyEditor()
         StaticPopup_Show(addonName .. "_DELETE_STEP")
     end)
 
+    local propertiesGroup = self:CreatePropertiesGroup("FRAME", "Properties", content)
+    propertiesGroup:SetPoint("TOPLEFT", newChapterButton, "BOTTOMLEFT", 0, -15)
+    propertiesGroup:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT")
+
+    -- Setup events
     journeySelector.list.OnSelectionChanged = function(self)
-        chapterSelector.list.selectedIndex = -1
-        stepSelector.list.selectedIndex = -1
+        Traveler.editor:SetSelectedChapterIndex(-1)
+        Traveler.editor:SetSelectedStepIndex(-1)
         frame.refresh()
     end
 
     chapterSelector.list.OnSelectionChanged = function(self)
-        stepSelector.list.selectedIndex = -1
+        Traveler.editor:SetSelectedStepIndex(-1)
         frame.refresh()
     end
 
@@ -734,19 +806,29 @@ function Traveler:GetJourneyEditor()
         frame.refresh()
     end
 
+    frame.GetSelectedJourneyIndex = function(self) return self.journeySelector.list.selectedIndex end
+    frame.SetSelectedJourneyIndex = function(self, index) self.journeySelector.list.selectedIndex = index end
+    frame.GetSelectedJourney = function(self) return Traveler.Journey:GetJourney(self:GetSelectedJourneyIndex()) end
+    frame.GetSelectedChapterIndex = function(self) return self.chapterSelector.list.selectedIndex end
+    frame.SetSelectedChapterIndex = function(self, index) self.chapterSelector.list.selectedIndex = index end
+    frame.GetSelectedChapter = function(self) return Traveler.Journey:GetChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
+    frame.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
+    frame.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
+    frame.GetSelectedStep = function(self) return Traveler.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
+
+    -- Refresh method
     frame.refresh = function()
         xpcall(function()
             journeySelector:Refresh()
             chapterSelector:Refresh()
             stepSelector:Refresh()
+            propertiesGroup:Refresh()
 
-            deleteJourneyButton:SetEnabled(journeySelector.list.selectedIndex ~= -1)
-
-            newChapterButton:SetEnabled(journeySelector.list.selectedIndex ~= -1)
-            deleteChapterButton:SetEnabled(chapterSelector.list.selectedIndex ~= -1)
-
-            newStepButton:SetEnabled(chapterSelector.list.selectedIndex ~= -1)
-            deleteStepButton:SetEnabled(stepSelector.list.selectedIndex ~= -1)
+            deleteJourneyButton:SetEnabled(frame:GetSelectedJourneyIndex() ~= -1)
+            newChapterButton:SetEnabled(frame:GetSelectedJourneyIndex() ~= -1)
+            deleteChapterButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
+            newStepButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
+            deleteStepButton:SetEnabled(frame:GetSelectedStepIndex() ~= -1)
         end, geterrorhandler())
     end
 
@@ -773,13 +855,268 @@ function Traveler:CreateSelector(name, parent)
     list:SetPoint("BOTTOMRIGHT", -5, 5)
     frame.list = list
 
-    frame.SetTitle = function(self, fmt, ...)
-        title:SetText(fmt, ...)
+    frame.SetTitle = function(self, fmt, ...) title:SetText(fmt, ...) end
+    frame.Refresh = function(self) list:Refresh() end
+
+    return frame
+end
+
+function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
+    local frame = CreateFrame(frameType, name, parent, template, id)
+
+    local title = Traveler.GUI:CreateLabel("FRAME", "Title", frame)
+    title:SetPoint("TOPLEFT")
+    title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
+    title:SetJustifyH("LEFT")
+    title:SetJustifyV("CENTER")
+    title:SetFontSize(12)
+    title:SetText("Properties")
+    frame.title = title
+
+    local group = Traveler.GUI:CreateGroup("FRAME", "Group", frame)
+    group:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
+    group:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    frame.group = group
+
+    local scrollFrame = CreateFrame("SCROLLFRAME", "ScrollFrame", group, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 5, -5)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -27, 5)
+    frame.scrollFrame = scrollFrame
+
+    local scrollChild = CreateFrame("FRAME", "ScrollChild", scrollFrame)
+    scrollFrame:SetScrollChild(scrollChild)
+    frame.scrollChild = scrollChild
+
+    local journeyTitle = self:CreateEditBoxProperty("FRAME", "JourneyTitle", scrollChild)
+    journeyTitle:SetPoint("TOPLEFT")
+    journeyTitle:SetPoint("BOTTOMRIGHT", scrollChild, "TOPRIGHT", 0, -40)
+    journeyTitle:SetTitle(L["Journey Title"])
+    journeyTitle.OnEnterPressed = function(self)
+        local journey = Traveler.editor:GetSelectedJourney()
+        if journey then
+            journey.title = self:GetText()
+        end
+        Traveler.editor.refresh()
     end
+    frame.journeyTitle = journeyTitle
+
+    local journeyIndex = self:CreateEditBoxProperty("FRAME", "JourneyIndex", scrollChild)
+    journeyIndex:SetPoint("TOPLEFT", journeyTitle, "BOTTOMLEFT")
+    journeyIndex:SetPoint("BOTTOMRIGHT", journeyTitle, "BOTTOMRIGHT", 0, -40)
+    journeyIndex:SetTitle(L["Journey Index"])
+    journeyIndex:SetNumeric(true)
+    journeyIndex.OnEnterPressed = function(self)
+        local index = self:GetNumber()
+        if index and Traveler.Journey:MoveJourney(Traveler.editor:GetSelectedJourneyIndex(), index) then
+            Traveler.editor:SetSelectedJourneyIndex(index)
+        end
+        Traveler.editor.refresh()
+    end
+    frame.journeyIndex = journeyIndex
+
+    local chapterTitle = self:CreateEditBoxProperty("FRAME", "ChapterTitle", scrollChild)
+    chapterTitle:SetPoint("TOPLEFT", journeyIndex, "BOTTOMLEFT")
+    chapterTitle:SetPoint("BOTTOMRIGHT", journeyIndex, "BOTTOMRIGHT", 0, -40)
+    chapterTitle:SetTitle(L["Chapter Title"])
+    chapterTitle.OnEnterPressed = function(self)
+        local chapter = Traveler.editor:GetSelectedChapter()
+        if chapter then
+            chapter.title = self:GetText()
+        end
+        Traveler.editor.refresh()
+    end
+    frame.chapterTitle = chapterTitle
+
+    local chapterIndex = self:CreateEditBoxProperty("FRAME", "ChapterIndex", scrollChild)
+    chapterIndex:SetPoint("TOPLEFT", chapterTitle, "BOTTOMLEFT")
+    chapterIndex:SetPoint("BOTTOMRIGHT", chapterTitle, "BOTTOMRIGHT", 0, -40)
+    chapterIndex:SetTitle(L["Chapter Index"])
+    chapterIndex:SetNumeric(true)
+    chapterIndex.OnEnterPressed = function(self)
+        local index = self:GetNumber()
+        local journey = Traveler.editor:GetSelectedJourney()
+        if index and journey and Traveler.Journey:MoveChapter(journey, Traveler.editor:GetSelectedChapterIndex(), index) then
+            Traveler.editor:SetSelectedChapterIndex(index)
+        end
+        Traveler.editor.refresh()
+    end
+    frame.chapterIndex = chapterIndex
+
+    local stepType = self:CreateDropDownMenuProperty("FRAME", "StepType", scrollChild)
+    stepType:SetPoint("TOPLEFT", chapterIndex, "BOTTOMLEFT")
+    stepType:SetPoint("BOTTOMRIGHT", chapterIndex, "BOTTOMRIGHT", 0, -40)
+    stepType:SetTitle(L["Step Type"])
+    stepType.GetValues = function(self)
+        return {
+            [Traveler.STEP_TYPE_UNDEFINED] = STEP_TYPE_DROPDOWN_UNDEFINED,
+            [Traveler.STEP_TYPE_ACCEPT_QUEST] = STEP_TYPE_DROPDOWN_ACCEPT_QUEST,
+            [Traveler.STEP_TYPE_COMPLETE_QUEST] = STEP_TYPE_DROPDOWN_COMPLETE_QUEST,
+            [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
+            [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
+            [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
+        }
+    end
+    stepType.GetSorting = function(self)
+        return {
+            Traveler.STEP_TYPE_UNDEFINED,
+            Traveler.STEP_TYPE_ACCEPT_QUEST,
+            Traveler.STEP_TYPE_COMPLETE_QUEST,
+            Traveler.STEP_TYPE_TURNIN_QUEST,
+            Traveler.STEP_TYPE_FLY_TO,
+            Traveler.STEP_TYPE_BIND_HEARTHSTONE,
+        }
+    end
+    stepType.OnValueChanged = function(self, value)
+        local step = Traveler.editor:GetSelectedStep()
+        if step then
+            step.type = value
+        end
+        Traveler.editor.refresh()
+    end
+    stepType:Initialize()
+    frame.stepType = stepType
+
+    local stepData = self:CreateEditBoxProperty("FRAME", "StepData", scrollChild)
+    stepData:SetPoint("TOPLEFT", stepType, "BOTTOMLEFT")
+    stepData:SetPoint("BOTTOMRIGHT", stepType, "BOTTOMRIGHT", 0, -40)
+    stepData:SetTitle(L["Step Data"])
+    stepData.OnEnterPressed = function(self)
+        local step = Traveler.editor:GetSelectedStep()
+        if step then
+            if Traveler:IsStepQuest(step) then
+                step.data = self:GetNumber()
+            else
+                step.data = self:GetText()
+            end
+        end
+        Traveler.editor.refresh()
+    end
+    frame.stepData = stepData
+
+    local stepIndex = self:CreateEditBoxProperty("FRAME", "StepIndex", scrollChild)
+    stepIndex:SetPoint("TOPLEFT", stepData, "BOTTOMLEFT")
+    stepIndex:SetPoint("BOTTOMRIGHT", stepData, "BOTTOMRIGHT", 0, -40)
+    stepIndex:SetTitle(L["Step Index"])
+    stepIndex:SetNumeric(true)
+    stepIndex.OnEnterPressed = function(self)
+        local index = self:GetNumber()
+        local chapter = Traveler.editor:GetSelectedChapter()
+        if index and chapter and Traveler.Journey:MoveStep(chapter, Traveler.editor:GetSelectedStepIndex(), index) then
+            Traveler.editor:SetSelectedStepIndex(index)
+        end
+        Traveler.editor.refresh()
+    end
+    frame.stepIndex = stepIndex
 
     frame.Refresh = function(self)
-        list:Refresh()
+        self.scrollChild:SetSize(self.scrollFrame:GetWidth(), self.scrollFrame:GetHeight())
+
+        local journey = Traveler.editor:GetSelectedJourney()
+        if journey then
+            self.journeyTitle:SetEnabled(true)
+            self.journeyTitle:SetText(journey.title)
+            self.journeyIndex:SetEnabled(true)
+            self.journeyIndex:SetText(Traveler.editor:GetSelectedJourneyIndex())
+        else
+            self.journeyTitle:SetEnabled(false)
+            self.journeyIndex:SetEnabled(false)
+        end
+
+        local chapter = Traveler.editor:GetSelectedChapter()
+        if chapter then
+            self.chapterTitle:SetEnabled(true)
+            self.chapterTitle:SetText(chapter.title)
+            self.chapterIndex:SetEnabled(true)
+            self.chapterIndex:SetText(Traveler.editor:GetSelectedChapterIndex())
+        else
+            self.chapterTitle:SetEnabled(false)
+            self.chapterTitle:SetText("")
+            self.chapterIndex:SetEnabled(false)
+            self.chapterIndex:SetText("")
+        end
+
+        self.stepType:SetWidth(self.scrollFrame:GetWidth())
+        local step = Traveler.editor:GetSelectedStep()
+        if step then
+            self.stepType:SetValue(step.type)
+            self.stepType:SetEnabled(true)
+            if step.data then
+                self.stepData:SetText(step.data)
+            else
+                self.stepData:SetText("")
+            end
+            self.stepData:SetEnabled(true)
+            self.stepIndex:SetText(Traveler.editor:GetSelectedStepIndex())
+            self.stepIndex:SetEnabled(true)
+        else
+            self.stepType:SetValue("")
+            self.stepType:SetEnabled(false)
+            self.stepData:SetText("")
+            self.stepData:SetEnabled(false)
+            self.stepIndex:SetText("")
+            self.stepIndex:SetEnabled(false)
+        end
     end
+
+    return frame
+end
+
+function Traveler:CreateEditBoxProperty(frameType, name, parent, template, id)
+    local frame = CreateFrame(frameType, name, parent, template, id)
+
+    local label = Traveler.GUI:CreateLabel("FRAME", "Label", frame)
+    label:SetPoint("TOPLEFT")
+    label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
+    label:SetJustifyH("LEFT")
+    label:SetJustifyV("CENTER")
+    label:SetFontSize(10)
+    frame.label = label
+
+    local editBox = Traveler.GUI:CreateEditBox("FRAME", "EditBox", frame)
+    editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
+    editBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    editBox:SetTextColor(1, 1, 1, 1)
+    editBox.OnEnterPressed = function(self)
+        if frame.OnEnterPressed then
+            frame:OnEnterPressed()
+        end
+    end
+    frame.editBox = editBox
+
+    frame.SetTitle = function(self, title, ...) self.label:SetText(title, ...) end
+    frame.SetText = function(self, value, ...) self.editBox:SetText(value, ...) end
+    frame.GetText = function(self) return self.editBox:GetText() end
+    frame.GetNumber = function(self) return self.editBox:GetNumber() end
+    frame.SetNumeric = function(self, value) self.editBox:SetNumeric(value) end
+    frame.SetEnabled = function(self, value) self.editBox:SetEnabled(value) end
+
+    return frame
+end
+
+function Traveler:CreateDropDownMenuProperty(frameType, name, parent, template, id)
+    local frame = CreateFrame(frameType, name, parent, template, id)
+
+    local label = Traveler.GUI:CreateLabel("FRAME", "Label", frame)
+    label:SetPoint("TOPLEFT")
+    label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
+    label:SetJustifyH("LEFT")
+    label:SetJustifyV("CENTER")
+    label:SetFontSize(10)
+    frame.label = label
+
+    local dropDownMenu = Traveler.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame)
+    dropDownMenu:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
+    dropDownMenu:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    dropDownMenu.GetValues = function(self) return frame:GetValues() end
+    dropDownMenu.GetSorting = function(self) if frame.GetSorting then return frame:GetSorting() end end
+    dropDownMenu.OnValueChanged = function(self, value) if frame.OnValueChanged then frame:OnValueChanged(value) end end
+    frame.dropDownMenu = dropDownMenu
+
+    frame.Initialize = function(self) self.dropDownMenu:Initialize() end
+    frame.SetTitle = function(self, title, ...) self.label:SetText(title, ...) end
+    frame.SetValue = function(self, value) self.dropDownMenu:SetValue(value) end
+    frame.SetWidth = function(self, value) self.dropDownMenu:SetWidth(value) end
+    frame.SetEnabled = function(self, value) self.dropDownMenu:SetEnabled(value) end
 
     return frame
 end

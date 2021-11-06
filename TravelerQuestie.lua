@@ -188,12 +188,18 @@ function DataSourceQuestie:IsInitialized()
 end
 
 function DataSourceQuestie:GetQuestName(questId, showLevel)
-    local name = QuestieDB.QueryQuestSingle(questId, "name");
-    local level, _ = QuestieLib:GetTbcLevel(questId)
-    if showLevel then
-        name = QuestieLib:GetQuestString(questId, name, level, true)
+    if questId == nil or type(questId) ~= "number" then
+        return nil
     end
-    return name
+
+    local name = QuestieDB.QueryQuestSingle(questId, "name");
+    if name then
+        local level, _ = QuestieLib:GetTbcLevel(questId)
+        if showLevel then
+            name = QuestieLib:GetQuestString(questId, name, level, true)
+        end
+        return name
+    end
 end
 
 function DataSourceQuestie:GetQuestLevel(questId)
