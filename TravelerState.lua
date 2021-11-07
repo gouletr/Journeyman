@@ -227,7 +227,9 @@ end
 function State:OnStepComplete()
     local nextStep = self:GetNextStep()
     if nextStep then
-        Traveler:SetWaypoint(nextStep)
+        if Traveler.db.profile.autoSetWaypoint then
+            Traveler:SetWaypoint(nextStep)
+        end
     elseif #self.steps > 0 then
         local isChapterComplete = true
         for i, step in ipairs(self.steps) do
@@ -247,9 +249,11 @@ function State:OnChapterComplete()
     if journey then
         Traveler.Journey:AdvanceChapter(journey)
         self:Reset(false, function(self)
-            local nextStep = self:GetNextStep()
-            if nextStep then
-                Traveler:SetWaypoint(nextStep)
+            if Traveler.db.profile.autoSetWaypoint then
+                local nextStep = self:GetNextStep()
+                if nextStep then
+                    Traveler:SetWaypoint(nextStep)
+                end
             end
         end)
     end
