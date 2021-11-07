@@ -77,7 +77,14 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.journey ~= value then
                         self.db.char.window.journey = value
                         self.db.char.window.chapter = 1
-                        self.State:Reset(true)
+                        self.State:Reset(true, function(self)
+                            if Traveler.db.profile.autoSetWaypoint then
+                                local nextStep = self:GetNextStep()
+                                if nextStep then
+                                    Traveler:SetWaypoint(nextStep)
+                                end
+                            end
+                        end)
                     end
                 end,
                 get = function(info) return self.db.char.window.journey end
