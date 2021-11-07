@@ -49,12 +49,12 @@ function Traveler:InitializeEvents()
                 end
             end
         end
-        if not next(completedQuests) then
-            self.State:Update()
-        else
+        if next(completedQuests) then
             for questId, _ in pairs(completedQuests) do
                 self.questProgress[questId] = nil
             end
+        else
+            self.State:Update()
         end
     end)
 
