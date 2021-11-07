@@ -79,11 +79,9 @@ function Traveler:GetGeneralOptionsTable()
                         self.db.char.window.chapter = 1
                         self.State:Reset(true, function(self)
                             if Traveler.db.profile.autoSetWaypoint then
-                                local nextStep = self:GetNextStep()
-                                if nextStep then
-                                    Traveler:SetWaypoint(nextStep)
-                                end
+                                Traveler:SetWaypoint(self:GetCurrentStep())
                             end
+                            Traveler:UpdateTargetingMacro()
                         end)
                     end
                 end,

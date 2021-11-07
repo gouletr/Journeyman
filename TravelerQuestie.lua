@@ -11,6 +11,8 @@ local QuestieMap = QuestieLoader and QuestieLoader:ImportModule("QuestieMap")
 local QuestieLib = QuestieLoader and QuestieLoader:ImportModule("QuestieLib")
 local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 
+local tinsert = table.insert
+
 local function GetNearestSpawn(spawns, player)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId
@@ -204,6 +206,63 @@ end
 
 function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
+end
+
+local function GetQuestObjectivesNPC(objectives, npcs)
+    for i = 1, #npcs do
+        local npc = QuestieDB:GetNPC(npcs[i])
+        if npc then
+            tinsert(objectives, { name = npc.name, type = "NPC" })
+        end
+    end
+end
+
+local function GetQuestObjectivesObject(objectives, objects)
+    for i = 1, #objects do
+        local obj = QuestieDB:GetObject(objects[i])
+        if obj then
+            tinsert(objectives, { name = obj.name, type = "Object" })
+        end
+    end
+end
+
+local function GetQuestObjectivesItem(objectives, items)
+    for i = 1, #items do
+        local item = QuestieDB:GetItem(items[i])
+        if item then
+            tinsert(objectives, { name = item.name, type = "Item" })
+            if item.npcDrops then
+                GetQuestObjectivesNPC(objectives, item.npcDrops)
+            end
+            if item.objectDrops then
+                GetQuestObjectivesObject(objectives, item.objectDrops)
+            end
+        end
+    end
+end
+
+function DataSourceQuestie:GetQuestObjectives(questId)
+    local quest = QuestieDB:GetQuest(questId)
+    if quest and quest.ObjectiveData then
+        local objectives = {}
+        for i = 1, #quest.ObjectiveData do
+            local objective = quest.ObjectiveData[i]
+            if not objective.Needed or objective.Needed ~= objective.Collected then
+                if objective.NPC then
+                    GetQuestObjectivesNPC(objectives, objective.NPC)
+                elseif objective.GameObject then
+                    GetQuestObjectivesObject(objectives, objective.GameObject)
+                elseif objective.Type == "monster" then
+                    GetQuestObjectivesNPC(objectives, { objective.Id })
+                elseif objective.Type == "object" then
+                    GetQuestObjectivesObject(objectives, { objective.Id })
+                elseif objective.Type == "item" then
+                    GetQuestObjectivesItem(objectives, { objective.Id })
+                end
+            end
+        end
+        return objectives
+    end
 end
 
 function DataSourceQuestie:GetQuestHasRequiredRace(questId)

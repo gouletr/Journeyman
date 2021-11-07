@@ -225,12 +225,14 @@ function State:OnHearthstoneUsed(location)
 end
 
 function State:OnStepComplete()
-    local nextStep = self:GetNextStep()
-    if nextStep then
+    local currentStep = self:GetCurrentStep()
+    if currentStep then
         if Traveler.db.profile.autoSetWaypoint then
-            Traveler:SetWaypoint(nextStep)
+            Traveler:SetWaypoint(currentStep)
         end
+        Traveler:UpdateTargetingMacro()
     elseif #self.steps > 0 then
+        -- Check if chapter is complete
         local isChapterComplete = true
         for i, step in ipairs(self.steps) do
             if step.isComplete == nil or step.isComplete == false then
@@ -250,16 +252,14 @@ function State:OnChapterComplete()
         Traveler.Journey:AdvanceChapter(journey)
         self:Reset(false, function(self)
             if Traveler.db.profile.autoSetWaypoint then
-                local nextStep = self:GetNextStep()
-                if nextStep then
-                    Traveler:SetWaypoint(nextStep)
-                end
+                Traveler:SetWaypoint(self:GetCurrentStep())
             end
+            Traveler:UpdateTargetingMacro()
         end)
     end
 end
 
-function State:GetNextStep()
+function State:GetCurrentStep()
     for i, step in ipairs(self.steps) do
         if step.isComplete ~= nil and step.isComplete == false then
             return step

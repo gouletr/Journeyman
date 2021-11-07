@@ -34,6 +34,7 @@ function Traveler:InitializeEvents()
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
         self.questProgress[questId] = true
+        Traveler:UpdateTargetingMacro()
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
@@ -71,6 +72,12 @@ function Traveler:InitializeEvents()
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellID)
         if spellID == Traveler.SPELL_HEARTHSTONE or spellID == Traveler.SPELL_ASTRAL_RECALL then
             self:OnHearthstoneUsed(GetBindLocation())
+        end
+    end)
+
+    self:RegisterEvent("PLAYER_REGEN_ENABLED", function(event)
+        if Traveler.macroNeedUpdate then
+            Traveler:UpdateTargetingMacro()
         end
     end)
 end
