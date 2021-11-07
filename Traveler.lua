@@ -5,7 +5,18 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local Traveler = addon.Traveler
 local L = addon.Locale
 
+Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
+Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
+Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
+Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
+Traveler.STEP_TYPE_FLY_TO = "FLYTO"
+Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
+Traveler.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
+
 Traveler.ITEM_HEARTHSTONE = 6948
+
+Traveler.SPELL_HEARTHSTONE = 8690
+Traveler.SPELL_ASTRAL_RECALL = 556
 
 function Traveler:OnInitialize()
     self:InitializeDatabase()
@@ -88,6 +99,21 @@ function Traveler:GetItemName(itemId, callback)
     end
 
     return itemName
+end
+
+function Traveler:SetWaypoint(step, force)
+    if step then
+        if TomTom and TomTom.AddWaypoint then
+            if self.db.char.waypoint and TomTom.RemoveWaypoint then
+                TomTom:RemoveWaypoint(self.db.char.waypoint)
+            end
+
+            local location = self.State:GetStepLocation(step)
+            if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
+                self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
+            end
+        end
+    end
 end
 
 function dump(o)

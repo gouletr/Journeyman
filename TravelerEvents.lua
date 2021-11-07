@@ -49,7 +49,7 @@ function Traveler:InitializeEvents()
             end
         end
         if not next(completedQuests) then
-            self.State:ResetIsComplete()
+            self.State:Update()
         else
             for questId, _ in pairs(completedQuests) do
                 self.questProgress[questId] = nil
@@ -67,6 +67,12 @@ function Traveler:InitializeEvents()
             self.bindLocation = nil
         end
     end)
+
+    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellID)
+        if spellID == Traveler.SPELL_HEARTHSTONE or spellID == Traveler.SPELL_ASTRAL_RECALL then
+            self:OnHearthstoneUsed(GetBindLocation())
+        end
+    end)
 end
 
 function Traveler:OnPlayerLeavingWorld()
@@ -74,26 +80,37 @@ function Traveler:OnPlayerLeavingWorld()
 end
 
 function Traveler:OnQuestAccepted(questId)
+    self.Journey:OnQuestAccepted(questId)
     self.State:OnQuestAccepted(questId)
     self:JourneyAddQuestAccept(questId)
 end
 
 function Traveler:OnQuestCompleted(questId)
+    self.Journey:OnQuestCompleted(questId)
     self.State:OnQuestCompleted(questId)
     self:JourneyAddQuestComplete(questId)
 end
 
 function Traveler:OnQuestTurnedIn(questId)
+    self.Journey:OnQuestTurnedIn(questId)
     self.State:OnQuestTurnedIn(questId)
     self:JourneyAddQuestTurnIn(questId)
 end
 
 function Traveler:OnQuestAbandoned(questId)
+    self.Journey:OnQuestAbandoned(questId)
     self.State:OnQuestAbandoned(questId)
     self:JourneyRemoveQuest(questId)
 end
 
 function Traveler:OnHearthstoneBound(location)
+    self.Journey:OnHearthstoneBound(location)
     self.State:OnHearthstoneBound(location)
     self:JourneyAddBindHearthstone(location)
+end
+
+function Traveler:OnHearthstoneUsed(location)
+    self.Journey:OnHearthstoneUsed(location)
+    self.State:OnHearthstoneUsed(location)
+    self:JourneyAddUseHearthstone(location)
 end

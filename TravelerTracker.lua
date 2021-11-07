@@ -83,7 +83,7 @@ function Tracker:Initialize()
     nextChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Down")
     nextChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Disabled")
     nextChapterButton:SetScript("OnClick", function()
-        local journey = Traveler:GetActiveJourney()
+        local journey = Traveler.Journey:GetActiveJourney()
         if journey ~= nil then
             if Traveler.db.char.window.chapter < #journey.chapters then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
@@ -102,7 +102,7 @@ function Tracker:Initialize()
     prevChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Down")
     prevChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Disabled")
     prevChapterButton:SetScript("OnClick", function()
-        local journey = Traveler:GetActiveJourney()
+        local journey = Traveler.Journey:GetActiveJourney()
         if journey ~= nil then
             if Traveler.db.char.window.chapter > 1 then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
@@ -231,7 +231,10 @@ function Tracker:UpdateImmediate()
     self.frame:SetShown(Traveler.db.char.window.show)
     self.needUpdate = false
 
-    Traveler:Debug("Window update took %.2fms", (GetTimePreciseSec() - now) * 1000)
+    local elapsed = (GetTimePreciseSec() - now) * 1000
+    if elapsed > 16.6667 then
+        Traveler:Debug("Window update took %.2fms", elapsed)
+    end
 end
 
 function Tracker:UpdateFrame()
@@ -264,7 +267,7 @@ end
 
 function Tracker:UpdateNextChapterButton()
     local enabled = false
-    local journey = Traveler:GetActiveJourney()
+    local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
         local index = Traveler:GetActiveChapterIndex()
         enabled = index >= 1 and index < #journey.chapters
@@ -274,7 +277,7 @@ end
 
 function Tracker:UpdatePreviousChapterButton()
     local enabled = false
-    local journey = Traveler:GetActiveJourney()
+    local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
         local index = Traveler:GetActiveChapterIndex()
         enabled = index > 1 and index <= #journey.chapters
@@ -283,7 +286,7 @@ function Tracker:UpdatePreviousChapterButton()
 end
 
 function Tracker:UpdateChapterTitle()
-    local journey = Traveler:GetActiveJourney()
+    local journey = Traveler.Journey:GetActiveJourney()
     local chapter = Traveler:GetActiveChapter(journey)
 
     local title
@@ -311,7 +314,7 @@ function Tracker:UpdateScrollFrame()
 end
 
 function Tracker:UpdateJourneySelection()
-    local shown = Traveler:GetActiveJourney() == nil
+    local shown = Traveler.Journey:GetActiveJourney() == nil
     if shown then
         self.journeySelectionLabel:SetFontSize(12)
         self.journeySelectionLabel:SetWidth(self.scrollChild:GetWidth() - 48)
@@ -397,14 +400,16 @@ function Tracker:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, "Use %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
         -- Auto set waypoint if its the first incomplete step
-        if Traveler.db.profile.autoSetWaypoint and not self.waypointSet and not step.isComplete then
-            self:SetWaypoint(step, false)
-            self.waypointSet = true
-        end
+        -- if Traveler.db.profile.autoSetWaypoint and not self.waypointSet and not step.isComplete then
+            -- self:SetWaypoint(step, false)
+            -- self.waypointSet = true
+        -- end
     end
 end
 

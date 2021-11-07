@@ -40,7 +40,7 @@ local databaseDefaults = {
     char = {
         window = {
             show = true,
-            journey = -1,
+            journey = "",
             chapter = 1
         }
     }
@@ -67,33 +67,39 @@ function Traveler:SerializeDatabase()
 end
 
 function Traveler:DeserializeDatabase()
+    -- Deserialize journeys
     if self.db.profile.journeys then
         self.journeys = {}
         for i,v in ipairs(self.db.profile.journeys) do
             local result, deserialized = self:Deserialize(v)
-            if result then self.journeys[i] = deserialized end
+            if result then
+                if deserialized.guid == nil or type(deserialized.guid) ~= "string" then
+                    deserialized.guid = Traveler.Utils:CreateGUID()
+                end
+                self.journeys[i] = deserialized
+            end
         end
     end
 
+    -- Deserialize character journey
     if self.db.char.journey then
         local result, deserialized = self:Deserialize(self.db.char.journey)
         if result then self.journey = deserialized end
     end
 
-    if self.db.char.window.journey == -1 then return end
-    if self.db.char.window.journey > #self.journeys then
-        self.db.char.window.journey = -1
-        return
+    -- Validate active journey
+    if self.db.char.window.journey == nil or type(self.db.char.window.journey) ~= "string" then
+        self.db.char.window.journey = ""
     end
 
-    local journey = self.journeys[self.db.char.window.journey]
-    if #journey.chapters <= 0 then
-        self.db.char.window.chapter = -1
-        return
-    end
-
-    if self.db.char.window.chapter <= 0 or self.db.char.window.chapter > #journey.chapters then
-        self.db.char.window.chapter = 1
+    -- Validate active chapter
+    local journey = Traveler.Journey:GetActiveJourney()
+    if journey then
+        if #journey.chapters <= 0 then
+            self.db.char.window.chapter = -1
+        elseif self.db.char.window.chapter <= 0 or self.db.char.window.chapter > #journey.chapters then
+            self.db.char.window.chapter = 1
+        end
     end
 end
 

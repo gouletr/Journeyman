@@ -3,37 +3,13 @@ local addonVersion = GetAddOnMetadata(addonName, "version")
 local Traveler = addon.Traveler
 local L = addon.Locale
 
-Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
-Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
-Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
-Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
-Traveler.STEP_TYPE_FLY_TO = "FLYTO"
-Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
-
 local STEP_TYPE_DROPDOWN_UNDEFINED = L["Undefined"]
 local STEP_TYPE_DROPDOWN_ACCEPT_QUEST = L["Accept Quest"]
 local STEP_TYPE_DROPDOWN_COMPLETE_QUEST = L["Complete Quest"]
 local STEP_TYPE_DROPDOWN_TURNIN_QUEST = L["Turn-in Quest"]
 local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
 local STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE = L["Bind Hearthstone"]
-
-local StepTypeToDropDown = {
-    [Traveler.STEP_TYPE_UNDEFINED] = STEP_TYPE_DROPDOWN_UNDEFINED,
-    [Traveler.STEP_TYPE_ACCEPT_QUEST] = STEP_TYPE_DROPDOWN_ACCEPT_QUEST,
-    [Traveler.STEP_TYPE_COMPLETE_QUEST] = STEP_TYPE_DROPDOWN_COMPLETE_QUEST,
-    [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
-    [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
-    [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
-}
-
-local DropDownToStepType = {
-    [STEP_TYPE_DROPDOWN_UNDEFINED] = Traveler.STEP_TYPE_UNDEFINED,
-    [STEP_TYPE_DROPDOWN_ACCEPT_QUEST] = Traveler.STEP_TYPE_ACCEPT_QUEST,
-    [STEP_TYPE_DROPDOWN_COMPLETE_QUEST] = Traveler.STEP_TYPE_COMPLETE_QUEST,
-    [STEP_TYPE_DROPDOWN_TURNIN_QUEST] = Traveler.STEP_TYPE_TURNIN_QUEST,
-    [STEP_TYPE_DROPDOWN_FLY_TO] = Traveler.STEP_TYPE_FLY_TO,
-    [STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE] = Traveler.STEP_TYPE_BIND_HEARTHSTONE,
-}
+local STEP_TYPE_DROPDOWN_USE_HEARTHSTONE = L["Use Hearthstone"]
 
 local function Percent(value)
     local windowWidth = 600
@@ -46,17 +22,13 @@ function Traveler:InitializeOptions()
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
     self.generalOptions = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
-    self.journeysOptions = aceConfigDialog:AddToBlizOptions(addonName, "Journeys", addonName, "journeys")
-    self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
-    self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
-
     xpcall(function()
         Traveler.editor = self:GetJourneyEditor()
         InterfaceOptions_AddCategory(Traveler.editor)
     end, geterrorhandler())
-
-    -- self.editor = self:GetJourneyEditor()
-    -- InterfaceOptions_AddCategory(self.editor)
+    --self.journeysOptions = aceConfigDialog:AddToBlizOptions(addonName, "Journeys (OLD)", addonName, "journeys")
+    self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
+    self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
 function Traveler:GetOptionsTable()
@@ -88,12 +60,18 @@ function Traveler:GetGeneralOptionsTable()
                 name = L["SELECT_JOURNEY"],
                 desc = L["SELECT_JOURNEY_DESC"],
                 width = Percent(0.5),
-                values = function()
+                values = function(info)
                     local values = {}
-                    for i, v in ipairs(self.journeys) do
-                        values[i] = v.title
+                    for _, v in ipairs(self.journeys) do
+                        values[v.guid] = v.title
                     end
                     return values
+                end,
+                sorting = function(info)
+                    local sorting = {}
+                    for i, journey in ipairs(self.journeys) do
+                        sorting[i] = journey.guid
+                    end
                 end,
                 set = function(info, value)
                     if self.db.char.window.journey ~= value then
@@ -462,13 +440,39 @@ function Traveler:GetAdvancedOptionsTable()
         name = "Advanced",
         type = "group",
         args = {
-            updateHeader = {
+            journeyHeader = {
                 order = 0,
+                type = "header",
+                name = L["Journey Options"]
+            },
+            updateJourney = {
+                order = 1,
+                type = "toggle",
+                name = L["Update Active Journey"],
+                desc = L["Update active journey while questing. Not preserved between sessions."],
+                width = Percent(1.0),
+                confirm = true,
+                confirmText = L["Changing this setting might modify active journey while questing, proceed?"],
+                get = function(info) return self.updateJourney end,
+                set = function(info, value)
+                    if self.updateJourney ~= value then
+                        self.updateJourney = value
+                    end
+                end
+            },
+            updateJourneyDesc = {
+                order = 2,
+                type = "description",
+                name = L["Enabling this option will cause recorded events to be merged into the active journey chapter, including abandoning quests. These changes are permanent and might destroy useful information. Because of this, this setting is not preserved between sessions."],
+                width = Percent(1.0)
+            },
+            updateHeader = {
+                order = 10,
                 type = "header",
                 name = L["Update Options"]
             },
             updateFrequency = {
-                order = 1,
+                order = 11,
                 type = "range",
                 name = L["UPDATE_FREQUENCY"],
                 desc = L["UPDATE_FREQUENCY_DESC"],
@@ -488,18 +492,18 @@ function Traveler:GetAdvancedOptionsTable()
                 end
             },
             updateFrequencyDesc = {
-                order = 2,
+                order = 12,
                 type = "description",
                 name = L["This option controls the frequency of update checks. Decreasing the value will cause the addon to periodically check more often if any state or window updates are needed. It is recommended to not change this value."],
                 width = Percent(1.0)
             },
             header = {
-                order = 10,
+                order = 20,
                 type = "header",
                 name = L["Debugging Options"]
             },
             debug = {
-                order = 11,
+                order = 21,
                 type = "toggle",
                 name = L["ENABLE_DEBUG"],
                 desc = L["ENABLE_DEBUG_DESC"],
@@ -513,7 +517,7 @@ function Traveler:GetAdvancedOptionsTable()
                 end
             },
             debugDesc = {
-                order = 12,
+                order = 22,
                 type = "description",
                 name = L["This option controls whether or not debugging information and tools are enabled. This can add a great deal of spam in the console and should not be needed unless debugging the addon."],
                 width = Percent(1.0)
@@ -523,8 +527,8 @@ function Traveler:GetAdvancedOptionsTable()
 end
 
 function Traveler:GetJourneyEditor()
-    local frame = CreateFrame("FRAME", "Journeys Editor", UIParent)
-    frame.name = "Journeys Editor"
+    local frame = CreateFrame("FRAME", "Journeys", UIParent)
+    frame.name = "Journeys"
     frame.parent = addonName
     frame:Hide()
     frame:SetScript("OnShow", function(self)
@@ -673,7 +677,7 @@ function Traveler:GetJourneyEditor()
         row.highlightTexture = highlightTexture
 
         row.SetValue = function(self, step)
-            local text
+            local prefix = self.index .. ". "
             if Traveler:IsStepQuest(step) then
                 local questName = Traveler.DataSource:GetQuestName(step.data, true)
                 if questName == nil then
@@ -686,23 +690,23 @@ function Traveler:GetJourneyEditor()
                     end
                 end
                 if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                    self:SetText(L["Accept %s"], questName)
+                    self:SetText(prefix .. L["Accept %s"], questName)
                 elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                    self:SetText(L["Complete %s"], questName)
+                    self:SetText(prefix .. L["Complete %s"], questName)
                 elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                    self:SetText(L["Turn-in %s"], questName)
+                    self:SetText(prefix .. L["Turn-in %s"], questName)
                 else
                     Traveler:Error("Step type %s not implemented.", step.type)
                 end
             else
                 if step.type == Traveler.STEP_TYPE_UNDEFINED then
-                    self:SetText("<%s>", L["Undefined"])
+                    self:SetText(prefix .. "<%s>", L["Undefined"])
                 elseif step.type == Traveler.STEP_TYPE_FLY_TO then
                     local location = step.data
                     if location == nil then
                         location = "<No Value>"
                     end
-                    self:SetText(L["Fly to %s"], location)
+                    self:SetText(prefix .. L["Fly to %s"], location)
                 elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
                     local itemName = Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end)
                     if itemName == nil then
@@ -712,7 +716,17 @@ function Traveler:GetJourneyEditor()
                     if location == nil then
                         location = "<No Value>"
                     end
-                    self:SetText(L["Bind %s to %s"], itemName, location)
+                    self:SetText(prefix .. L["Bind %s to %s"], itemName, location)
+                elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+                    local itemName = Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end)
+                    if itemName == nil then
+                        itemName = "<No Value>"
+                    end
+                    local location = step.data
+                    if location == nil then
+                        location = "<No Value>"
+                    end
+                    self:SetText(prefix .. L["Use %s to %s"], itemName, location)
                 else
                     Traveler:Error("Step type %s not implemented.", step.type)
                 end
@@ -829,6 +843,8 @@ function Traveler:GetJourneyEditor()
             deleteChapterButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
             newStepButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
             deleteStepButton:SetEnabled(frame:GetSelectedStepIndex() ~= -1)
+
+            Traveler.State:Reset()
         end, geterrorhandler())
     end
 
@@ -954,6 +970,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
             [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
             [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
+            [Traveler.STEP_TYPE_USE_HEARTHSTONE] = STEP_TYPE_DROPDOWN_USE_HEARTHSTONE,
         }
     end
     stepType.GetSorting = function(self)
@@ -964,6 +981,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.STEP_TYPE_TURNIN_QUEST,
             Traveler.STEP_TYPE_FLY_TO,
             Traveler.STEP_TYPE_BIND_HEARTHSTONE,
+            Traveler.STEP_TYPE_USE_HEARTHSTONE,
         }
     end
     stepType.OnValueChanged = function(self, value)

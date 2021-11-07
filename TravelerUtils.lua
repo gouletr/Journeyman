@@ -18,6 +18,16 @@ function Utils:Clone(t)
     return c
 end
 
+local random = math.random
+function Utils:CreateGUID()
+    local template ='xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'
+    local guid = string.gsub(template, '[xy]', function(c)
+        local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
+        return string.format('%x', v)
+    end)
+    return guid
+end
+
 function Utils:Add(t, v)
     t[#t + 1] = v
 end

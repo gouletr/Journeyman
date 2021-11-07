@@ -13,7 +13,7 @@ function Journey:CreateJourney(title)
         Traveler.journeys = {}
     end
 
-    local journey = { title = title, chapters = {} }
+    local journey = { guid = Traveler.Utils:CreateGUID(), title = title, chapters = {} }
     tinsert(Traveler.journeys, journey)
 
     return journey
@@ -39,6 +39,22 @@ function Journey:DeleteJourney(index)
         return true
     end
     return false
+end
+
+function Journey:GetActiveJourney()
+    if Traveler.journeys and Traveler.db.char.window.journey and type(Traveler.db.char.window.journey) == "string" then
+        for i, journey in ipairs(Traveler.journeys) do
+            if journey.guid == Traveler.db.char.window.journey then
+                return journey
+            end
+        end
+    end
+end
+
+function Journey:SetActiveJourney(journey)
+    if journey and journey.guid and type(journey.guid) == "string" then
+        Traveler.db.char.window.journey = journey.guid
+    end
 end
 
 function Journey:CreateChapter(journey, title)
@@ -76,6 +92,17 @@ function Journey:DeleteChapter(journey, index)
     return false
 end
 
+function Journey:AdvanceChapter(journey)
+    local index = Traveler.db.char.window.chapter + 1
+    if journey and index > 0 and index <= #journey.chapters then
+        Traveler.db.char.window.chapter = index
+    end
+end
+
+function Journey:GetActiveChapter(journey)
+    return self:GetChapter(journey, Traveler.db.char.window.chapter)
+end
+
 function Journey:CreateStep(chapter, type, data)
     if chapter then
         if chapter.steps == nil then
@@ -89,10 +116,29 @@ function Journey:CreateStep(chapter, type, data)
     end
 end
 
+function Journey:AddStep(chapter, type, data, force)
+    if chapter and (force or not self:ContainsStep(chapter, type, data)) then
+        if self:CreateStep(chapter, type, data) then
+            Traveler:Debug("Chapter '%s' added step %s %s", chapter.title, type, data)
+        end
+    end
+end
+
 function Journey:GetStep(chapter, index)
     if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
         return chapter.steps[index]
     end
+end
+
+function Journey:ContainsStep(chapter, type, data)
+    if chapter and chapter.steps then
+        for i, v in ipairs(chapter.steps) do
+            if v.type == type and v.data == data then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function Journey:MoveStep(chapter, from, to)
@@ -109,6 +155,49 @@ function Journey:DeleteStep(chapter, index)
         return true
     end
     return false
+end
+
+function Journey:OnQuestAccepted(questId)
+    if Traveler.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetActiveChapter(journey)
+        self:AddStep(chapter, Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
+    end
+end
+
+function Journey:OnQuestCompleted(questId)
+    if Traveler.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetActiveChapter(journey)
+        self:AddStep(chapter, Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
+    end
+end
+
+function Journey:OnQuestTurnedIn(questId)
+    if Traveler.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetActiveChapter(journey)
+        self:AddStep(chapter, Traveler.STEP_TYPE_TURNIN_QUEST, questId)
+    end
+end
+
+function Journey:OnQuestAbandoned(questId)
+end
+
+function Journey:OnHearthstoneBound(location)
+    if Traveler.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetActiveChapter(journey)
+        self:AddStep(chapter, Traveler.STEP_TYPE_BIND_HEARTHSTONE, location, true)
+    end
+end
+
+function Journey:OnHearthstoneUsed(location)
+    if Traveler.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetActiveChapter(journey)
+        self:AddStep(chapter, Traveler.STEP_TYPE_USE_HEARTHSTONE, location, true)
+    end
 end
 
 function Traveler:InitializeJourney()
@@ -140,17 +229,6 @@ end
 
 function Traveler:IsStepQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
-end
-
-function Traveler:GetActiveJourneyIndex()
-    return self.db.char.window.journey
-end
-
-function Traveler:GetActiveJourney()
-    local index = self:GetActiveJourneyIndex()
-    if index >= 1 and index <= #self.journeys then
-        return self.journeys[index]
-    end
 end
 
 function Traveler:GetActiveChapterIndex()
@@ -228,6 +306,10 @@ end
 
 function Traveler:JourneyAddBindHearthstone(location)
     self:JourneyCurrentChapterAddStep(self.STEP_TYPE_BIND_HEARTHSTONE, location)
+end
+
+function Traveler:JourneyAddUseHearthstone(location)
+    self:JourneyCurrentChapterAddStep(self.STEP_TYPE_USE_HEARTHSTONE, location)
 end
 
 function Traveler:JourneyRemoveQuest(questId)

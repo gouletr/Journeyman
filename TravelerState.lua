@@ -38,13 +38,22 @@ local function IsStepComplete(step)
         if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
             return GetBindLocation() == step.data
+        elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+            -- Check if current bind location match and hearthstone is on cooldown
+            local startTime, duration, enable = GetItemCooldown(Traveler.ITEM_HEARTHSTONE)
+            local cooldownLeft = duration - (GetTime() - startTime)
+            if cooldownLeft > 0 and GetBindLocation() == step.data then
+                return true
+            end
         end
 
         -- If next step is complete, consider this step complete
-        if step.type == Traveler.STEP_TYPE_FLY_TO or step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            local nextState = State.steps[step.index + 1]
+        if step.type == Traveler.STEP_TYPE_FLY_TO or step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+            local nextStep = State.steps[step.index + 1]
             if nextStep then
                 return IsStepComplete(nextStep)
+            else
+                return false
             end
         end
     end
@@ -53,7 +62,7 @@ local function IsStepComplete(step)
 end
 
 local function FindStep(type, data)
-    for _, step in ipairs(State.steps) do
+    for _, step in ipairs(State.steps or {}) do
         if step.type == type and step.data == data then
             return step
         end
@@ -75,23 +84,11 @@ function State:Reset(immediate)
     self:Update(immediate)
 end
 
-function State:ResetIsComplete()
-    if self.steps == nil then
-        return
-    end
-
-    for i = 1, #self.steps do
-        local step = self.steps[i]
-        if step then
-            step.isComplete = nil
-        end
-    end
-
-    self:Update()
-end
-
-function State:Update(immediate)
+function State:Update(immediate, afterUpdateFunc)
     self.needUpdate = true
+    if afterUpdateFunc then
+        self.afterUpdateFunc = afterUpdateFunc
+    end
     if immediate then
         self:UpdateImmediate()
     end
@@ -105,7 +102,7 @@ function State:UpdateImmediate()
     -- Clone steps
     if self.steps == nil then
         self.steps = {}
-        local journey = Traveler:GetActiveJourney()
+        local journey = Traveler.Journey:GetActiveJourney()
         local chapter = Traveler:GetActiveChapter(journey)
         if chapter then
             local index = 1
@@ -132,55 +129,33 @@ function State:UpdateImmediate()
     -- Get current quest log
     self:UpdateQuestLog()
 
-    -- Find first incomplete step index
-    local firstIncompleteStepIndex = 1
+    -- Update steps
+    local nextStep
     for i, step in ipairs(self.steps) do
-        if step.isComplete == nil or not step.isComplete then
-            break
+        step.isComplete = IsStepComplete(step)
+        if step.isComplete ~= nil and step.isComplete == false and nextStep == nil then
+            nextStep = step
         end
-        firstIncompleteStepIndex = firstIncompleteStepIndex + 1
-    end
-
-    -- Determine first step index
-    local firstStepIndex = 1
-    if not Traveler.db.profile.window.showCompletedSteps then
-        firstStepIndex = firstIncompleteStepIndex
-    end
-
-    -- Find last incomplete step index
-    local lastStepIndex = #self.steps
-    if Traveler.db.profile.window.stepsShown > 0 then
-        local count = 0
-        local lastIncompleteStepIndex = firstStepIndex
-        for i = firstStepIndex, #self.steps do
-            local step = self.steps[i]
-            lastIncompleteStepIndex = i
-            if step.isComplete ~= nil and not step.isComplete then
-                count = count + 1
-            end
-            if count == Traveler.db.profile.window.stepsShown then
-                break
-            end
-        end
-        lastStepIndex = lastIncompleteStepIndex
-    end
-
-    -- Update step range
-    Traveler:Debug("Updating step range %d to %d", firstStepIndex, lastStepIndex)
-    for i = firstStepIndex, lastStepIndex do
-        local step = self.steps[i]
-        if step then
-            step.isComplete = IsStepComplete(step)
-            if step.location == nil then
-                step.location = self:GetStepLocation(step)
-            end
+        if step.location == nil then
+            step.location = self:GetStepLocation(step)
         end
     end
-
     self.needUpdate = false
 
-    Traveler:Debug("State update took %.2fms", (GetTimePreciseSec() - now) * 1000)
-    Traveler.Tracker:UpdateImmediate()
+    -- Run after update script
+    if self.afterUpdateFunc then
+        self.afterUpdateFunc(self, nextStep)
+        self.afterUpdateFunc = nil
+    end
+
+    local elapsed = (GetTimePreciseSec() - now) * 1000
+    if elapsed > 16.6667 then
+        Traveler:Debug("State update took %.2fms", elapsed)
+    end
+
+    if not self.needUpdate then
+        Traveler.Tracker:UpdateImmediate()
+    end
 end
 
 function State:UpdateQuestLog()
@@ -197,39 +172,74 @@ function State:UpdateQuestLog()
 end
 
 function State:OnQuestAccepted(questId)
-    local step = FindStep(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
-    if step then
-        step.isComplete = true
-    end
-    self:Update()
+    self:Update(false, function(self, nextStep)
+        local step = FindStep(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete(nextStep)
+    end)
 end
 
 function State:OnQuestCompleted(questId)
-    local step = FindStep(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
-    if step then
-        step.isComplete = true
-    end
-    self:Update()
+    self:Update(false, function(self, nextStep)
+        local step = FindStep(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete(nextStep)
+    end)
 end
 
 function State:OnQuestTurnedIn(questId)
-    local step = FindStep(Traveler.STEP_TYPE_TURNIN_QUEST, questId)
-    if step then
-        step.isComplete = true
-    end
-    self:Update()
+    self:Update(false, function(self, nextStep)
+        local step = FindStep(Traveler.STEP_TYPE_TURNIN_QUEST, questId)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete(nextStep)
+    end)
 end
 
 function State:OnQuestAbandoned(questId)
-    self:ResetIsComplete()
+    self:Update()
 end
 
 function State:OnHearthstoneBound(location)
-    local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, location)
-    if step then
-        step.isComplete = true
+    self:Update(false, function(self, nextStep)
+        local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, location)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete(nextStep)
+    end)
+end
+
+function State:OnHearthstoneUsed(location)
+    self:Update(false, function(self, nextStep)
+        local step = FindStep(Traveler.STEP_TYPE_USE_HEARTHSTONE, location)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete(nextStep)
+    end)
+end
+
+function State:OnStepComplete(nextStep)
+    if nextStep and nextStep.isComplete ~= nil and nextStep.isComplete == false then
+        Traveler:SetWaypoint(nextStep)
     end
-    self:Update()
+    if nextStep == nil then
+        self:OnChapterComplete()
+    end
+end
+
+function State:OnChapterComplete()
+    local journey = Traveler.Journey:GetActiveJourney()
+    if journey then
+        Traveler.Journey:AdvanceChapter(journey)
+        self:Reset()
+    end
 end
 
 function State:GetStepLocation(step)
@@ -243,6 +253,8 @@ function State:GetStepLocation(step)
         return Traveler.DataSource:GetNearestFlightMaster()
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
         return Traveler.DataSource:GetInnkeeperLocation(step.data)
+    elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+        return nil
     else
         Traveler:Error("Step type %s not implemented.", step.type)
     end
