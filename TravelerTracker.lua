@@ -408,6 +408,11 @@ function Tracker:DisplayStep(step, depth)
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
+
+        -- Display step note
+        if step.note and string.len(step.note) > 0 then
+            self:GetNextLine():SetStepText(step, depth + 1, L["Note: %s"], self:GetColoredHighlightText(step.note, step.isComplete))
+        end
     end
 end
 

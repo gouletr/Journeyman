@@ -1053,6 +1053,22 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     end
     frame.stepIndex = stepIndex
 
+    local stepNote = self:CreateEditBoxProperty("FRAME", "StepNote", scrollChild)
+    stepNote:SetPoint("TOPLEFT", stepIndex, "BOTTOMLEFT")
+    stepNote:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
+    stepNote:SetTitle(L["Step Note"])
+    stepNote.OnEnterPressed = function(self)
+        local step = Traveler.editor:GetSelectedStep()
+        if step then
+            step.note = self:GetText()
+            if step.note and string.len(step.note) == 0 then
+                step.note = nil
+            end
+        end
+        Traveler.editor.refresh()
+    end
+    frame.stepNote = stepNote
+
     frame.Refresh = function(self)
         self.scrollChild:SetSize(self.scrollFrame:GetWidth(), self.scrollFrame:GetHeight())
 
@@ -1095,6 +1111,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.stepData:SetEnabled(true)
             self.stepIndex:SetText(Traveler.editor:GetSelectedStepIndex())
             self.stepIndex:SetEnabled(true)
+            if step.note then
+                self.stepNote:SetText(step.note)
+            else
+                self.stepNote:SetText("")
+            end
+            self.stepNote:SetEnabled(true)
         else
             self.stepType:SetValue("")
             self.stepType:SetEnabled(false)
@@ -1102,6 +1124,8 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.stepData:SetEnabled(false)
             self.stepIndex:SetText("")
             self.stepIndex:SetEnabled(false)
+            self.stepNote:SetText("")
+            self.stepNote:SetEnabled(false)
         end
     end
 
