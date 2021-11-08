@@ -856,7 +856,12 @@ function Traveler:GetJourneyEditor()
             newStepButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
             deleteStepButton:SetEnabled(frame:GetSelectedStepIndex() ~= -1)
 
-            Traveler.State:Reset()
+            Traveler.State:Reset(true, function(self)
+                if Traveler.db.profile.autoSetWaypoint then
+                    Traveler:SetWaypoint(self:GetCurrentStep())
+                end
+                Traveler:UpdateTargetingMacro()
+            end)
         end, geterrorhandler())
     end
 
