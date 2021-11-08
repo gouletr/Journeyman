@@ -214,34 +214,34 @@ function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
 end
 
-local function GetQuestObjectivesNPC(objectives, npcs)
+local function GetQuestObjectivesNPC(objectives, npcs, questLogObjective)
     for i = 1, #npcs do
         local npc = QuestieDB:GetNPC(npcs[i])
         if npc then
-            tinsert(objectives, { name = npc.name, type = "NPC" })
+            tinsert(objectives, { name = npc.name, type = "NPC", isComplete = questLogObjective.finished == true })
         end
     end
 end
 
-local function GetQuestObjectivesObject(objectives, objects)
+local function GetQuestObjectivesObject(objectives, objects, questLogObjective)
     for i = 1, #objects do
         local obj = QuestieDB:GetObject(objects[i])
         if obj then
-            tinsert(objectives, { name = obj.name, type = "Object" })
+            tinsert(objectives, { name = obj.name, type = "Object", isComplete = questLogObjective.finished == true })
         end
     end
 end
 
-local function GetQuestObjectivesItem(objectives, items)
+local function GetQuestObjectivesItem(objectives, items, questLogObjective)
     for i = 1, #items do
         local item = QuestieDB:GetItem(items[i])
         if item then
-            tinsert(objectives, { name = item.name, type = "Item" })
+            tinsert(objectives, { name = item.name, type = "Item", isComplete = questLogObjective.finished == true })
             if item.npcDrops then
-                GetQuestObjectivesNPC(objectives, item.npcDrops)
+                GetQuestObjectivesNPC(objectives, item.npcDrops, questLogObjective)
             end
             if item.objectDrops then
-                GetQuestObjectivesObject(objectives, item.objectDrops)
+                GetQuestObjectivesObject(objectives, item.objectDrops, questLogObjective)
             end
         end
     end
@@ -249,26 +249,26 @@ end
 
 function DataSourceQuestie:GetQuestObjectives(questId)
     local quest = QuestieDB:GetQuest(questId)
-    if quest and quest.ObjectiveData then
+    local questLogObjectives = C_QuestLog.GetQuestObjectives(questId)
+    if quest and quest.ObjectiveData and questLogObjectives then
         local objectives = {}
         for i = 1, #quest.ObjectiveData do
             local objective = quest.ObjectiveData[i]
-            if not objective.Needed or objective.Needed ~= objective.Collected then
-                if objective.NPC then
-                    GetQuestObjectivesNPC(objectives, objective.NPC)
-                elseif objective.GameObject then
-                    GetQuestObjectivesObject(objectives, objective.GameObject)
-                elseif objective.Item then
-                    GetQuestObjectivesItem(objectives, objective.Item)
-                elseif objective.Type == "monster" then
-                    GetQuestObjectivesNPC(objectives, { objective.Id })
-                elseif objective.Type == "object" then
-                    GetQuestObjectivesObject(objectives, { objective.Id })
-                elseif objective.Type == "item" then
-                    GetQuestObjectivesItem(objectives, { objective.Id })
-                elseif objective.Type == "event" then
-                    tinsert(objectives, { name = objective.Text, type = "Event" })
-                end
+            local questLogObjective = questLogObjectives[i]
+            if objective.NPC then
+                GetQuestObjectivesNPC(objectives, objective.NPC, questLogObjective)
+            elseif objective.GameObject then
+                GetQuestObjectivesObject(objectives, objective.GameObject, questLogObjective)
+            elseif objective.Item then
+                GetQuestObjectivesItem(objectives, objective.Item, questLogObjective)
+            elseif objective.Type == "monster" then
+                GetQuestObjectivesNPC(objectives, { objective.Id }, questLogObjective)
+            elseif objective.Type == "object" then
+                GetQuestObjectivesObject(objectives, { objective.Id }, questLogObjective)
+            elseif objective.Type == "item" then
+                GetQuestObjectivesItem(objectives, { objective.Id }, questLogObjective)
+            elseif objective.Type == "event" then
+                tinsert(objectives, { name = objective.Text, type = "Event", isComplete = questLogObjective.finished == true })
             end
         end
         return objectives

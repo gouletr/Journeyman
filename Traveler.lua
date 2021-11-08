@@ -169,33 +169,34 @@ function Traveler:UpdateTargetingMacro()
     if currentStep and currentStep.type == self.STEP_TYPE_COMPLETE_QUEST then
         -- Get quest objectives
         local objectives = self.DataSource:GetQuestObjectives(currentStep.data)
-
-        -- Get NPC objective names
-        local names = {}
-        for i, objective in ipairs(objectives or {}) do
-            if objective and objective.type == "NPC" then
-                tinsert(names, objective.name)
+        if objectives then
+            -- Get NPC objective names
+            local names = {}
+            for i, objective in ipairs(objectives or {}) do
+                if objective and objective.type == "NPC" and not objective.isComplete then
+                    tinsert(names, objective.name)
+                end
             end
-        end
 
-        -- Append NPC names to macro
-        for i, name in ipairs(names) do
-            local append = string.format("/tar [noexists][dead][help] %s\n", name)
-            if string.len(body) + string.len(append) <= 255 then
+            -- Append NPC names to macro
+            for i, name in ipairs(names) do
+                local append = string.format("/tar [noexists][dead][help] %s\n", name)
+                if string.len(body) + string.len(append) <= 255 then
+                    body = body .. append
+                end
+            end
+
+            -- Clear target
+            append = "/cleartarget [noexists][dead][help]\n"
+            if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
                 body = body .. append
             end
-        end
 
-        -- Clear target
-        append = "/cleartarget [noexists][dead][help]\n"
-        if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
-            body = body .. append
-        end
-
-        -- Target marker
-        append = "/tm [exists] 8\n"
-        if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
-            body = body .. append
+            -- Target marker
+            append = "/tm [exists] 8\n"
+            if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
+                body = body .. append
+            end
         end
     end
 
