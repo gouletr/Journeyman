@@ -7,8 +7,9 @@ Traveler.Tracker = Tracker
 local TomTom = TomTom
 
 local HEADER_HEIGHT = 24
-local STEP_COLOR_COMPLETE = "FFA0A0A0"
-local LOCATION_COLOR = "FFFFFFFF"
+local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
+local TEXT_COLOR_HIGHLIGHT = "FFFFFFFF"
+local TEXT_COLOR_LOCATION = "FFFFFFFF"
 local QUEST_COLOR_RED = "FFFF1A1A"
 local QUEST_COLOR_ORANGE = "FFFF8040"
 local QUEST_COLOR_YELLOW = "FFFFFF00"
@@ -402,14 +403,11 @@ function Tracker:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, "Use %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            self:GetNextLine():SetStepText(step, depth, "Reach level %d", self:GetColoredHighlightText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
-        -- Auto set waypoint if its the first incomplete step
-        -- if Traveler.db.profile.autoSetWaypoint and not self.waypointSet and not step.isComplete then
-            -- self:SetWaypoint(step, false)
-            -- self.waypointSet = true
-        -- end
     end
 end
 
@@ -429,7 +427,7 @@ function Tracker:GetNextLine()
             end
 
             if step.isComplete then
-                self:SetText("|c%s%s|r", STEP_COLOR_COMPLETE, string.format(fmt, ...))
+                self:SetText("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, string.format(fmt, ...))
             else
                 self:SetText(fmt, ...)
             end
@@ -454,9 +452,16 @@ function Tracker:GetNextLine()
     return line
 end
 
+function Tracker:GetColoredHighlightText(text, isComplete)
+    if text and not isComplete then
+        return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, text)
+    end
+    return text
+end
+
 function Tracker:GetColoredLocationText(location, isComplete)
     if location and not isComplete then
-        return string.format("|c%s%s|r", LOCATION_COLOR, location)
+        return string.format("|c%s%s|r", TEXT_COLOR_LOCATION, location)
     end
     return location
 end

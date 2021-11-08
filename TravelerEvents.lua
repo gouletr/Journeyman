@@ -80,6 +80,10 @@ function Traveler:InitializeEvents()
             Traveler:UpdateTargetingMacro()
         end
     end)
+
+    self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
+        self:OnLevelUp(level)
+    end)
 end
 
 function Traveler:OnPlayerLeavingWorld()
@@ -120,4 +124,8 @@ function Traveler:OnHearthstoneUsed(location)
     self.Journey:OnHearthstoneUsed(location)
     self.State:OnHearthstoneUsed(location)
     self:JourneyAddUseHearthstone(location)
+end
+
+function Traveler:OnLevelUp(level)
+    self.State:OnLevelUp(level)
 end

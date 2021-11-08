@@ -12,6 +12,7 @@ Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
 Traveler.STEP_TYPE_FLY_TO = "FLYTO"
 Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Traveler.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
+Traveler.STEP_TYPE_REACH_LEVEL = "LEVEL"
 Traveler.ITEM_HEARTHSTONE = 6948
 Traveler.SPELL_HEARTHSTONE = 8690
 Traveler.SPELL_ASTRAL_RECALL = 556
@@ -52,6 +53,14 @@ function Traveler:Error(fmt, ...)
         self:Print("[ERROR] " .. text)
         error(text)
     end
+end
+
+function Traveler:IsStepTypeQuest(step)
+    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
+end
+
+function Traveler:IsStepDataNumber(step)
+    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_REACH_LEVEL
 end
 
 function Traveler:GetQuestLogNumEntries()

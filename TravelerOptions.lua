@@ -10,6 +10,7 @@ local STEP_TYPE_DROPDOWN_TURNIN_QUEST = L["Turn-in Quest"]
 local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
 local STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE = L["Bind Hearthstone"]
 local STEP_TYPE_DROPDOWN_USE_HEARTHSTONE = L["Use Hearthstone"]
+local STEP_TYPE_DROPDOWN_REACH_LEVEL = L["Reach Level"]
 
 local function Percent(value)
     local windowWidth = 600
@@ -683,7 +684,7 @@ function Traveler:GetJourneyEditor()
 
         row.SetValue = function(self, step)
             local prefix = self.index .. ". "
-            if Traveler:IsStepQuest(step) then
+            if Traveler:IsStepTypeQuest(step) then
                 local questName = Traveler.DataSource:GetQuestName(step.data, true)
                 if questName == nil then
                     if step.data == nil then
@@ -732,6 +733,12 @@ function Traveler:GetJourneyEditor()
                         location = "<No Value>"
                     end
                     self:SetText(prefix .. L["Use %s to %s"], itemName, location)
+                elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+                    local level = step.data
+                    if level == nil or type(level) ~= "number" then
+                        level = 0
+                    end
+                    self:SetText(prefix .. L["Reach level %d"], level)
                 else
                     Traveler:Error("Step type %s not implemented.", step.type)
                 end
@@ -976,6 +983,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
             [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
             [Traveler.STEP_TYPE_USE_HEARTHSTONE] = STEP_TYPE_DROPDOWN_USE_HEARTHSTONE,
+            [Traveler.STEP_TYPE_REACH_LEVEL] = STEP_TYPE_DROPDOWN_REACH_LEVEL,
         }
     end
     stepType.GetSorting = function(self)
@@ -987,12 +995,26 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.STEP_TYPE_FLY_TO,
             Traveler.STEP_TYPE_BIND_HEARTHSTONE,
             Traveler.STEP_TYPE_USE_HEARTHSTONE,
+            Traveler.STEP_TYPE_REACH_LEVEL,
         }
     end
     stepType.OnValueChanged = function(self, value)
         local step = Traveler.editor:GetSelectedStep()
         if step then
             step.type = value
+            if Traveler:IsStepDataNumber(step) and type(step.data) ~= "number" then
+                local data = tonumber(step.data)
+                if data == nil then
+                    data = 0
+                end
+                step.data = data
+            elseif type(step.data) ~= "string" then
+                local data = tostring(step.data)
+                if data == nil then
+                    data = ""
+                end
+                step.data = data
+            end
         end
         Traveler.editor.refresh()
     end
@@ -1006,7 +1028,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepData.OnEnterPressed = function(self)
         local step = Traveler.editor:GetSelectedStep()
         if step then
-            if Traveler:IsStepQuest(step) then
+            if Traveler:IsStepDataNumber(step) then
                 step.data = self:GetNumber()
             else
                 step.data = self:GetText()
@@ -1042,7 +1064,9 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.journeyIndex:SetText(Traveler.editor:GetSelectedJourneyIndex())
         else
             self.journeyTitle:SetEnabled(false)
+            self.journeyTitle:SetText("")
             self.journeyIndex:SetEnabled(false)
+            self.journeyIndex:SetText("")
         end
 
         local chapter = Traveler.editor:GetSelectedChapter()

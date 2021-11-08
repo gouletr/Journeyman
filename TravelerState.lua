@@ -5,7 +5,7 @@ local State = {}
 Traveler.State = State
 
 local function IsStepComplete(step)
-    if Traveler:IsStepQuest(step) then
+    if Traveler:IsStepTypeQuest(step) then
         -- Check if quest is already turned-in
         if C_QuestLog.IsQuestFlaggedCompleted(step.data) then
             return true
@@ -45,6 +45,8 @@ local function IsStepComplete(step)
             if cooldownLeft > 0 and GetBindLocation() == step.data then
                 return true
             end
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            return UnitLevel("player") >= step.data
         end
 
         -- If next step is complete, consider this step complete
@@ -111,7 +113,7 @@ function State:UpdateImmediate()
                 if step.type and step.data and step.type ~= Traveler.STEP_TYPE_UNDEFINED then
                     -- Check if step is ever doable
                     local doable = true
-                    if Traveler:IsStepQuest(step) then
+                    if Traveler:IsStepTypeQuest(step) then
                         doable = Traveler.DataSource:GetQuestHasRequiredRace(step.data) and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
                     end
 
@@ -224,6 +226,16 @@ function State:OnHearthstoneUsed(location)
     end)
 end
 
+function State:OnLevelUp(level)
+    self:Update(false, function(self)
+        local step = FindStep(Traveler.STEP_TYPE_REACH_LEVEL, level)
+        if step then
+            step.isComplete = true
+        end
+        self:OnStepComplete()
+    end)
+end
+
 function State:OnStepComplete()
     local currentStep = self:GetCurrentStep()
     if currentStep then
@@ -279,6 +291,8 @@ function State:GetStepLocation(step)
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
         return Traveler.DataSource:GetInnkeeperLocation(step.data)
     elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+        return nil
+    elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
         return nil
     else
         Traveler:Error("Step type %s not implemented.", step.type)

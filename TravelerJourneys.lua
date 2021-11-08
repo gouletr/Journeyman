@@ -227,10 +227,6 @@ function Traveler:JourneyImportFromCharacter()
     end
 end
 
-function Traveler:IsStepQuest(step)
-    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
-end
-
 function Traveler:GetActiveChapterIndex()
     return self.db.char.window.chapter
 end
@@ -316,7 +312,7 @@ function Traveler:JourneyRemoveQuest(questId)
     for _,chapter in ipairs(self.journey.chapters) do
         self.Utils:RemoveIf(chapter.steps, function(i)
             local step = chapter.steps[i]
-            return self:IsStepQuest(step) and step.data == questId
+            return self:IsStepTypeQuest(step) and step.data == questId
         end)
     end
     self:JourneyRemoveEmptyChapters()
