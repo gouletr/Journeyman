@@ -329,7 +329,7 @@ function Tracker:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     for _, step in ipairs(Traveler.State.steps) do
-        if step.location and step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST then
+        if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
             local lastStep = steps[#steps]
             if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
                 Traveler.Utils:Add(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
@@ -378,10 +378,12 @@ function Tracker:DisplayStep(step, depth)
             local prefix
             if step.location.type == "NPC" then
                 prefix = "Go talk to"
-            else
+            elseif step.location.type == "Object" then
                 prefix = "Go to"
             end
-            self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredLocationText(step.location.name, step.isComplete))
+            if prefix then
+                self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredLocationText(step.location.name, step.isComplete))
+            end
         else
             Traveler:Error("Unknown location for step %s", dump(step))
         end

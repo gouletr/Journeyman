@@ -127,7 +127,7 @@ local function GetNearestItem(items, player)
                     bestY = nearest.y
                     bestMapId = nearest.mapId
                     bestName = nearest.name
-                    bestType = nearest.type
+                    bestType = "NPC Drop"
                 end
             end
             if item.objectDrops then
@@ -138,7 +138,7 @@ local function GetNearestItem(items, player)
                     bestY = nearest.y
                     bestMapId = nearest.mapId
                     bestName = nearest.name
-                    bestType = nearest.type
+                    bestType = "Object Drop"
                 end
             end
         end
