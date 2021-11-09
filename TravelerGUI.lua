@@ -27,6 +27,15 @@ end
 
 function GUI:CreateLabel(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
+    frame:SetHyperlinksEnabled(true)
+    frame:SetScript("OnHyperlinkClick", function(self, link, text, button)
+        ShowUIPanel(ItemRefTooltip)
+        if not ItemRefTooltip:IsVisible() then
+            ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+        end
+        ItemRefTooltip:SetHyperlink(link)
+        ItemRefTooltip:Show()
+    end)
 
     local fontString = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fontString:SetPoint("TOPLEFT", 2, 0)

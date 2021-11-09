@@ -102,15 +102,31 @@ function Traveler:GetQuestLogIsComplete(questId)
 end
 
 function Traveler:GetItemName(itemId, callback)
-    local itemName, itemLink, itemQuality = GetItemInfo(itemId)
-
-    if itemName == nil then
-        local item = Item:CreateFromItemID(itemId)
-        item:ContinueOnItemLoad(function() callback() end)
-        return string.format("item:%s", itemId)
+    if itemId and type(itemId) == "number" then
+        local itemName = GetItemInfo(itemId)
+        if itemName == nil then
+            if callback and type(callback) == "function" then
+                local item = Item:CreateFromItemID(itemId)
+                item:ContinueOnItemLoad(callback)
+            end
+            return "item:" .. itemId
+        end
+        return itemName
     end
+end
 
-    return itemName
+function Traveler:GetItemLink(itemId, callback)
+    if itemId and type(itemId) == "number" then
+        local itemName, itemLink = GetItemInfo(itemId)
+        if itemName == nil then
+            if callback and type(callback) == "function" then
+                local item = Item:CreateFromItemID(itemId)
+                item:ContinueOnItemLoad(callback)
+            end
+            return "item:" .. itemId
+        end
+        return itemLink
+    end
 end
 
 function Traveler:SetWaypoint(step, force)
@@ -206,6 +222,27 @@ function Traveler:UpdateTargetingMacro()
     end
 
     self.macroNeedUpdate = false
+end
+
+function Traveler:ReplaceAllItemStringToHyperlinks(input, callback)
+    if input and type(input) == "string" then
+        local result = input
+        local itemString, itemId
+        repeat
+            itemString, itemId = string.match(result, "[^H](item:(%d+))")
+            if itemString and itemId then
+                local itemLink = Traveler:GetItemLink(tonumber(itemId), callback)
+                if itemLink and itemLink ~= itemString then
+                    result = string.gsub(result, itemString, itemLink)
+                else
+                    break
+                end
+            else
+                break
+            end
+        until itemString == nil
+        return result
+    end
 end
 
 function dump(o)

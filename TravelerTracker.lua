@@ -216,6 +216,7 @@ function Tracker:UpdateImmediate()
 
     local now = GetTimePreciseSec()
 
+    self.needUpdate = false
     self.playerLevel = UnitLevel("player")
     self.playerGreenRange = GetQuestGreenRange("player")
 
@@ -230,7 +231,6 @@ function Tracker:UpdateImmediate()
     self:UpdateSteps()
 
     self.frame:SetShown(Traveler.db.char.window.show)
-    self.needUpdate = false
 
     local elapsed = (GetTimePreciseSec() - now) * 1000
     if elapsed > 16.6667 then
@@ -413,7 +413,8 @@ function Tracker:DisplayStep(step, depth)
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            self:GetNextLine():SetStepText(step, depth + 1, L["Note: %s"], self:GetColoredHighlightText(step.note, step.isComplete))
+            local note = Traveler:ReplaceAllItemStringToHyperlinks(step.note, function() Tracker:Update() end)
+            self:GetNextLine():SetStepText(step, depth + 1, L["Note: %s"], self:GetColoredHighlightText(note, step.isComplete))
         end
     end
 end
@@ -501,20 +502,13 @@ function Tracker:GetColoredQuestText(questId, isComplete)
 end
 
 function Tracker:GetColoredItemText(step, itemId)
-    local itemName, itemLink, itemQuality = GetItemInfo(itemId)
-
-    if itemName == nil then
-        local item = Item:CreateFromItemID(itemId)
-        item:ContinueOnItemLoad(function() Tracker:Update() end)
-        return string.format("item:%s", itemId)
+    if step and itemId and type(itemId) == "number" then
+        local itemLink = Traveler:GetItemLink(itemId, function() Tracker:Update() end)
+        if itemLink then
+            return itemLink
+        end
     end
-
-    if not step.isComplete then
-        local _, _, _, colorHex = GetItemQualityColor(itemQuality)
-        return string.format("|c%s%s|r", colorHex, itemName)
-    end
-
-    return itemName
+    return "item:" .. itemId
 end
 
 function Tracker:SetWaypoint(step, force)
