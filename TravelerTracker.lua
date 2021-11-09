@@ -329,16 +329,31 @@ function Tracker:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     for _, step in ipairs(Traveler.State.steps) do
-        if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
-            local lastStep = steps[#steps]
-            if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                Traveler.Utils:Add(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
-            else
-                Traveler.Utils:Add(lastStep.children, step)
-                lastStep.isComplete = lastStep.isComplete and step.isComplete
+        local showStep = step.isComplete == false or Traveler.db.profile.window.showCompletedSteps
+
+        if showStep then
+            if Traveler:IsStepTypeQuest(step) then
+                -- Hide quest steps that originate from an NPC drop, that isn't in the quest log or flagged completed
+                local questId = Traveler.DataSource:GetQuestChainStartQuest(step.data)
+                if Traveler.DataSource:IsQuestNPCDrop(questId) and not Traveler.State:IsQuestInQuestLog(questId) and not C_QuestLog.IsQuestFlaggedCompleted(questId) then
+                    showStep = false
+                    Traveler:Debug("Hiding step %s %s because quest %d is not in quest log or flagged complete.", step.type, step.data, questId)
+                end
             end
-        else
-            Traveler.Utils:Add(steps, step)
+        end
+
+        if showStep then
+            if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
+                local lastStep = steps[#steps]
+                if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
+                    Traveler.Utils:Add(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                else
+                    Traveler.Utils:Add(lastStep.children, step)
+                    lastStep.isComplete = lastStep.isComplete and step.isComplete
+                end
+            else
+                Traveler.Utils:Add(steps, step)
+            end
         end
     end
 

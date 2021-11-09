@@ -320,5 +320,52 @@ end
 function DataSourceQuestie:GetNearestFlightMaster()
 end
 
+function DataSourceQuestie:GetQuestChainStartQuest(questId)
+    if self.questChainStartQuest == nil then
+        self.questChainStartQuest = {}
+    elseif self.questChainStartQuest[questId] ~= nil then
+        return self.questChainStartQuest[questId]
+    end
+
+    local quest = QuestieDB:GetQuest(questId)
+    if quest then
+        local chainStartQuestId
+        local preQuestSingle = QuestieDB.QueryQuestSingle(questId, "preQuestSingle")
+        if preQuestSingle then
+            for _, preQuestId in pairs(preQuestSingle) do
+                -- preQuestSingle is a table, but assuming there will always be a single element, might be wrong
+                chainStartQuestId = self:GetQuestChainStartQuest(preQuestId)
+                break
+            end
+        end
+
+        if chainStartQuestId then
+            self.questChainStartQuest[questId] = chainStartQuestId
+            return chainStartQuestId
+        else
+            self.questChainStartQuest[questId] = questId
+            return questId
+        end
+    end
+end
+
+function DataSourceQuestie:IsQuestNPCDrop(questId)
+    if self.isQuestNPCDrop == nil then
+        self.isQuestNPCDrop = {}
+    elseif self.isQuestNPCDrop[questId] then
+        return self.isQuestNPCDrop[questId]
+    end
+
+    local quest = QuestieDB:GetQuest(questId)
+    if quest then
+        local starterLocation = self:GetNearestQuestStarter(questId)
+        if starterLocation then
+            local isNPCDrop = starterLocation.type == "NPC Drop"
+            self.isQuestNPCDrop[questId] = isNPCDrop
+            return isNPCDrop
+        end
+    end
+    return false
+end
 function DataSourceQuestie:GetInnkeeperLocation(location)
 end

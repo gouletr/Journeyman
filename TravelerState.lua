@@ -303,3 +303,7 @@ end
 function State:GetQuestLogInfo(questId)
     return self.currentQuestLog[questId]
 end
+
+function State:IsQuestInQuestLog(questId)
+    return self.currentQuestLog[questId] ~= nil
+end
