@@ -110,11 +110,12 @@ function State:UpdateImmediate()
             local index = 1
             for _, step in ipairs(chapter.steps or {}) do
                 -- Skip undefined steps
-                if step.type and step.data and step.type ~= Traveler.STEP_TYPE_UNDEFINED then
+                if step.type and step.type ~= Traveler.STEP_TYPE_UNDEFINED and step.data then
                     -- Check if step is ever doable
                     local doable = true
                     if Traveler:IsStepTypeQuest(step) then
-                        doable = Traveler.DataSource:GetQuestHasRequiredRace(step.data) and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
+                        doable = doable and Traveler.DataSource:GetQuestHasRequiredRace(step.data) == true
+                        doable = doable and Traveler.DataSource:GetQuestHasRequiredClass(step.data) == true
                     end
 
                     -- Clone step only if ever doable

@@ -277,12 +277,18 @@ end
 
 function DataSourceQuestie:GetQuestHasRequiredRace(questId)
     local requiredRaces = QuestieDB.QueryQuestSingle(questId, "requiredRaces")
-    return QuestiePlayer:HasRequiredRace(requiredRaces)
+    if requiredRaces then
+        return QuestiePlayer:HasRequiredRace(requiredRaces)
+    end
+    return false
 end
 
 function DataSourceQuestie:GetQuestHasRequiredClass(questId)
     local requiredClasses = QuestieDB.QueryQuestSingle(questId, "requiredClasses")
-    return QuestiePlayer:HasRequiredClass(requiredClasses)
+    if requiredClasses then
+        return QuestiePlayer:HasRequiredClass(requiredClasses)
+    end
+    return false
 end
 
 function DataSourceQuestie:GetQuestExclusiveTo(questId)
