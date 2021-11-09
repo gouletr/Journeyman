@@ -4,6 +4,8 @@ local L = addon.Locale
 local GUI = {}
 Traveler.GUI = GUI
 
+local tinsert = table.insert
+
 -- Useful template:
 -- BackdropTemplateMixin and "BackdropTemplate"
 
@@ -186,7 +188,7 @@ function GUI:CreateListView(frameType, name, parent, template, id)
                 row:SetPoint("TOPLEFT", self.rows[index - 1], "BOTTOMLEFT")
                 row:SetPoint("BOTTOMRIGHT", self.rows[index - 1], "BOTTOMRIGHT", 0, -self.rowHeight)
             end
-            Traveler.Utils:Add(self.rows, row)
+            tinsert(self.rows, row)
         else
             row = self.rows[index]
         end

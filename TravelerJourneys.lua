@@ -223,7 +223,7 @@ end
 function Traveler:JourneyImportFromCharacter()
     if self.journey ~= nil then
         local journey = self.Utils:Clone(self.journey)
-        self.Utils:Add(self.journeys, journey)
+        tinsert(self.journeys, journey)
     end
 end
 
@@ -244,7 +244,7 @@ function Traveler:JourneyAddChapter(title)
         level = UnitLevel("player"),
         steps = {}
     }
-    self.Utils:Add(self.journey.chapters, chapter)
+    tinsert(self.journey.chapters, chapter)
     return chapter
 end
 
@@ -278,7 +278,7 @@ function Traveler:JourneyChapterAddStep(chapter, type, data)
         type = type,
         data = data
     }
-    self.Utils:Add(chapter.steps, step)
+    tinsert(chapter.steps, step)
     self:Debug("Chapter '"..chapter.title.."' added step "..type.." "..data)
     return step
 end

@@ -6,6 +6,8 @@ Traveler.Tracker = Tracker
 
 local TomTom = TomTom
 
+local tinsert = table.insert
+
 local HEADER_HEIGHT = 24
 local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
 local TEXT_COLOR_HIGHLIGHT = "FFFFFFFF"
@@ -346,13 +348,13 @@ function Tracker:UpdateSteps()
             if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                 local lastStep = steps[#steps]
                 if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                    Traveler.Utils:Add(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                    tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
                 else
-                    Traveler.Utils:Add(lastStep.children, step)
+                    tinsert(lastStep.children, step)
                     lastStep.isComplete = lastStep.isComplete and step.isComplete
                 end
             else
-                Traveler.Utils:Add(steps, step)
+                tinsert(steps, step)
             end
         end
     end

@@ -28,10 +28,6 @@ function Utils:CreateGUID()
     return guid
 end
 
-function Utils:Add(t, v)
-    t[#t + 1] = v
-end
-
 function Utils:Remove(t, v)
     if t == nil then return end
     local j, n = 1, #t
