@@ -7,9 +7,10 @@ Traveler.DataSource = DataSourceQuestie
 local HBD = LibStub("HereBeDragons-2.0")
 local QuestieDB = QuestieLoader and QuestieLoader:ImportModule("QuestieDB")
 local QuestiePlayer = QuestieLoader and QuestieLoader:ImportModule("QuestiePlayer")
-local QuestieMap = QuestieLoader and QuestieLoader:ImportModule("QuestieMap")
+--local QuestieMap = QuestieLoader and QuestieLoader:ImportModule("QuestieMap")
 local QuestieLib = QuestieLoader and QuestieLoader:ImportModule("QuestieLib")
 local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
+--local QuestieL10n = QuestieLoader and QuestieLoader:ImportModule("l10n")
 
 local tinsert = table.insert
 
@@ -367,5 +368,37 @@ function DataSourceQuestie:IsQuestNPCDrop(questId)
     end
     return false
 end
+
+-- local function GetZoneIDByName(name)
+    -- for _, zones in pairs(QuestieL10n.zoneLookup) do
+        -- for zoneIDnum, zoneName in pairs(zones) do
+            -- if zoneName == name then
+                -- return zoneIDnum
+            -- end
+        -- end
+    -- end
+-- end
+
 function DataSourceQuestie:GetInnkeeperLocation(location)
+    -- Traveler:Debug("GetInnkeeperLocation %s", location)
+
+    -- local key = "Innkeeper"
+    -- local npcs = Questie.db.global.townsfolk[key] or Questie.db.char.townsfolk[key]
+    -- if npcs == nil then return nil end
+
+    -- local zoneId = GetZoneIDByName(location)
+    -- local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zoneId)
+    -- if mapId == nil then
+        -- mapId = QuestieZoneDB:GetParentZoneId(zoneId)
+    -- end
+    -- -- Traveler:Debug("zone '%s' is = %s (%s)", location, dump(zoneId), dump(mapId))
+
+    -- for _, npcId in ipairs(npcs) do
+        -- local npc = QuestieDB:GetNPC(npcId)
+        -- if npc then
+            -- for zone, spawns in pairs(npc.spawns) do
+                -- Traveler:Debug("npc %d zone=%s", npcId, dump(zone))
+            -- end
+        -- end
+    -- end
 end
