@@ -146,6 +146,8 @@ function Traveler:GetGeneralOptionsTable()
                         if value then
                             Traveler.updateWaypoint = true
                             Traveler:Reset(true)
+                        else
+                            Traveler.Tracker:UpdateImmediate()
                         end
                     end
                 end
