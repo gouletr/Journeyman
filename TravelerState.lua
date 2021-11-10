@@ -281,6 +281,8 @@ function State:OnStepComplete()
         end
         if isChapterComplete then
             self:OnChapterComplete()
+        else
+            self:Update()
         end
     end
 end
