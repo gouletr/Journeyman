@@ -41,7 +41,7 @@ end
 
 function Traveler:Reset(immediate)
     if self.db.char.window.show then
-        self.State:Reset(options.immediate)
+        self.State:Reset(immediate)
     end
 end
 
