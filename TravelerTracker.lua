@@ -90,6 +90,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter < #journey.chapters then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
+                Traveler.updateWaypoint = true
                 Traveler:Reset(true)
             end
         end
@@ -109,6 +110,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter > 1 then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
+                Traveler.updateWaypoint = true
                 Traveler:Reset(true)
             end
         end
