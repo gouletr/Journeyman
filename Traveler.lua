@@ -31,14 +31,42 @@ function Traveler:OnInitialize()
 end
 
 function Traveler:OnEnable()
-    self.State:Reset(false, function(self)
-        Traveler:UpdateTargetingMacro()
-    end)
+    self:Reset()
 end
 
 function Traveler:OnDisable()
     self.Tracker:Shutdown()
     self.State:Shutdown()
+end
+
+function Traveler:Reset(immediate)
+    if self.db.char.window.show then
+        self.State:Reset(options.immediate)
+    end
+end
+
+function Traveler:Update(immediate)
+    if self.db.char.window.show then
+        self.State:Update(immediate)
+    end
+end
+
+function Traveler:PostUpdate()
+    if self.db.char.window.show then
+        -- Update window
+        self.Tracker:UpdateImmediate()
+
+        -- Update waypoint arrow
+        if self.updateWaypoint then
+            if self.db.profile.autoSetWaypoint then
+                self:SetWaypoint(self.State:GetCurrentStep())
+            end
+            self.autoSetWaypoint = false
+        end
+
+        -- Update targeting macro
+        self:UpdateTargetingMacro()
+    end
 end
 
 function Traveler:Debug(fmt, ...)

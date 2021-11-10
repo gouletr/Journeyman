@@ -78,12 +78,8 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.journey ~= value then
                         self.db.char.window.journey = value
                         self.db.char.window.chapter = 1
-                        self.State:Reset(true, function(self)
-                            if Traveler.db.profile.autoSetWaypoint then
-                                Traveler:SetWaypoint(self:GetCurrentStep())
-                            end
-                            Traveler:UpdateTargetingMacro()
-                        end)
+                        Traveler.updateWaypoint = true
+                        Traveler:Reset(true)
                     end
                 end,
                 get = function(info) return self.db.char.window.journey end
@@ -104,7 +100,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypoint ~= value then
                         self.db.profile.autoSetWaypoint = value
-                        self.Tracker:Update(true)
+                        Traveler:Update()
                     end
                 end
             },
@@ -124,7 +120,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypointMin ~= value then
                         self.db.profile.autoSetWaypointMin = value
-                        self.Tracker:Update(true)
+                        Traveler:Update()
                     end
                 end
             },
@@ -143,7 +139,10 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
-                        self.Tracker:Update(true)
+                        if value then
+                            Traveler.updateWaypoint = true
+                            Traveler:Reset(true)
+                        end
                     end
                 end
             },
@@ -228,7 +227,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showCompletedSteps ~= value then
                         self.db.profile.window.showCompletedSteps = value
-                        self.State:Update(true)
+                        Traveler:Update(true)
                     end
                 end
             },
@@ -242,7 +241,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showSkippedSteps ~= value then
                         self.db.profile.window.showSkippedSteps = value
-                        self.State:Update(true)
+                        Traveler:Update(true)
                     end
                 end
             },
@@ -260,7 +259,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.stepsShown ~= value then
                         self.db.profile.window.stepsShown = value
-                        self.State:Update(true)
+                        Traveler:Update(true)
                     end
                 end
             },
@@ -606,6 +605,7 @@ function Traveler:GetJourneyEditor()
                 Traveler.editor:SetSelectedChapterIndex(-1)
                 Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
+                Traveler:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -629,6 +629,7 @@ function Traveler:GetJourneyEditor()
             Traveler.editor:SetSelectedChapterIndex(#journey.chapters)
             Traveler.editor:SetSelectedStepIndex(-1)
             frame.refresh()
+            Traveler:Reset(true)
         end
     end)
 
@@ -643,6 +644,7 @@ function Traveler:GetJourneyEditor()
                 Traveler.editor:SetSelectedChapterIndex(-1)
                 Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
+                Traveler:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -786,6 +788,7 @@ function Traveler:GetJourneyEditor()
         if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED) then
             Traveler.editor:SetSelectedStepIndex(#chapter.steps)
             frame.refresh()
+            Traveler:Reset(true)
         end
     end)
 
@@ -799,6 +802,7 @@ function Traveler:GetJourneyEditor()
             if chapter and Traveler.Journey:DeleteStep(chapter, Traveler.editor:GetSelectedStepIndex()) then
                 Traveler.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
+                Traveler:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -849,19 +853,11 @@ function Traveler:GetJourneyEditor()
             chapterSelector:Refresh()
             stepSelector:Refresh()
             propertiesGroup:Refresh()
-
             deleteJourneyButton:SetEnabled(frame:GetSelectedJourneyIndex() ~= -1)
             newChapterButton:SetEnabled(frame:GetSelectedJourneyIndex() ~= -1)
             deleteChapterButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
             newStepButton:SetEnabled(frame:GetSelectedChapterIndex() ~= -1)
             deleteStepButton:SetEnabled(frame:GetSelectedStepIndex() ~= -1)
-
-            Traveler.State:Reset(true, function(self)
-                if Traveler.db.profile.autoSetWaypoint then
-                    Traveler:SetWaypoint(self:GetCurrentStep())
-                end
-                Traveler:UpdateTargetingMacro()
-            end)
         end, geterrorhandler())
     end
 
@@ -930,6 +926,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             journey.title = self:GetText()
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.journeyTitle = journeyTitle
 
@@ -944,6 +941,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.editor:SetSelectedJourneyIndex(index)
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.journeyIndex = journeyIndex
 
@@ -957,6 +955,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             chapter.title = self:GetText()
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.chapterTitle = chapterTitle
 
@@ -972,6 +971,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.editor:SetSelectedChapterIndex(index)
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.chapterIndex = chapterIndex
 
@@ -1022,6 +1022,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             end
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     stepType:Initialize()
     frame.stepType = stepType
@@ -1040,6 +1041,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             end
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.stepData = stepData
 
@@ -1055,6 +1057,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.editor:SetSelectedStepIndex(index)
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.stepIndex = stepIndex
 
@@ -1071,6 +1074,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             end
         end
         Traveler.editor.refresh()
+        Traveler:Reset(true)
     end
     frame.stepNote = stepNote
 

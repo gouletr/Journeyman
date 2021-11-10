@@ -90,7 +90,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter < #journey.chapters then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
-                Traveler.State:Reset(true)
+                Traveler:Reset(true)
             end
         end
     end)
@@ -109,7 +109,7 @@ function Tracker:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter > 1 then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
-                Traveler.State:Reset(true)
+                Traveler:Reset(true)
             end
         end
     end)
@@ -235,7 +235,7 @@ function Tracker:UpdateImmediate()
     self.frame:SetShown(Traveler.db.char.window.show)
 
     local elapsed = (GetTimePreciseSec() - now) * 1000
-    if elapsed > 16.6667 then
+    if elapsed > 20 then
         Traveler:Debug("Window update took %.2fms", elapsed)
     end
 end
@@ -330,48 +330,46 @@ end
 function Tracker:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
-    for _, step in ipairs(Traveler.State.steps) do
-        local showStep = step.isComplete == false or Traveler.db.profile.window.showCompletedSteps
-
-        if showStep then
-            if Traveler:IsStepTypeQuest(step) then
-                -- Hide quest steps that originate from an NPC drop, that isn't in the quest log or flagged completed
-                local questId = Traveler.DataSource:GetQuestChainStartQuest(step.data)
-                if Traveler.DataSource:IsQuestNPCDrop(questId) and not Traveler.State:IsQuestInQuestLog(questId) and not C_QuestLog.IsQuestFlaggedCompleted(questId) then
-                    showStep = false
-                    Traveler:Debug("Hiding step %s %s because quest %d is not in quest log or flagged complete.", step.type, step.data, questId)
-                end
+    local stepShownCount = 0
+    for i = 1, #Traveler.State.steps do
+        local step = Traveler.State.steps[i]
+        if step.isShown then
+            -- Optimization: Update step location only if we're going to show it
+            -- Also, don't need location for step type complete quest, because its meaningless here
+            if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location == nil then
+                step.location = Traveler.State:GetStepLocation(step)
             end
-        end
 
-        if showStep then
             if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                 local lastStep = steps[#steps]
                 if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
                     tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                    if not step.isComplete then
+                        stepShownCount = stepShownCount + 1
+                    end
                 else
                     tinsert(lastStep.children, step)
                     lastStep.isComplete = lastStep.isComplete and step.isComplete
                 end
             else
                 tinsert(steps, step)
+                if not step.isComplete then
+                    stepShownCount = stepShownCount + 1
+                end
             end
+        end
+
+        -- Check shown step count
+        if Traveler.db.profile.window.stepsShown > 0 and stepShownCount >= Traveler.db.profile.window.stepsShown then
+            break
         end
     end
 
     -- Display steps recursively
     self.lineIndex = 1
     self.waypointSet = false
-    local stepsCount = 0
     for i = 1, #steps do
-        local step = steps[i]
-        self:DisplayStep(steps[i])
-        if not step.isComplete then -- only count incomplete steps
-            stepsCount = stepsCount + 1
-            if Traveler.db.profile.window.stepsShown > 0 and stepsCount >= Traveler.db.profile.window.stepsShown then
-                break
-            end
-        end
+        self:DisplayStep(steps[i], 0)
     end
 
     -- Hide other lines
@@ -381,14 +379,6 @@ function Tracker:UpdateSteps()
 end
 
 function Tracker:DisplayStep(step, depth)
-    if depth == nil then
-        depth = 0
-    end
-
-    if step.isComplete and not Traveler.db.profile.window.showCompletedSteps then
-        return
-    end
-
     if step.hasChildren then
         -- Display step prefix
         if step.location then
@@ -405,8 +395,8 @@ function Tracker:DisplayStep(step, depth)
             Traveler:Error("Unknown location for step %s", dump(step))
         end
         -- Display child steps
-        for _, child in ipairs(step.children) do
-            self:DisplayStep(child, depth + 1)
+        for i = 1, #step.children do
+            self:DisplayStep(step.children[i], depth + 1)
         end
     else
         -- Display step

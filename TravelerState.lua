@@ -63,8 +63,33 @@ local function IsStepComplete(step)
     Traveler:Error("Step type %s not implemented.", step.type)
 end
 
+local function IsStepShown(step)
+    -- Optimization: Assume step is not shown if shown step count is reached. Since we don't know grouping here, use conservative estimate.
+    if Traveler.db.profile.window.stepsShown > 0 then
+        local stepShownMax = math.max(math.min(Traveler.db.profile.window.stepsShown * 3, 25), 10)
+        if State.stepShownCount >= stepShownMax then
+            return false
+        end
+    end
+
+    local showStep = not step.isComplete or Traveler.db.profile.window.showCompletedSteps
+
+    -- Hide quest steps that originate from an NPC drop, that isn't in the quest log or flagged completed
+    if showStep then
+        if Traveler:IsStepTypeQuest(step) then
+            local questId = Traveler.DataSource:GetQuestChainStartQuest(step.data)
+            if Traveler.DataSource:IsQuestNPCDrop(questId) and not State:IsQuestInQuestLog(questId) and not C_QuestLog.IsQuestFlaggedCompleted(questId) then
+                showStep = false
+            end
+        end
+    end
+
+    return showStep
+end
+
 local function FindStep(type, data)
-    for _, step in ipairs(State.steps or {}) do
+    for i = 1, #State.steps do
+        local step = State.steps[i]
         if step.type == type and step.data == data then
             return step
         end
@@ -81,15 +106,15 @@ function State:Shutdown()
     self.ticker:Cancel()
 end
 
-function State:Reset(immediate, afterUpdateFunc)
+function State:Reset(immediate, postUpdateCallback)
     self.steps = nil
-    self:Update(immediate, afterUpdateFunc)
+    self:Update(immediate, postUpdateCallback)
 end
 
-function State:Update(immediate, afterUpdateFunc)
+function State:Update(immediate, postUpdateCallback)
     self.needUpdate = true
-    if afterUpdateFunc then
-        self.afterUpdateFunc = afterUpdateFunc
+    if postUpdateCallback then
+        self.postUpdateCallback = postUpdateCallback
     end
     if immediate then
         self:UpdateImmediate()
@@ -101,15 +126,18 @@ function State:UpdateImmediate()
 
     local now = GetTimePreciseSec()
 
+    -- Get current quest log
+    self:UpdateQuestLog()
+
     -- Clone steps
     if self.steps == nil then
         self.steps = {}
         local journey = Traveler.Journey:GetActiveJourney()
         local chapter = Traveler:GetActiveChapter(journey)
-        if chapter then
+        if chapter and chapter.steps then
             local index = 1
-            for _, step in ipairs(chapter.steps or {}) do
-                -- Skip undefined steps
+            for i = 1, #chapter.steps do
+                local step = chapter.steps[i]
                 if step.type and step.type ~= Traveler.STEP_TYPE_UNDEFINED and step.data then
                     -- Check if step is ever doable
                     local doable = true
@@ -129,34 +157,34 @@ function State:UpdateImmediate()
         end
     end
 
-    -- Get current quest log
-    self:UpdateQuestLog()
-
-    -- Update steps
-    for i, step in ipairs(self.steps) do
+    -- Update steps state
+    self.stepShownCount = 0
+    for i = 1, #self.steps do
+        local step = self.steps[i]
         step.isComplete = IsStepComplete(step)
-        if step.location == nil then
-            step.location = self:GetStepLocation(step)
+        step.isShown = IsStepShown(step)
+        if not step.isComplete and step.isShown then
+            self.stepShownCount = self.stepShownCount + 1
         end
     end
     self.needUpdate = false
 
-    -- Run after update callback
-    if self.afterUpdateFunc then
-        self.afterUpdateFunc(self)
-        if not self.needUpdate then -- Remove after update callback only if it didn't request another update
-            self.afterUpdateFunc = nil
-        end
-    end
-
     local elapsed = (GetTimePreciseSec() - now) * 1000
-    if elapsed > 16.6667 then
+    if elapsed > 20 then
         Traveler:Debug("State update took %.2fms", elapsed)
     end
 
-    -- Update window only if after update callback didn't request another update
+    -- Run post update callback
+    if self.postUpdateCallback and type(self.postUpdateCallback) == "function" then
+        self.postUpdateCallback()
+        if not self.needUpdate then -- Remove after update callback only if it didn't request another update
+            self.postUpdateCallback = nil
+        end
+    end
+
+    -- Other things that need to be updated after a state update
     if not self.needUpdate then
-        Traveler.Tracker:UpdateImmediate()
+        Traveler:PostUpdate()
     end
 end
 
@@ -174,32 +202,32 @@ function State:UpdateQuestLog()
 end
 
 function State:OnQuestAccepted(questId)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
 function State:OnQuestCompleted(questId)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
 function State:OnQuestTurnedIn(questId)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_TURNIN_QUEST, questId)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
@@ -208,47 +236,45 @@ function State:OnQuestAbandoned(questId)
 end
 
 function State:OnHearthstoneBound(location)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, location)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
 function State:OnHearthstoneUsed(location)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_USE_HEARTHSTONE, location)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
 function State:OnLevelUp(level)
-    self:Update(false, function(self)
+    self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_REACH_LEVEL, level)
         if step then
             step.isComplete = true
+            self:OnStepComplete()
         end
-        self:OnStepComplete()
     end)
 end
 
 function State:OnStepComplete()
+    Traveler.updateWaypoint = true
+
+    -- Check if chapter is complete
     local currentStep = self:GetCurrentStep()
-    if currentStep then
-        if Traveler.db.profile.autoSetWaypoint then
-            Traveler:SetWaypoint(currentStep)
-        end
-        Traveler:UpdateTargetingMacro()
-    elseif #self.steps > 0 then
-        -- Check if chapter is complete
+    if currentStep == nil and #self.steps > 0 then
         local isChapterComplete = true
-        for i, step in ipairs(self.steps) do
-            if step.isComplete == nil or step.isComplete == false then
+        for i = 1, #self.steps do
+            local step = self.steps[i]
+            if not step.isComplete then
                 isChapterComplete = false
                 break
             end
@@ -263,18 +289,14 @@ function State:OnChapterComplete()
     local journey = Traveler.Journey:GetActiveJourney()
     if journey then
         Traveler.Journey:AdvanceChapter(journey)
-        self:Reset(false, function(self)
-            if Traveler.db.profile.autoSetWaypoint then
-                Traveler:SetWaypoint(self:GetCurrentStep())
-            end
-            Traveler:UpdateTargetingMacro()
-        end)
+        self:Reset()
     end
 end
 
 function State:GetCurrentStep()
-    for i, step in ipairs(self.steps) do
-        if step.isComplete ~= nil and step.isComplete == false then
+    for i = 1, #self.steps do
+        local step = self.steps[i]
+        if not step.isComplete and step.isShown then
             return step
         end
     end

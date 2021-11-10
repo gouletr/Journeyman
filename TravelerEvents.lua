@@ -54,7 +54,7 @@ function Traveler:InitializeEvents()
                 self.questProgress[questId] = nil
             end
         else
-            self.State:Update()
+            Traveler:Update()
         end
     end)
 
