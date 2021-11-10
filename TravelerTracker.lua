@@ -272,7 +272,7 @@ function Tracker:UpdateNextChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler:GetActiveChapterIndex()
+        local index = Traveler.db.char.window.chapter
         enabled = index >= 1 and index < #journey.chapters
     end
     self.nextChapterButton:SetEnabled(enabled)
@@ -282,7 +282,7 @@ function Tracker:UpdatePreviousChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler:GetActiveChapterIndex()
+        local index = Traveler.db.char.window.chapter
         enabled = index > 1 and index <= #journey.chapters
     end
     self.prevChapterButton:SetEnabled(enabled)
@@ -290,11 +290,11 @@ end
 
 function Tracker:UpdateChapterTitle()
     local journey = Traveler.Journey:GetActiveJourney()
-    local chapter = Traveler:GetActiveChapter(journey)
+    local chapter = Traveler.Journey:GetActiveChapter(journey)
 
     local title
     if chapter ~= nil then
-        local index = Traveler:GetActiveChapterIndex()
+        local index = Traveler.db.char.window.chapter
         title = string.format(L["CHAPTER_TITLE"], index, chapter.title)
     else
         title = L["MISSING_CHAPTER_TITLE"]
@@ -429,9 +429,10 @@ end
 function Tracker:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = Traveler.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild, true)
+        line = Traveler.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild)
         line:SetJustifyH("LEFT")
         line:SetWordWrap(true)
+        line:EnableHyperlinks(true)
         line.index = self.lineIndex
         line.SetStepText = function(self, step, depth, fmt, ...)
             self:SetPoint("LEFT", Tracker.scrollChild, "LEFT", Traveler.db.profile.window.fontSize * depth, 0)

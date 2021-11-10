@@ -26,7 +26,7 @@ function Traveler:OnInitialize()
     self.State:Initialize()
     self:InitializeHooks()
     self:InitializeEvents()
-    self:InitializeJourney()
+    self.Journey:Initialize()
     self.Tracker:Initialize()
 end
 
@@ -89,6 +89,70 @@ end
 
 function Traveler:IsStepDataNumber(step)
     return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_REACH_LEVEL
+end
+
+function Traveler:GetStepText(step, showQuestLevel, callback)
+    if self:IsStepTypeQuest(step) then
+        local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
+        if questName == nil then
+            if step.data == nil then
+                questName = string.format("<%s>", L["No Value"])
+            elseif type(step.data) ~= "number" then
+                questName = string.format("<%s>", L["Not a Number"])
+            else
+                questName = string.format("quest:%d", step.data)
+            end
+        end
+        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+            return string.format(L["Accept %s"], questName)
+        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            return string.format(L["Complete %s"], questName)
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            return string.format(L["Turn-in %s"], questName)
+        else
+            Traveler:Error("Step type %s not implemented.", step.type)
+        end
+    else
+        if step.type == Traveler.STEP_TYPE_UNDEFINED then
+            return string.format("<%s>", L["Undefined"])
+        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+            local location = step.data
+            if location == nil then
+                location = string.format("<%s>", L["No Value"])
+            elseif type(location) ~= "string" then
+                location = string.format("<%s>", L["Not a String"])
+            end
+            return string.format(L["Fly to %s"], location)
+        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+            local itemLink = Traveler:GetItemLink(Traveler.ITEM_HEARTHSTONE, callback)
+            if itemLink == nil then
+                itemLink = string.format("<%s>", L["No Value"])
+            elseif type(itemLink) ~= "string" then
+                itemLink = string.format("<%s>", L["Not a String"])
+            end
+            local location = step.data
+            if location == nil then
+                location = string.format("<%s>", L["No Value"])
+            elseif type(location) ~= "string" then
+                location = string.format("<%s>", L["Not a String"])
+            end
+            if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+                return string.format(L["Bind %s to %s"], itemLink, location)
+            else
+                return string.format(L["Use %s to %s"], itemLink, location)
+            end
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            local level = step.data
+            if level == nil then
+                level = string.format("<%s>", L["No Value"])
+            elseif type(level) ~= "number" then
+                level = string.format("<%s>", L["Not a Number"])
+            end
+            return string.format(L["Reach level %s"], level)
+        else
+            Traveler:Error("Step type %s not implemented.", step.type)
+        end
+    end
 end
 
 function Traveler:GetQuestLogNumEntries()
@@ -154,6 +218,14 @@ function Traveler:GetItemLink(itemId, callback)
             return "item:" .. itemId
         end
         return itemLink
+    end
+end
+
+function Traveler:GetMapName()
+    local uiMapId = C_Map.GetBestMapForUnit("player")
+    local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
+    if mapInfo then
+        return mapInfo.name
     end
 end
 
@@ -271,17 +343,4 @@ function Traveler:ReplaceAllItemStringToHyperlinks(input, callback)
         until itemString == nil
         return result
     end
-end
-
-function dump(o)
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. dump(v) .. ','
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
 end

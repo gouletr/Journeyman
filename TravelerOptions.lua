@@ -58,8 +58,8 @@ function Traveler:GetGeneralOptionsTable()
             journey = {
                 order = 1,
                 type = "select",
-                name = L["SELECT_JOURNEY"],
-                desc = L["SELECT_JOURNEY_DESC"],
+                name = L["SELECT_JOURNEY"] .. "*",
+                desc = L["SELECT_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
                 values = function(info)
                     local values = {}
@@ -78,6 +78,10 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.journey ~= value then
                         self.db.char.window.journey = value
                         self.db.char.window.chapter = 1
+                        if self.db.char.updateJourney then
+                            self.db.char.updateJourney = false
+                            Traveler:Print(L["Disabled Update Active Journey option for this character."])
+                        end
                         Traveler.updateWaypoint = true
                         Traveler:Reset(true)
                     end
@@ -132,8 +136,8 @@ function Traveler:GetGeneralOptionsTable()
             show = {
                 order = 21,
                 type = "toggle",
-                name = L["SHOW_WINDOW"],
-                desc = L["SHOW_WINDOW_DESC"],
+                name = L["SHOW_WINDOW"] .. "*",
+                desc = L["SHOW_WINDOW_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
                 get = function(info) return self.db.char.window.show end,
                 set = function(info, value)
@@ -453,22 +457,22 @@ function Traveler:GetAdvancedOptionsTable()
             updateJourney = {
                 order = 1,
                 type = "toggle",
-                name = L["Update Active Journey"],
-                desc = L["Update active journey while questing. Not preserved between sessions."],
+                name = L["Update Active Journey"] .. "*",
+                desc = L["Update active journey with new steps."] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(1.0),
                 confirm = true,
-                confirmText = L["Changing this setting might modify active journey while questing, proceed?"],
-                get = function(info) return self.updateJourney end,
+                confirmText = L["Enabling this will modify active journey when playing, proceed?"],
+                get = function(info) return self.db.char.updateJourney end,
                 set = function(info, value)
-                    if self.updateJourney ~= value then
-                        self.updateJourney = value
+                    if self.db.char.updateJourney ~= value then
+                        self.db.char.updateJourney = value
                     end
                 end
             },
             updateJourneyDesc = {
                 order = 2,
                 type = "description",
-                name = L["Enabling this option will cause recorded events to be merged into the active journey chapter, including abandoning quests. These changes are permanent and might destroy useful information. Because of this, this setting is not preserved between sessions."],
+                name = L["Enabling this option will cause new steps to be appended into the active journey chapter. Abandoning a quest will remove all steps of that quest from all chapters. Changing active journey will disable this option."],
                 width = Percent(1.0)
             },
             updateHeader = {
@@ -558,8 +562,8 @@ function Traveler:GetJourneyEditor()
     journeySelector:SetTitle(L["SELECT_JOURNEY"])
     journeySelector.list.GetValues = function(self)
         local values = {}
-        for i, v in ipairs(Traveler.journeys) do
-            values[i] = v.title
+        for i = 1, #Traveler.journeys do
+            values[i] = Traveler.journeys[i].title
         end
         return values
     end
@@ -671,7 +675,7 @@ function Traveler:GetJourneyEditor()
     frame.stepSelector = stepSelector
 
     stepSelector.list.CreateRow = function(self, index, parent)
-        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent, true)
+        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)
@@ -686,66 +690,7 @@ function Traveler:GetJourneyEditor()
 
         row.SetValue = function(self, step)
             local prefix = self.index .. ". "
-            if Traveler:IsStepTypeQuest(step) then
-                local questName = Traveler.DataSource:GetQuestName(step.data, true)
-                if questName == nil then
-                    if step.data == nil then
-                        questName = "<No Value>"
-                    elseif type(step.data) ~= "number" then
-                        questName = "<Not a Quest Id>"
-                    else
-                        questName = string.format("quest:%d", step.data)
-                    end
-                end
-                if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-                    self:SetText(prefix .. L["Accept %s"], questName)
-                elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-                    self:SetText(prefix .. L["Complete %s"], questName)
-                elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-                    self:SetText(prefix .. L["Turn-in %s"], questName)
-                else
-                    Traveler:Error("Step type %s not implemented.", step.type)
-                end
-            else
-                if step.type == Traveler.STEP_TYPE_UNDEFINED then
-                    self:SetText(prefix .. "<%s>", L["Undefined"])
-                elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-                    local location = step.data
-                    if location == nil then
-                        location = "<No Value>"
-                    end
-                    self:SetText(prefix .. L["Fly to %s"], location)
-                elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                    local itemName = Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end)
-                    if itemName == nil then
-                        itemName = "<No Value>"
-                    end
-                    local location = step.data
-                    if location == nil then
-                        location = "<No Value>"
-                    end
-                    self:SetText(prefix .. L["Bind %s to %s"], itemName, location)
-                elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-                    local itemName = Traveler:GetItemName(Traveler.ITEM_HEARTHSTONE, function() stepSelector:Refresh() end)
-                    if itemName == nil then
-                        itemName = "<No Value>"
-                    end
-                    local location = step.data
-                    if location == nil then
-                        location = "<No Value>"
-                    end
-                    self:SetText(prefix .. L["Use %s to %s"], itemName, location)
-                elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-                    local level = step.data
-                    if level == nil or type(level) ~= "number" then
-                        level = 0
-                    end
-                    self:SetText(prefix .. L["Reach level %d"], level)
-                else
-                    Traveler:Error("Step type %s not implemented.", step.type)
-                end
-            end
-
+            self:SetText(prefix .. Traveler:GetStepText(step, true, function() stepSelector:Refresh() end))
             if self.list.selectedIndex == self.index then
                 self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             elseif row:IsMouseOver() then
@@ -1007,18 +952,20 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
         local step = Traveler.editor:GetSelectedStep()
         if step then
             step.type = value
-            if Traveler:IsStepDataNumber(step) and type(step.data) ~= "number" then
-                local data = tonumber(step.data)
-                if data == nil then
-                    data = 0
+            if step.data then
+                if Traveler:IsStepDataNumber(step) and type(step.data) ~= "number" then
+                    local data = tonumber(step.data)
+                    if data == nil then
+                        data = 0
+                    end
+                    step.data = data
+                elseif type(step.data) ~= "string" then
+                    local data = tostring(step.data)
+                    if data == nil then
+                        data = ""
+                    end
+                    step.data = data
                 end
-                step.data = data
-            elseif type(step.data) ~= "string" then
-                local data = tostring(step.data)
-                if data == nil then
-                    data = ""
-                end
-                step.data = data
             end
         end
         Traveler.editor.refresh()

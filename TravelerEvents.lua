@@ -91,41 +91,36 @@ function Traveler:OnPlayerLeavingWorld()
 end
 
 function Traveler:OnQuestAccepted(questId)
-    self.Journey:OnQuestAccepted(questId)
     self.State:OnQuestAccepted(questId)
-    self:JourneyAddQuestAccept(questId)
+    self.Journey:OnQuestAccepted(questId)
 end
 
 function Traveler:OnQuestCompleted(questId)
-    self.Journey:OnQuestCompleted(questId)
     self.State:OnQuestCompleted(questId)
-    self:JourneyAddQuestComplete(questId)
+    self.Journey:OnQuestCompleted(questId)
 end
 
 function Traveler:OnQuestTurnedIn(questId)
-    self.Journey:OnQuestTurnedIn(questId)
     self.State:OnQuestTurnedIn(questId)
-    self:JourneyAddQuestTurnIn(questId)
+    self.Journey:OnQuestTurnedIn(questId)
 end
 
 function Traveler:OnQuestAbandoned(questId)
-    self.Journey:OnQuestAbandoned(questId)
     self.State:OnQuestAbandoned(questId)
-    self:JourneyRemoveQuest(questId)
+    self.Journey:OnQuestAbandoned(questId)
 end
 
 function Traveler:OnHearthstoneBound(location)
-    self.Journey:OnHearthstoneBound(location)
     self.State:OnHearthstoneBound(location)
-    self:JourneyAddBindHearthstone(location)
+    self.Journey:OnHearthstoneBound(location)
 end
 
 function Traveler:OnHearthstoneUsed(location)
-    self.Journey:OnHearthstoneUsed(location)
     self.State:OnHearthstoneUsed(location)
-    self:JourneyAddUseHearthstone(location)
+    self.Journey:OnHearthstoneUsed(location)
 end
 
 function Traveler:OnLevelUp(level)
     self.State:OnLevelUp(level)
+    self.Journey:OnLevelUp(level)
 end

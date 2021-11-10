@@ -29,19 +29,10 @@ end
 
 function GUI:CreateLabel(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
-    frame:SetHyperlinksEnabled(true)
-    frame:SetScript("OnHyperlinkClick", function(self, link, text, button)
-        ShowUIPanel(ItemRefTooltip)
-        if not ItemRefTooltip:IsVisible() then
-            ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
-        end
-        ItemRefTooltip:SetHyperlink(link)
-        ItemRefTooltip:Show()
-    end)
 
     local fontString = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     fontString:SetPoint("TOPLEFT", 2, 0)
-    fontString:SetPoint("BOTTOMRIGHT")
+    fontString:SetPoint("BOTTOMRIGHT", -2, 0)
     fontString:SetFontObject(GameFontNormal)
     frame.fontString = fontString
 
@@ -54,6 +45,20 @@ function GUI:CreateLabel(frameType, name, parent, template, id)
     frame.SetMaxLines = function(self, value) self.fontString:SetMaxLines(value) end
     frame.GetTextColor = function(self) return self.fontString:GetTextColor() end
     frame.GetNumLines = function(self) return self.fontString:GetNumLines() end
+
+    frame.EnableHyperlinks = function(self, value)
+        self:SetHyperlinksEnabled(value)
+        if value then
+            self:SetScript("OnHyperlinkClick", function(self, link, text, button)
+                ShowUIPanel(ItemRefTooltip)
+                if not ItemRefTooltip:IsVisible() then
+                    ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+                end
+                ItemRefTooltip:SetHyperlink(link)
+                ItemRefTooltip:Show()
+            end)
+        end
+    end
 
     return frame
 end
@@ -196,7 +201,7 @@ function GUI:CreateListView(frameType, name, parent, template, id)
     end
 
     frame.CreateRow = function(self, index, parent)
-        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent, true)
+        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)

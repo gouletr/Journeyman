@@ -42,7 +42,8 @@ local databaseDefaults = {
             show = true,
             journey = "",
             chapter = 1
-        }
+        },
+        updateJourney = false
     }
 }
 
@@ -59,11 +60,6 @@ function Traveler:SerializeDatabase()
             if result then self.db.profile.journeys[i] = serialized end
         end
     end
-
-    if self.journey then
-        local result, serialized = self:Serialize(self.journey)
-        if result then self.db.char.journey = serialized end
-    end
 end
 
 function Traveler:DeserializeDatabase()
@@ -79,12 +75,6 @@ function Traveler:DeserializeDatabase()
                 self.journeys[i] = deserialized
             end
         end
-    end
-
-    -- Deserialize character journey
-    if self.db.char.journey then
-        local result, deserialized = self:Deserialize(self.db.char.journey)
-        if result then self.journey = deserialized end
     end
 
     -- Validate active journey

@@ -133,7 +133,7 @@ function State:UpdateImmediate()
     if self.steps == nil then
         self.steps = {}
         local journey = Traveler.Journey:GetActiveJourney()
-        local chapter = Traveler:GetActiveChapter(journey)
+        local chapter = Traveler.Journey:GetActiveChapter(journey)
         if chapter and chapter.steps then
             local index = 1
             for i = 1, #chapter.steps do
@@ -294,10 +294,12 @@ function State:OnChapterComplete()
 end
 
 function State:GetCurrentStep()
-    for i = 1, #self.steps do
-        local step = self.steps[i]
-        if not step.isComplete and step.isShown then
-            return step
+    if self.steps then
+        for i = 1, #self.steps do
+            local step = self.steps[i]
+            if not step.isComplete and step.isShown then
+                return step
+            end
         end
     end
 end
