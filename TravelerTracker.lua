@@ -413,7 +413,7 @@ function Tracker:DisplayStep(step, depth)
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, "Use %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            self:GetNextLine():SetStepText(step, depth, "Reach level %d", self:GetColoredHighlightText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, "Reach level %s", self:GetColoredHighlightText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end

@@ -148,7 +148,7 @@ function Traveler:GetStepText(step, showQuestLevel, callback)
             elseif type(level) ~= "number" then
                 level = string.format("<%s>", L["Not a Number"])
             end
-            return string.format(L["Reach level %s"], level)
+            return string.format(L["Reach level %d"], level)
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
