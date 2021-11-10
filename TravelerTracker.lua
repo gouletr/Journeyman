@@ -422,8 +422,8 @@ function Tracker:DisplayStep(step, depth)
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            local note = Traveler:ReplaceAllItemStringToHyperlinks(step.note, function() Tracker:Update() end)
-            self:GetNextLine():SetStepText(step, depth + 1, L["Note: %s"], self:GetColoredHighlightText(note, step.isComplete))
+            local note = Traveler:ReplaceAllItemStringToHyperlinks(L[step.note], function() Tracker:Update() end)
+            self:GetNextLine():SetStepText(step, depth + 1, L["STEP_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
         end
     end
 end
