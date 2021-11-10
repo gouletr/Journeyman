@@ -61,7 +61,7 @@ function Traveler:PostUpdate()
             if self.db.profile.autoSetWaypoint then
                 self:SetWaypoint(self.State:GetCurrentStep())
             end
-            self.autoSetWaypoint = false
+            self.updateWaypoint = false
         end
 
         -- Update targeting macro
