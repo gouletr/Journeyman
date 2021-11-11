@@ -37,12 +37,14 @@ local function IsStepComplete(step)
     else
         if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
-            return GetBindLocation() == step.data
+            if GetBindLocation() == Traveler:GetAreaName(step.data) then
+                return true
+            end
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             -- Check if current bind location match and hearthstone is on cooldown
             local startTime, duration, enable = GetItemCooldown(Traveler.ITEM_HEARTHSTONE)
             local cooldownLeft = duration - (GetTime() - startTime)
-            if cooldownLeft > 0 and GetBindLocation() == step.data then
+            if cooldownLeft > 0 and GetBindLocation() == Traveler:GetAreaName(step.data) then
                 return true
             end
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
@@ -235,9 +237,9 @@ function State:OnQuestAbandoned(questId)
     self:Update()
 end
 
-function State:OnHearthstoneBound(location)
+function State:OnHearthstoneBound(areaId)
     self:Update(false, function()
-        local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, location)
+        local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId)
         if step then
             step.isComplete = true
             self:OnStepComplete()
@@ -245,9 +247,9 @@ function State:OnHearthstoneBound(location)
     end)
 end
 
-function State:OnHearthstoneUsed(location)
+function State:OnHearthstoneUsed(areaId)
     self:Update(false, function()
-        local step = FindStep(Traveler.STEP_TYPE_USE_HEARTHSTONE, location)
+        local step = FindStep(Traveler.STEP_TYPE_USE_HEARTHSTONE, areaId)
         if step then
             step.isComplete = true
             self:OnStepComplete()

@@ -11,7 +11,6 @@ local tinsert = table.insert
 local HEADER_HEIGHT = 24
 local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
 local TEXT_COLOR_HIGHLIGHT = "FFFFFFFF"
-local TEXT_COLOR_LOCATION = "FFFFFFFF"
 local QUEST_COLOR_RED = "FFFF1A1A"
 local QUEST_COLOR_ORANGE = "FFFF8040"
 local QUEST_COLOR_YELLOW = "FFFFFF00"
@@ -389,11 +388,11 @@ function Window:DisplayStep(step, depth)
             local prefix
             if step.location.type == "NPC" then
                 prefix = L["Go talk to"]
-            elseif step.location.type == "Object" then
+            elseif step.location.type == "Object" or step.location.type == "Item" then
                 prefix = L["Go to"]
             end
             if prefix then
-                self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredLocationText(step.location.name, step.isComplete))
+                self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredHighlightText(step.location.name, step.isComplete))
             end
         else
             Traveler:Error("Unknown location for step %s", dump(step))
@@ -411,11 +410,11 @@ function Window:DisplayStep(step, depth)
         elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["Turn-in %s"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredHighlightText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["Bind %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Bind %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
             self:GetNextLine():SetStepText(step, depth, L["Reach level %s"], self:GetColoredHighlightText(step.data, step.isComplete))
         else
@@ -479,11 +478,15 @@ function Window:GetColoredHighlightText(text, isComplete)
     return text
 end
 
-function Window:GetColoredLocationText(location, isComplete)
-    if location and not isComplete then
-        return string.format("|c%s%s|r", TEXT_COLOR_LOCATION, location)
+function Window:GetColoredAreaText(areaId, isComplete)
+    local areaName = Traveler:GetAreaName(areaId)
+    if areaName == nil then return string.format("area:%s", areaId) end
+
+    if not isComplete then
+        return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, areaName)
     end
-    return location
+
+    return areaName
 end
 
 function Window:GetColoredQuestText(questId, isComplete)

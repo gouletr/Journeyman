@@ -153,7 +153,7 @@ function Journey:AddStep(chapter, type, data, force)
     if chapter and (force or not self:ContainsStep(chapter, type, data)) then
         local step = self:CreateStep(chapter, type, data)
         if step then
-            Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step), chapter.title)
+            Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step, true), chapter.title)
         end
     end
 end
@@ -227,7 +227,7 @@ function Journey:OnQuestAbandoned(questId)
                         local step = chapter.steps[stepIndex]
                         if Traveler:IsStepTypeQuest(step) and step.data == questId then
                             if self:DeleteStep(chapter, stepIndex) then
-                                Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step), chapter.title)
+                                Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step, true), chapter.title)
                             end
                         end
                     end
@@ -237,19 +237,19 @@ function Journey:OnQuestAbandoned(questId)
     end
 end
 
-function Journey:OnHearthstoneBound(location)
+function Journey:OnHearthstoneBound(areaId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_BIND_HEARTHSTONE, location, true)
+        self:AddStep(chapter, Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId, true)
     end
 end
 
-function Journey:OnHearthstoneUsed(location)
+function Journey:OnHearthstoneUsed(areaId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_USE_HEARTHSTONE, location, true)
+        self:AddStep(chapter, Traveler.STEP_TYPE_USE_HEARTHSTONE, areaId, true)
     end
 end
 

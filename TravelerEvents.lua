@@ -59,19 +59,29 @@ function Traveler:InitializeEvents()
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
-        self.bindLocation = location
+        local areaId = Traveler:GetAreaIdFromLocalizedName(location)
+        if areaId then
+            self.bindAreaId = areaId
+        else
+            Traveler:Error("Could not find areaId for location name '%s'.", location)
+        end
     end)
 
     self:RegisterEvent("HEARTHSTONE_BOUND", function(event)
-        if self.bindLocation then
-            self:OnHearthstoneBound(self.bindLocation)
-            self.bindLocation = nil
+        if self.bindAreaId then
+            self:OnHearthstoneBound(self.bindAreaId)
+            self.bindAreaId = nil
         end
     end)
 
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellID)
         if spellID == Traveler.SPELL_HEARTHSTONE or spellID == Traveler.SPELL_ASTRAL_RECALL then
-            self:OnHearthstoneUsed(GetBindLocation())
+            local areaId = Traveler:GetAreaIdFromLocalizedName(GetBindLocation())
+            if areaId then
+                self:OnHearthstoneUsed(areaId)
+            else
+                Traveler:Error("Could not find areaId for location name '%s'.", location)
+            end
         end
     end)
 
@@ -110,14 +120,14 @@ function Traveler:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
 end
 
-function Traveler:OnHearthstoneBound(location)
-    self.State:OnHearthstoneBound(location)
-    self.Journey:OnHearthstoneBound(location)
+function Traveler:OnHearthstoneBound(areaId)
+    self.State:OnHearthstoneBound(areaId)
+    self.Journey:OnHearthstoneBound(areaId)
 end
 
-function Traveler:OnHearthstoneUsed(location)
-    self.State:OnHearthstoneUsed(location)
-    self.Journey:OnHearthstoneUsed(location)
+function Traveler:OnHearthstoneUsed(areaId)
+    self.State:OnHearthstoneUsed(areaId)
+    self.Journey:OnHearthstoneUsed(areaId)
 end
 
 function Traveler:OnLevelUp(level)

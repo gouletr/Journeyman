@@ -88,7 +88,7 @@ function Traveler:IsStepTypeQuest(step)
 end
 
 function Traveler:IsStepDataNumber(step)
-    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_REACH_LEVEL
+    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_BIND_HEARTHSTONE or step.type == self.STEP_TYPE_USE_HEARTHSTONE or step.type == self.STEP_TYPE_REACH_LEVEL
 end
 
 function Traveler:GetStepText(step, showQuestLevel, callback)
@@ -130,16 +130,20 @@ function Traveler:GetStepText(step, showQuestLevel, callback)
             elseif type(itemLink) ~= "string" then
                 itemLink = string.format("<%s>", L["Not a String"])
             end
-            local location = step.data
-            if location == nil then
-                location = string.format("<%s>", L["No Value"])
-            elseif type(location) ~= "string" then
-                location = string.format("<%s>", L["Not a String"])
+            local areaName = self:GetAreaName(step.data)
+            if areaName == nil then
+                if step.data == nil then
+                    areaName = string.format("<%s>", L["No Value"])
+                elseif type(step.data) ~= "number" then
+                    areaName = string.format("<%s>", L["Not a Number"])
+                else
+                    areaName = string.format("area:%d", step.data)
+                end
             end
             if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                return string.format(L["Bind %s to %s"], itemLink, location)
+                return string.format(L["Bind %s to %s"], itemLink, areaName)
             else
-                return string.format(L["Use %s to %s"], itemLink, location)
+                return string.format(L["Use %s to %s"], itemLink, areaName)
             end
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
             local level = step.data
@@ -226,6 +230,34 @@ function Traveler:GetMapName()
     local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
     if mapInfo then
         return mapInfo.name
+    end
+end
+
+function Traveler:GetAreaIdFromLocalizedName(name)
+    if self.areaNameToAreaId == nil then
+        self.areaNameToAreaId = {}
+        for k, v in pairs(L.areaTable) do
+            self.areaNameToAreaId[v.AreaName_lang] = k
+        end
+    end
+    return self.areaNameToAreaId[name]
+end
+
+function Traveler:GetAreaName(areaId)
+    if areaId and type(areaId) == "number" then
+        local info = L.areaTable[areaId]
+        if info then
+            return info.AreaName_lang
+        end
+    end
+end
+
+function Traveler:GetAreaParentAreaId(areaId)
+    if areaId and type(areaId) == "number" then
+        local info = L.areaTable[areaId]
+        if info then
+            return info.ParentAreaID
+        end
     end
 end
 
