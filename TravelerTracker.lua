@@ -295,7 +295,7 @@ function Tracker:UpdateChapterTitle()
     local chapter = Traveler.Journey:GetActiveChapter(journey)
 
     local title
-    if chapter ~= nil then
+    if chapter then
         local index = Traveler.db.char.window.chapter
         title = string.format(L["CHAPTER_TITLE"], index, chapter.title)
     else
@@ -333,37 +333,39 @@ function Tracker:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     local stepShownCount = 0
-    for i = 1, #Traveler.State.steps do
-        local step = Traveler.State.steps[i]
-        if step.isShown then
-            -- Optimization: Update step location only if we're going to show it
-            -- Also, don't need location for step type complete quest, because its meaningless here
-            if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location == nil then
-                step.location = Traveler.State:GetStepLocation(step)
-            end
+    if Traveler.State.steps then
+        for i = 1, #Traveler.State.steps do
+            local step = Traveler.State.steps[i]
+            if step.isShown then
+                -- Optimization: Update step location only if we're going to show it
+                -- Also, don't need location for step type complete quest, because its meaningless here
+                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location == nil then
+                    step.location = Traveler.State:GetStepLocation(step)
+                end
 
-            if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
-                local lastStep = steps[#steps]
-                if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                    tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
+                    local lastStep = steps[#steps]
+                    if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
+                        tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                        if not step.isComplete then
+                            stepShownCount = stepShownCount + 1
+                        end
+                    else
+                        tinsert(lastStep.children, step)
+                        lastStep.isComplete = lastStep.isComplete and step.isComplete
+                    end
+                else
+                    tinsert(steps, step)
                     if not step.isComplete then
                         stepShownCount = stepShownCount + 1
                     end
-                else
-                    tinsert(lastStep.children, step)
-                    lastStep.isComplete = lastStep.isComplete and step.isComplete
-                end
-            else
-                tinsert(steps, step)
-                if not step.isComplete then
-                    stepShownCount = stepShownCount + 1
                 end
             end
-        end
 
-        -- Check shown step count
-        if Traveler.db.profile.window.stepsShown > 0 and stepShownCount >= Traveler.db.profile.window.stepsShown then
-            break
+            -- Check shown step count
+            if Traveler.db.profile.window.stepsShown > 0 and stepShownCount >= Traveler.db.profile.window.stepsShown then
+                break
+            end
         end
     end
 
@@ -386,9 +388,9 @@ function Tracker:DisplayStep(step, depth)
         if step.location then
             local prefix
             if step.location.type == "NPC" then
-                prefix = "Go talk to"
+                prefix = L["Go talk to"]
             elseif step.location.type == "Object" then
-                prefix = "Go to"
+                prefix = L["Go to"]
             end
             if prefix then
                 self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredLocationText(step.location.name, step.isComplete))
@@ -403,19 +405,19 @@ function Tracker:DisplayStep(step, depth)
     else
         -- Display step
         if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-            self:GetNextLine():SetStepText(step, depth, "Accept %s", self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Accept %s"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-            self:GetNextLine():SetStepText(step, depth, "Complete %s", self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Complete %s"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-            self:GetNextLine():SetStepText(step, depth, "Turn-in %s", self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Turn-in %s"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, "Fly to %s", self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, "Bind %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Bind %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, "Use %s to %s", self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredLocationText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            self:GetNextLine():SetStepText(step, depth, "Reach level %s", self:GetColoredHighlightText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Reach level %s"], self:GetColoredHighlightText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
