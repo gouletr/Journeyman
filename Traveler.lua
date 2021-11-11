@@ -27,7 +27,7 @@ function Traveler:OnInitialize()
     self:InitializeHooks()
     self:InitializeEvents()
     self.Journey:Initialize()
-    self.Tracker:Initialize()
+    self.Window:Initialize()
 end
 
 function Traveler:OnEnable()
@@ -35,7 +35,7 @@ function Traveler:OnEnable()
 end
 
 function Traveler:OnDisable()
-    self.Tracker:Shutdown()
+    self.Window:Shutdown()
     self.State:Shutdown()
 end
 
@@ -54,7 +54,7 @@ end
 function Traveler:PostUpdate()
     if self.db.char.window.show then
         -- Update window
-        self.Tracker:UpdateImmediate()
+        self.Window:UpdateImmediate()
 
         -- Update waypoint arrow
         if self.updateWaypoint then

@@ -1,8 +1,8 @@
 local addonName, addon = ...
 local Traveler = addon.Traveler
 local L = addon.Locale
-local Tracker = {}
-Traveler.Tracker = Tracker
+local Window = {}
+Traveler.Window = Window
 
 local TomTom = TomTom
 
@@ -18,7 +18,7 @@ local QUEST_COLOR_YELLOW = "FFFFFF00"
 local QUEST_COLOR_GREEN = "FF40C040"
 local QUEST_COLOR_GREY = "FFC0C0C0"
 
-function Tracker:Initialize()
+function Window:Initialize()
     self.lines = {}
 
     -- Create main frame
@@ -45,7 +45,7 @@ function Tracker:Initialize()
             Traveler.db.profile.window.relativePoint = relativePoint
             Traveler.db.profile.window.x = offsetX
             Traveler.db.profile.window.y = offsetY
-            Tracker:Update(true)
+            Window:Update(true)
         end
     end)
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
@@ -63,7 +63,7 @@ function Tracker:Initialize()
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
     closeButton:SetScript("OnClick", function()
         Traveler.db.char.window.show = false
-        Tracker:Update(true)
+        Window:Update(true)
     end)
     self.closeButton = closeButton
 
@@ -73,7 +73,7 @@ function Tracker:Initialize()
     lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT")
     lockButton:SetScript("OnClick", function()
         Traveler.db.profile.window.locked = not Traveler.db.profile.window.locked
-        Tracker:Update(true)
+        Window:Update(true)
     end)
     self.lockButton = lockButton
 
@@ -149,7 +149,7 @@ function Tracker:Initialize()
             local width, height = frame:GetSize()
             Traveler.db.profile.window.width = width
             Traveler.db.profile.window.height = height
-            Tracker:Update(true)
+            Window:Update(true)
         end
     end)
     self.resizeButton = resizeButton
@@ -204,18 +204,18 @@ function Tracker:Initialize()
     end)
 end
 
-function Tracker:Shutdown()
+function Window:Shutdown()
     self.ticker:Cancel()
 end
 
-function Tracker:Update(immediate)
+function Window:Update(immediate)
     self.needUpdate = true
     if immediate then
         self:UpdateImmediate()
     end
 end
 
-function Tracker:UpdateImmediate()
+function Window:UpdateImmediate()
     if not Traveler.DataSource.IsInitialized() then return end
 
     local now = GetTimePreciseSec()
@@ -242,7 +242,7 @@ function Tracker:UpdateImmediate()
     end
 end
 
-function Tracker:UpdateFrame()
+function Window:UpdateFrame()
     self.frame:SetClampedToScreen(Traveler.db.profile.window.clamped)
     self.frame:SetFrameStrata(Traveler.db.profile.window.strata)
     self.frame:SetFrameLevel(Traveler.db.profile.window.level)
@@ -250,7 +250,7 @@ function Tracker:UpdateFrame()
     self.frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
 end
 
-function Tracker:UpdateLockButton()
+function Window:UpdateLockButton()
     if Traveler.db.profile.window.locked then
         self.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
         self.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
@@ -262,7 +262,7 @@ function Tracker:UpdateLockButton()
     end
 end
 
-function Tracker:UpdateResizeButton()
+function Window:UpdateResizeButton()
     if Traveler.db.profile.window.locked then
         self.resizeButton:Hide()
     else
@@ -270,7 +270,7 @@ function Tracker:UpdateResizeButton()
     end
 end
 
-function Tracker:UpdateNextChapterButton()
+function Window:UpdateNextChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
@@ -280,7 +280,7 @@ function Tracker:UpdateNextChapterButton()
     self.nextChapterButton:SetEnabled(enabled)
 end
 
-function Tracker:UpdatePreviousChapterButton()
+function Window:UpdatePreviousChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
@@ -290,7 +290,7 @@ function Tracker:UpdatePreviousChapterButton()
     self.prevChapterButton:SetEnabled(enabled)
 end
 
-function Tracker:UpdateChapterTitle()
+function Window:UpdateChapterTitle()
     local journey = Traveler.Journey:GetActiveJourney()
     local chapter = Traveler.Journey:GetActiveChapter(journey)
 
@@ -306,7 +306,7 @@ function Tracker:UpdateChapterTitle()
     self.chapterTitle:SetText(title)
 end
 
-function Tracker:UpdateScrollFrame()
+function Window:UpdateScrollFrame()
     self.scrollFrame:SetWidth(self.frame:GetWidth())
     self.scrollFrame:SetHeight(self.frame:GetHeight() - HEADER_HEIGHT)
     if Traveler.db.profile.window.showScrollBar then
@@ -318,7 +318,7 @@ function Tracker:UpdateScrollFrame()
     self.scrollChild:SetHeight(self.scrollFrame:GetHeight())
 end
 
-function Tracker:UpdateJourneySelection()
+function Window:UpdateJourneySelection()
     local shown = Traveler.Journey:GetActiveJourney() == nil
     if shown then
         self.journeySelectionLabel:SetFontSize(12)
@@ -329,7 +329,7 @@ function Tracker:UpdateJourneySelection()
     self.journeySelectionButton:SetShown(shown)
 end
 
-function Tracker:UpdateSteps()
+function Window:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     local stepShownCount = 0
@@ -382,7 +382,7 @@ function Tracker:UpdateSteps()
     end
 end
 
-function Tracker:DisplayStep(step, depth)
+function Window:DisplayStep(step, depth)
     if step.hasChildren then
         -- Display step prefix
         if step.location then
@@ -424,13 +424,13 @@ function Tracker:DisplayStep(step, depth)
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            local note = Traveler:ReplaceAllItemStringToHyperlinks(L[step.note], function() Tracker:Update() end)
+            local note = Traveler:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
             self:GetNextLine():SetStepText(step, depth + 1, L["STEP_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
         end
     end
 end
 
-function Tracker:GetNextLine()
+function Window:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
         line = Traveler.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild)
@@ -439,11 +439,11 @@ function Tracker:GetNextLine()
         line:EnableHyperlinks(true)
         line.index = self.lineIndex
         line.SetStepText = function(self, step, depth, fmt, ...)
-            self:SetPoint("LEFT", Tracker.scrollChild, "LEFT", Traveler.db.profile.window.fontSize * depth, 0)
+            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Traveler.db.profile.window.fontSize * depth, 0)
             if self.index == 1 then
-                self:SetPoint("TOP", Tracker.scrollChild, "TOP", 0, -Traveler.db.profile.window.fontSize * (self.index - 1))
+                self:SetPoint("TOP", Window.scrollChild, "TOP", 0, -Traveler.db.profile.window.fontSize * (self.index - 1))
             else
-                self:SetPoint("TOP", Tracker.lines[self.index - 1], "BOTTOM", 0, 0)
+                self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM", 0, 0)
             end
 
             if step.isComplete then
@@ -453,11 +453,11 @@ function Tracker:GetNextLine()
             end
 
             self:SetFontSize(Traveler.db.profile.window.fontSize)
-            self:SetWidth(Tracker.scrollChild:GetWidth() - (Traveler.db.profile.window.fontSize * depth))
+            self:SetWidth(Window.scrollChild:GetWidth() - (Traveler.db.profile.window.fontSize * depth))
             self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" and IsControlKeyDown() then
-                    Tracker:SetWaypoint(step, true)
+                    Window:SetWaypoint(step, true)
                 end
             end)
             self:Show()
@@ -472,21 +472,21 @@ function Tracker:GetNextLine()
     return line
 end
 
-function Tracker:GetColoredHighlightText(text, isComplete)
+function Window:GetColoredHighlightText(text, isComplete)
     if text and not isComplete then
         return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, text)
     end
     return text
 end
 
-function Tracker:GetColoredLocationText(location, isComplete)
+function Window:GetColoredLocationText(location, isComplete)
     if location and not isComplete then
         return string.format("|c%s%s|r", TEXT_COLOR_LOCATION, location)
     end
     return location
 end
 
-function Tracker:GetColoredQuestText(questId, isComplete)
+function Window:GetColoredQuestText(questId, isComplete)
     local questName = Traveler.DataSource:GetQuestName(questId, Traveler.db.profile.window.showQuestLevel)
     if questName == nil then return string.format("quest:%s", questId) end
 
@@ -513,9 +513,9 @@ function Tracker:GetColoredQuestText(questId, isComplete)
     return questName
 end
 
-function Tracker:GetColoredItemText(step, itemId)
+function Window:GetColoredItemText(step, itemId)
     if step and itemId and type(itemId) == "number" then
-        local itemLink = Traveler:GetItemLink(itemId, function() Tracker:Update() end)
+        local itemLink = Traveler:GetItemLink(itemId, function() Window:Update() end)
         if itemLink then
             return itemLink
         end
@@ -523,7 +523,7 @@ function Tracker:GetColoredItemText(step, itemId)
     return "item:" .. itemId
 end
 
-function Tracker:SetWaypoint(step, force)
+function Window:SetWaypoint(step, force)
     if TomTom and TomTom.AddWaypoint then
         if Traveler.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(Traveler.db.char.waypoint)

@@ -144,10 +144,10 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
                         if value then
-                            Traveler.updateWaypoint = true
-                            Traveler:Reset(true)
+                            self.updateWaypoint = true
+                            self:Reset(true)
                         else
-                            Traveler.Tracker:UpdateImmediate()
+                            self.Window:Update(true)
                         end
                     end
                 end
@@ -162,7 +162,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.locked ~= value then
                         self.db.profile.window.locked = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -176,7 +176,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.clamped ~= value then
                         self.db.profile.window.clamped = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -190,9 +190,9 @@ function Traveler:GetGeneralOptionsTable()
                     self.db.profile.window.relativePoint = "CENTER"
                     self.db.profile.window.x = 0
                     self.db.profile.window.y = 0
-                    self.Tracker.frame:ClearAllPoints()
-                    self.Tracker.frame:SetPoint("CENTER", UIParent, "CENTER")
-                    self.Tracker:Update(true)
+                    self.Window.frame:ClearAllPoints()
+                    self.Window.frame:SetPoint("CENTER", UIParent, "CENTER")
+                    self.Window:Update(true)
                 end
             },
             showScrollBar = {
@@ -205,7 +205,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showScrollBar ~= value then
                         self.db.profile.window.showScrollBar = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -219,7 +219,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showQuestLevel ~= value then
                         self.db.profile.window.showQuestLevel = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -291,7 +291,7 @@ function Traveler:GetGeneralOptionsTable()
                     self.db.profile.window.backgroundColor.g = g
                     self.db.profile.window.backgroundColor.b = b
                     self.db.profile.window.backgroundColor.a = a
-                    self.Tracker:Update(true)
+                    self.Window:Update(true)
                 end
             },
             width = {
@@ -309,7 +309,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.width ~= value then
                         self.db.profile.window.width = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -328,7 +328,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.height ~= value then
                         self.db.profile.window.height = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -345,7 +345,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.fontSize ~= value then
                         self.db.profile.window.fontSize = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -362,7 +362,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.lineSpacing ~= value then
                         self.db.profile.window.lineSpacing = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -387,7 +387,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.strata ~= value then
                         self.db.profile.window.strata = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },
@@ -405,7 +405,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.level ~= value then
                         self.db.profile.window.level = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             }
@@ -523,7 +523,7 @@ function Traveler:GetAdvancedOptionsTable()
                 set = function(info, value)
                     if self.db.profile.advanced.debug ~= value then
                         self.db.profile.advanced.debug = value
-                        self.Tracker:Update(true)
+                        self.Window:Update(true)
                     end
                 end
             },

@@ -35,7 +35,7 @@ TravelerState.lua
 TravelerHooks.lua
 TravelerEvents.lua
 TravelerJourneys.lua
-TravelerTracker.lua
+TravelerWindow.lua
 
 # Data sources
 TravelerQuestie.lua
