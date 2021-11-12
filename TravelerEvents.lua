@@ -4,7 +4,6 @@ local L = addon.Locale
 
 function Traveler:InitializeEvents()
     self.questTurnedIn = {}
-    self.questProgress = {}
 
     -- This is too late to serialize data, doesn't work
     -- self:RegisterEvent("PLAYER_LOGOUT", function(event)
@@ -33,29 +32,11 @@ function Traveler:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
-        self.questProgress[questId] = true
-        Traveler:UpdateTargetingMacro()
+        Traveler:UpdateMacro()
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        local completedQuests = {}
-        if next(self.questProgress) then
-            self.State:UpdateQuestLog()
-            for questId, _ in pairs(self.questProgress) do
-                local info = self.State:GetQuestLogInfo(questId)
-                if info and info.isComplete then
-                    self:OnQuestCompleted(questId)
-                    completedQuests[questId] = true
-                end
-            end
-        end
-        if next(completedQuests) then
-            for questId, _ in pairs(completedQuests) do
-                self.questProgress[questId] = nil
-            end
-        else
-            Traveler:Update()
-        end
+        Traveler.State:Update()
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
@@ -87,12 +68,13 @@ function Traveler:InitializeEvents()
 
     self:RegisterEvent("PLAYER_REGEN_ENABLED", function(event)
         if Traveler.macroNeedUpdate then
-            Traveler:UpdateTargetingMacro()
+            Traveler:SetMacro()
         end
     end)
 
     self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
-        self:OnLevelUp(level)
+        -- Delay level up so that it happens after quests turn-in
+        C_Timer.After(2, function() self:OnLevelUp(level) end)
     end)
 end
 

@@ -90,10 +90,12 @@ local function IsStepShown(step)
 end
 
 local function FindStep(type, data)
-    for i = 1, #State.steps do
-        local step = State.steps[i]
-        if step.type == type and step.data == data then
-            return step
+    if State.steps then
+        for i = 1, #State.steps do
+            local step = State.steps[i]
+            if step.type == type and step.data == data then
+                return step
+            end
         end
     end
 end
@@ -115,7 +117,7 @@ end
 
 function State:Update(immediate, postUpdateCallback)
     self.needUpdate = true
-    if postUpdateCallback then
+    if self.postUpdateCallback == nil and postUpdateCallback then
         self.postUpdateCallback = postUpdateCallback
     end
     if immediate then
@@ -125,11 +127,7 @@ end
 
 function State:UpdateImmediate()
     if not Traveler.DataSource.IsInitialized() then return end
-
     local now = GetTimePreciseSec()
-
-    -- Get current quest log
-    self:UpdateQuestLog()
 
     -- Clone steps
     if self.steps == nil then
@@ -159,6 +157,23 @@ function State:UpdateImmediate()
         end
     end
 
+    -- Update current quest log
+    local questLog = Traveler:GetQuestLog()
+    if questLog then
+        if self.currentQuestLog then
+            -- Compare new quest log with current, to see if any quest got completed
+            for questId, info in pairs(questLog) do
+                local currentInfo = self.currentQuestLog[questId]
+                if currentInfo and not currentInfo.isComplete and not currentInfo.isFailed then
+                    if info and info.isComplete and not info.isFailed then
+                        Traveler:OnQuestCompleted(questId)
+                    end
+                end
+            end
+        end
+        self.currentQuestLog = questLog
+    end
+
     -- Update steps state
     self.stepShownCount = 0
     for i = 1, #self.steps do
@@ -179,26 +194,25 @@ function State:UpdateImmediate()
     -- Run post update callback
     if self.postUpdateCallback and type(self.postUpdateCallback) == "function" then
         self.postUpdateCallback()
-        if not self.needUpdate then -- Remove after update callback only if it didn't request another update
-            self.postUpdateCallback = nil
+        self.postUpdateCallback = nil
+    end
+
+    -- Things to update only if window is shown
+    if not self.needUpdate and Traveler.db.char.window.show then
+        -- Update window
+        Traveler.Window:UpdateImmediate()
+
+        -- Update waypoint arrow
+        if Traveler.waypointNeedUpdate then
+            if Traveler.db.profile.autoSetWaypoint then
+                Traveler:SetWaypoint(self:GetCurrentStep(), false, true)
+            end
+            Traveler.waypointNeedUpdate = false
         end
-    end
 
-    -- Other things that need to be updated after a state update
-    if not self.needUpdate then
-        Traveler:PostUpdate()
-    end
-end
-
-function State:UpdateQuestLog()
-    self.currentQuestLog = {}
-    local entriesCount = Traveler:GetQuestLogNumEntries()
-    for i = 1, entriesCount do
-        local info = Traveler:GetQuestLogInfo(i)
-        if info and not info.isHeader then
-            self.currentQuestLog[info.questId] = {
-                isComplete = info.isComplete
-            }
+        -- Update targeting macro
+        if Traveler.macroNeedUpdate then
+            Traveler:SetMacro()
         end
     end
 end
@@ -268,7 +282,8 @@ function State:OnLevelUp(level)
 end
 
 function State:OnStepComplete()
-    Traveler.updateWaypoint = true
+    Traveler:UpdateMacro()
+    Traveler:UpdateWaypoint()
 
     -- Check if chapter is complete
     local currentStep = self:GetCurrentStep()
@@ -308,17 +323,17 @@ function State:GetCurrentStep()
     end
 end
 
-function State:GetStepLocation(step)
+function State:GetStepLocation(step, neededObjectivesOnly)
     if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
         return Traveler.DataSource:GetNearestQuestStarter(step.data)
     elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-        return Traveler.DataSource:GetNearestQuestObjective(step.data)
+        return Traveler.DataSource:GetNearestQuestObjective(step.data, neededObjectivesOnly)
     elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
         return Traveler.DataSource:GetNearestQuestFinisher(step.data)
     elseif step.type == Traveler.STEP_TYPE_FLY_TO then
         return Traveler.DataSource:GetNearestFlightMaster()
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-        return Traveler.DataSource:GetInnkeeperLocation(step.data)
+        return Traveler.DataSource:GetNearestInnkeeper(step.data)
     elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
         return nil
     elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then

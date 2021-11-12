@@ -153,7 +153,7 @@ function Journey:AddStep(chapter, type, data, force)
     if chapter and (force or not self:ContainsStep(chapter, type, data)) then
         local step = self:CreateStep(chapter, type, data)
         if step then
-            Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step, true), chapter.title)
+            Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
         end
     end
 end
@@ -221,13 +221,13 @@ function Journey:OnQuestAbandoned(questId)
         local journey = self:GetActiveJourney()
         if journey.chapters then
             for chapterIndex = 1, #journey.chapters do
-                local chapter = journey.chapters[i]
-                if chapter.steps then
+                local chapter = journey.chapters[chapterIndex]
+                if chapter and chapter.steps then
                     for stepIndex = #chapter.steps, 1, -1 do
                         local step = chapter.steps[stepIndex]
                         if Traveler:IsStepTypeQuest(step) and step.data == questId then
                             if self:DeleteStep(chapter, stepIndex) then
-                                Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step, true), chapter.title)
+                                Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
                             end
                         end
                     end

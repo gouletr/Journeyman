@@ -63,16 +63,23 @@ function Traveler:GetGeneralOptionsTable()
                 width = Percent(0.5),
                 values = function(info)
                     local values = {}
-                    for _, v in ipairs(self.journeys) do
-                        values[v.guid] = v.title
+                    if self.journeys then
+                        for i = 1, #self.journeys do
+                            local journey = self.journeys[i]
+                            values[journey.guid] = journey.title
+                        end
                     end
                     return values
                 end,
                 sorting = function(info)
                     local sorting = {}
-                    for i, journey in ipairs(self.journeys) do
-                        sorting[i] = journey.guid
+                    if self.journeys then
+                        for i = 1, #self.journeys do
+                            local journey = self.journeys[i]
+                            sorting[i] = journey.guid
+                        end
                     end
+                    return sorting
                 end,
                 set = function(info, value)
                     if self.db.char.window.journey ~= value then
@@ -82,7 +89,7 @@ function Traveler:GetGeneralOptionsTable()
                             self.db.char.updateJourney = false
                             Traveler:Print(L["Disabled Update Active Journey option for this character."])
                         end
-                        Traveler.updateWaypoint = true
+                        Traveler:UpdateWaypoint()
                         Traveler:Reset(true)
                     end
                 end,
@@ -104,6 +111,9 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypoint ~= value then
                         self.db.profile.autoSetWaypoint = value
+                        if value then
+                            Traveler:UpdateWaypoint()
+                        end
                         Traveler:Update()
                     end
                 end
@@ -144,10 +154,10 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
                         if value then
-                            self.updateWaypoint = true
-                            self:Reset(true)
+                            Traveler:UpdateWaypoint()
+                            Traveler:Reset(true)
                         else
-                            self.Window:Update(true)
+                            Traveler.Window:Update(true)
                         end
                     end
                 end
@@ -692,7 +702,7 @@ function Traveler:GetJourneyEditor()
 
         row.SetValue = function(self, step)
             local prefix = self.index .. ". "
-            self:SetText(prefix .. Traveler:GetStepText(step, true, function() stepSelector:Refresh() end))
+            self:SetText(prefix .. Traveler:GetStepText(step, true, true, function() stepSelector:Refresh() end))
             if self.list.selectedIndex == self.index then
                 self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             elseif row:IsMouseOver() then

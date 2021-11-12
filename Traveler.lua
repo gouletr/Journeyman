@@ -31,6 +31,7 @@ function Traveler:OnInitialize()
 end
 
 function Traveler:OnEnable()
+    self:UpdateMacro()
     self:Reset()
 end
 
@@ -51,22 +52,12 @@ function Traveler:Update(immediate)
     end
 end
 
-function Traveler:PostUpdate()
-    if self.db.char.window.show then
-        -- Update window
-        self.Window:UpdateImmediate()
+function Traveler:UpdateWaypoint()
+    self.waypointNeedUpdate = true
+end
 
-        -- Update waypoint arrow
-        if self.updateWaypoint then
-            if self.db.profile.autoSetWaypoint then
-                self:SetWaypoint(self.State:GetCurrentStep())
-            end
-            self.updateWaypoint = false
-        end
-
-        -- Update targeting macro
-        self:UpdateTargetingMacro()
-    end
+function Traveler:UpdateMacro()
+    self.macroNeedUpdate = true
 end
 
 function Traveler:Debug(fmt, ...)
@@ -83,82 +74,6 @@ function Traveler:Error(fmt, ...)
     end
 end
 
-function Traveler:IsStepTypeQuest(step)
-    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
-end
-
-function Traveler:IsStepDataNumber(step)
-    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_BIND_HEARTHSTONE or step.type == self.STEP_TYPE_USE_HEARTHSTONE or step.type == self.STEP_TYPE_REACH_LEVEL
-end
-
-function Traveler:GetStepText(step, showQuestLevel, callback)
-    if self:IsStepTypeQuest(step) then
-        local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
-        if questName == nil then
-            if step.data == nil then
-                questName = string.format("<%s>", L["No Value"])
-            elseif type(step.data) ~= "number" then
-                questName = string.format("<%s>", L["Not a Number"])
-            else
-                questName = string.format("quest:%d", step.data)
-            end
-        end
-        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-            return string.format(L["Accept %s"], questName)
-        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-            return string.format(L["Complete %s"], questName)
-        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-            return string.format(L["Turn-in %s"], questName)
-        else
-            Traveler:Error("Step type %s not implemented.", step.type)
-        end
-    else
-        if step.type == Traveler.STEP_TYPE_UNDEFINED then
-            return string.format("<%s>", L["Undefined"])
-        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            local location = step.data
-            if location == nil then
-                location = string.format("<%s>", L["No Value"])
-            elseif type(location) ~= "string" then
-                location = string.format("<%s>", L["Not a String"])
-            end
-            return string.format(L["Fly to %s"], location)
-        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            local itemLink = Traveler:GetItemLink(Traveler.ITEM_HEARTHSTONE, callback)
-            if itemLink == nil then
-                itemLink = string.format("<%s>", L["No Value"])
-            elseif type(itemLink) ~= "string" then
-                itemLink = string.format("<%s>", L["Not a String"])
-            end
-            local areaName = self:GetAreaName(step.data)
-            if areaName == nil then
-                if step.data == nil then
-                    areaName = string.format("<%s>", L["No Value"])
-                elseif type(step.data) ~= "number" then
-                    areaName = string.format("<%s>", L["Not a Number"])
-                else
-                    areaName = string.format("area:%d", step.data)
-                end
-            end
-            if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-                return string.format(L["Bind %s to %s"], itemLink, areaName)
-            else
-                return string.format(L["Use %s to %s"], itemLink, areaName)
-            end
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            local level = step.data
-            if level == nil then
-                level = string.format("<%s>", L["No Value"])
-            elseif type(level) ~= "number" then
-                level = string.format("<%s>", L["Not a Number"])
-            end
-            return string.format(L["Reach level %d"], level)
-        else
-            Traveler:Error("Step type %s not implemented.", step.type)
-        end
-    end
-end
-
 function Traveler:GetQuestLogNumEntries()
     if C_QuestLog.GetNumQuestLogEntries ~= nil then
         return C_QuestLog.GetNumQuestLogEntries()
@@ -168,33 +83,51 @@ function Traveler:GetQuestLogNumEntries()
 end
 
 function Traveler:GetQuestLogInfo(questLogIndex)
-    if C_QuestLog.GetInfo ~= nil then
+    if C_QuestLog.GetInfo then
         local info = C_QuestLog.GetInfo(questLogIndex)
-        if info ~= nil then
+        if info then
             return {
-                questId = info.questID,
+                title = info.title,
+                level = info.level,
+                suggestedGroup = info.suggestedGroup,
                 isHeader = info.isHeader,
-                isComplete = info.isComplete
+                isCollapsed = info.isCollapsed,
+                isComplete = C_QuestLog.IsComplete(info.questID),
+                isFailed = C_QuestLog.IsFailed(info.questID),
+                frequency = info.frequency,
+                questId = info.questID,
+                questLogIndex = questLogIndex
             }
         end
     else
-        local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isBounty, isStory, isHidden, isScaling = GetQuestLogTitle(questLogIndex)
-        return {
-            questId = questID,
-            isHeader = isHeader,
-            isComplete = isComplete == 1
-        }
+        local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questId = GetQuestLogTitle(questLogIndex)
+        if title then
+            return {
+                title = title,
+                level = level,
+                suggestedGroup = suggestedGroup,
+                isHeader = isHeader,
+                isCollapsed = isCollapsed,
+                isComplete = isComplete == 1,
+                isFailed = isComplete == -1,
+                frequency = frequency,
+                questId = questId,
+                questLogIndex = questLogIndex
+            }
+        end
     end
 end
 
-function Traveler:GetQuestLogIsComplete(questId)
-    for i = 1, self:GetQuestLogNumEntries() do
+function Traveler:GetQuestLog()
+    local questLog = {}
+    local entriesCount = self:GetQuestLogNumEntries()
+    for i = 1, entriesCount do
         local info = self:GetQuestLogInfo(i)
-        if info ~= nil and not info.isHeader and info.questId == questId then
-            return info.isComplete
+        if info and not info.isHeader then
+            questLog[info.questId] = info
         end
     end
-    return false
+    return questLog
 end
 
 function Traveler:GetItemName(itemId, callback)
@@ -261,14 +194,98 @@ function Traveler:GetAreaParentAreaId(areaId)
     end
 end
 
-function Traveler:SetWaypoint(step, force)
+function Traveler:IsStepTypeQuest(step)
+    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
+end
+
+function Traveler:IsStepDataNumber(step)
+    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_BIND_HEARTHSTONE or step.type == self.STEP_TYPE_USE_HEARTHSTONE or step.type == self.STEP_TYPE_REACH_LEVEL
+end
+
+function Traveler:GetStepText(step, showQuestLevel, showQuestId, callback)
+    if self:IsStepTypeQuest(step) then
+        local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
+        if questName == nil then
+            if step.data == nil then
+                questName = string.format("<%s>", L["No Value"])
+            elseif type(step.data) ~= "number" then
+                questName = string.format("<%s>", L["Not a Number"])
+            else
+                questName = string.format("quest:%d", step.data)
+            end
+        end
+        if showQuestId then
+            questName = string.format("%s (%s)", questName, step.data)
+        end
+        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+            return string.format(L["Accept %s"], questName)
+        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+            return string.format(L["Complete %s"], questName)
+        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+            return string.format(L["Turn-in %s"], questName)
+        else
+            Traveler:Error("Step type %s not implemented.", step.type)
+        end
+    else
+        if step.type == Traveler.STEP_TYPE_UNDEFINED then
+            return string.format("<%s>", L["Undefined"])
+        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+            local location = step.data
+            if location == nil then
+                location = string.format("<%s>", L["No Value"])
+            elseif type(location) ~= "string" then
+                location = string.format("<%s>", L["Not a String"])
+            end
+            return string.format(L["Fly to %s"], location)
+        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+            local itemLink = Traveler:GetItemLink(Traveler.ITEM_HEARTHSTONE, callback)
+            if itemLink == nil then
+                itemLink = string.format("<%s>", L["No Value"])
+            elseif type(itemLink) ~= "string" then
+                itemLink = string.format("<%s>", L["Not a String"])
+            end
+            local areaName = self:GetAreaName(step.data)
+            if areaName == nil then
+                if step.data == nil then
+                    areaName = string.format("<%s>", L["No Value"])
+                elseif type(step.data) ~= "number" then
+                    areaName = string.format("<%s>", L["Not a Number"])
+                else
+                    areaName = string.format("area:%d", step.data)
+                end
+            end
+            if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+                return string.format(L["Bind %s to %s"], itemLink, areaName)
+            else
+                return string.format(L["Use %s to %s"], itemLink, areaName)
+            end
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            local level = step.data
+            if level == nil then
+                level = string.format("<%s>", L["No Value"])
+            elseif type(level) ~= "number" then
+                level = string.format("<%s>", L["Not a Number"])
+            end
+            return string.format(L["Reach level %d"], level)
+        else
+            Traveler:Error("Step type %s not implemented.", step.type)
+        end
+    end
+end
+
+function Traveler:SetWaypoint(step, force, neededObjectivesOnly)
     if step then
         if TomTom and TomTom.AddWaypoint then
             if self.db.char.waypoint and TomTom.RemoveWaypoint then
                 TomTom:RemoveWaypoint(self.db.char.waypoint)
             end
 
-            local location = self.State:GetStepLocation(step)
+            local location
+            if step.hasChildren then
+                location = step.location
+            else
+                location = self.State:GetStepLocation(step, neededObjectivesOnly)
+            end
             if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
                 self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
             end
@@ -276,9 +293,7 @@ function Traveler:SetWaypoint(step, force)
     end
 end
 
-function Traveler:UpdateTargetingMacro()
-    self.macroNeedUpdate = true
-
+function Traveler:SetMacro()
     if InCombatLockdown() then
         return
     end
@@ -360,7 +375,7 @@ function Traveler:ReplaceAllItemStringToHyperlinks(input, callback)
     if input and type(input) == "string" then
         local result = input
         local itemString, itemId
-        repeat
+        while true do
             itemString, itemId = string.match(result, "[^H](item:(%d+))")
             if itemString and itemId then
                 local itemLink = Traveler:GetItemLink(tonumber(itemId), callback)
@@ -372,7 +387,7 @@ function Traveler:ReplaceAllItemStringToHyperlinks(input, callback)
             else
                 break
             end
-        until itemString == nil
+        end
         return result
     end
 end

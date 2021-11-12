@@ -14,18 +14,31 @@ local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 
 local tinsert = table.insert
 
-local function GetNearestSpawn(spawns, player)
+local function GetNearestSpawn(spawns, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId
 
     for zone, spawn in pairs(spawns or {}) do
         if zone and spawn then
-            for _, spawnCoords in ipairs(spawn) do
-                local dungeonLocation = QuestieZoneDB:GetDungeonLocation(zone)
-                if dungeonLocation then
-                    for _, dungeonCoords in ipairs(dungeonLocation) do
-                        local x, y = dungeonCoords[2], dungeonCoords[3]
-                        local mapId = QuestieZoneDB:GetUiMapIdByAreaId(dungeonCoords[1])
+            if zoneFilter == nil or (zoneFilter and zoneFilter == zone) then
+                for _, spawnCoords in ipairs(spawn) do
+                    local dungeonLocation = QuestieZoneDB:GetDungeonLocation(zone)
+                    if dungeonLocation then
+                        for _, dungeonCoords in ipairs(dungeonLocation) do
+                            local x, y = dungeonCoords[2], dungeonCoords[3]
+                            local mapId = QuestieZoneDB:GetUiMapIdByAreaId(dungeonCoords[1])
+                            local worldX, worldY = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
+                            local distance = HBD:GetWorldDistance(player.mapId, player.x, player.y, worldX, worldY)
+                            if distance < bestDistance then
+                                bestDistance = distance
+                                bestX = x
+                                bestY = y
+                                bestMapId = mapId
+                            end
+                        end
+                    else
+                        local x, y = spawnCoords[1], spawnCoords[2]
+                        local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zone)
                         local worldX, worldY = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                         local distance = HBD:GetWorldDistance(player.mapId, player.x, player.y, worldX, worldY)
                         if distance < bestDistance then
@@ -34,17 +47,6 @@ local function GetNearestSpawn(spawns, player)
                             bestY = y
                             bestMapId = mapId
                         end
-                    end
-                else
-                    local x, y = spawnCoords[1], spawnCoords[2]
-                    local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zone)
-                    local worldX, worldY = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
-                    local distance = HBD:GetWorldDistance(player.mapId, player.x, player.y, worldX, worldY)
-                    if distance < bestDistance then
-                        bestDistance = distance
-                        bestX = x
-                        bestY = y
-                        bestMapId = mapId
                     end
                 end
             end
@@ -56,14 +58,14 @@ local function GetNearestSpawn(spawns, player)
     end
 end
 
-local function GetNearestNPC(npcs, player)
+local function GetNearestNPC(npcs, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName
 
     for i = 1, #npcs do
         local npc = QuestieDB:GetNPC(npcs[i])
         if npc and npc.spawns then
-            local nearest = GetNearestSpawn(npc.spawns, player)
+            local nearest = GetNearestSpawn(npc.spawns, player, zoneFilter)
             if nearest and (nearest.distance < bestDistance) then
                 bestDistance = nearest.distance
                 bestX = nearest.x
@@ -79,14 +81,14 @@ local function GetNearestNPC(npcs, player)
     end
 end
 
-local function GetNearestObject(objects, player)
+local function GetNearestObject(objects, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName
 
     for i = 1, #objects do
         local obj = QuestieDB:GetObject(objects[i])
         if obj and obj.spawns then
-            local nearest = GetNearestSpawn(obj.spawns, player)
+            local nearest = GetNearestSpawn(obj.spawns, player, zoneFilter)
             if nearest and (nearest.distance < bestDistance) then
                 bestDistance = nearest.distance
                 bestX = nearest.x
@@ -102,7 +104,7 @@ local function GetNearestObject(objects, player)
     end
 end
 
-local function GetNearestItem(items, player)
+local function GetNearestItem(items, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestType
 
@@ -110,7 +112,7 @@ local function GetNearestItem(items, player)
         local item = QuestieDB:GetItem(items[i])
         if item then
             if item.spawns then
-                local nearest = GetNearestSpawn(item.spawns, player)
+                local nearest = GetNearestSpawn(item.spawns, player, zoneFilter)
                 if nearest and (nearest.distance < bestDistance) then
                     bestDistance = nearest.distance
                     bestX = nearest.x
@@ -121,7 +123,7 @@ local function GetNearestItem(items, player)
                 end
             end
             if item.npcDrops then
-                local nearest = GetNearestNPC(item.npcDrops, player)
+                local nearest = GetNearestNPC(item.npcDrops, player, zoneFilter)
                 if nearest and (nearest.distance < bestDistance) then
                     bestDistance = nearest.distance
                     bestX = nearest.x
@@ -132,7 +134,7 @@ local function GetNearestItem(items, player)
                 end
             end
             if item.objectDrops then
-                local nearest = GetNearestObject(item.objectDrops, player)
+                local nearest = GetNearestObject(item.objectDrops, player, zoneFilter)
                 if nearest and (nearest.distance < bestDistance) then
                     bestDistance = nearest.distance
                     bestX = nearest.x
@@ -150,7 +152,7 @@ local function GetNearestItem(items, player)
     end
 end
 
-local function GetNearestQuestLocation(entities, questLogObjectives)
+local function GetNearestQuestLocation(entities, questLogObjectives, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestType
     local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
@@ -170,19 +172,19 @@ local function GetNearestQuestLocation(entities, questLogObjectives)
         if needed then
             local nearest
             if entity.NPC then
-                nearest = GetNearestNPC(entity.NPC, player)
+                nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
             elseif entity.GameObject then
-                nearest = GetNearestObject(entity.GameObject, player)
+                nearest = GetNearestObject(entity.GameObject, player, zoneFilter)
             elseif entity.Item then
-                nearest = GetNearestItem(entity.Item, player)
+                nearest = GetNearestItem(entity.Item, player, zoneFilter)
             elseif entity.Type == "monster" then
-                nearest = GetNearestNPC({ entity.Id }, player)
+                nearest = GetNearestNPC({ entity.Id }, player, zoneFilter)
             elseif entity.Type == "object" then
-                nearest = GetNearestObject({ entity.Id }, player)
+                nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
             elseif entity.Type == "item" then
-                nearest = GetNearestItem({ entity.Id }, player)
+                nearest = GetNearestItem({ entity.Id }, player, zoneFilter)
             elseif entity.Type == "event" and entity.Coordinates then
-                nearest = GetNearestSpawn(entity.Coordinates, player)
+                nearest = GetNearestSpawn(entity.Coordinates, player, zoneFilter)
                 nearest.name = entity.Text
                 nearest.type = "Event"
             end
@@ -315,10 +317,13 @@ function DataSourceQuestie:GetNearestQuestStarter(questId)
     end
 end
 
-function DataSourceQuestie:GetNearestQuestObjective(questId)
+function DataSourceQuestie:GetNearestQuestObjective(questId, neededObjectivesOnly)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.ObjectiveData then
-        local questLogObjectives = C_QuestLog.GetQuestObjectives(questId)
+        local questLogObjectives
+        if neededObjectivesOnly then
+            questLogObjectives = C_QuestLog.GetQuestObjectives(questId)
+        end
         return GetNearestQuestLocation(quest.ObjectiveData, questLogObjectives)
     end
 end
@@ -381,36 +386,12 @@ function DataSourceQuestie:IsQuestNPCDrop(questId)
     return false
 end
 
--- local function GetZoneIDByName(name)
-    -- for _, zones in pairs(QuestieL10n.zoneLookup) do
-        -- for zoneIDnum, zoneName in pairs(zones) do
-            -- if zoneName == name then
-                -- return zoneIDnum
-            -- end
-        -- end
-    -- end
--- end
+function DataSourceQuestie:GetNearestInnkeeper(areaId)
+    local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
+    if npcs == nil then return nil end
 
-function DataSourceQuestie:GetInnkeeperLocation(location)
-    -- Traveler:Debug("GetInnkeeperLocation %s", location)
-
-    -- local key = "Innkeeper"
-    -- local npcs = Questie.db.global.townsfolk[key] or Questie.db.char.townsfolk[key]
-    -- if npcs == nil then return nil end
-
-    -- local zoneId = GetZoneIDByName(location)
-    -- local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zoneId)
-    -- if mapId == nil then
-        -- mapId = QuestieZoneDB:GetParentZoneId(zoneId)
-    -- end
-    -- -- Traveler:Debug("zone '%s' is = %s (%s)", location, dump(zoneId), dump(mapId))
-
-    -- for _, npcId in ipairs(npcs) do
-        -- local npc = QuestieDB:GetNPC(npcId)
-        -- if npc then
-            -- for zone, spawns in pairs(npc.spawns) do
-                -- Traveler:Debug("npc %d zone=%s", npcId, dump(zone))
-            -- end
-        -- end
-    -- end
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    local player = { x = playerX, y = playerY, mapId = playerMapId }
+    local parentAreaId = Traveler:GetAreaParentAreaId(areaId)
+    return GetNearestNPC(npcs, player, parentAreaId)
 end

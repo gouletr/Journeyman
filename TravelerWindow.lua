@@ -89,7 +89,7 @@ function Window:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter < #journey.chapters then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
-                Traveler.updateWaypoint = true
+                Traveler:UpdateWaypoint()
                 Traveler:Reset(true)
             end
         end
@@ -109,7 +109,7 @@ function Window:Initialize()
         if journey ~= nil then
             if Traveler.db.char.window.chapter > 1 then
                 Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
-                Traveler.updateWaypoint = true
+                Traveler:UpdateWaypoint()
                 Traveler:Reset(true)
             end
         end
@@ -456,7 +456,7 @@ function Window:GetNextLine()
             self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" and IsControlKeyDown() then
-                    Window:SetWaypoint(step, true)
+                    Traveler:SetWaypoint(step, true, true)
                 end
             end)
             self:Show()
@@ -524,20 +524,4 @@ function Window:GetColoredItemText(step, itemId)
         end
     end
     return "item:" .. itemId
-end
-
-function Window:SetWaypoint(step, force)
-    if TomTom and TomTom.AddWaypoint then
-        if Traveler.db.char.waypoint and TomTom.RemoveWaypoint then
-            TomTom:RemoveWaypoint(Traveler.db.char.waypoint)
-        end
-
-        local location = step.location
-        if not step.hasChildren then
-            location = Traveler.State:GetStepLocation(step)
-        end
-        if location and (force or location.distance >= Traveler.db.profile.autoSetWaypointMin) then
-            Traveler.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
-        end
-    end
 end
