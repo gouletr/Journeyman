@@ -35,7 +35,9 @@ local function IsStepComplete(step)
             return C_QuestLog.IsQuestFlaggedCompleted(step.data)
         end
     else
-        if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+        if step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            return UnitLevel("player") >= step.data
+        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
             if GetBindLocation() == Traveler:GetAreaName(step.data) then
                 return true
@@ -47,12 +49,10 @@ local function IsStepComplete(step)
             if cooldownLeft > 0 and GetBindLocation() == Traveler:GetAreaName(step.data) then
                 return true
             end
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            return UnitLevel("player") >= step.data
         end
 
         -- If next step is complete, consider this step complete
-        if step.type == Traveler.STEP_TYPE_FLY_TO or step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
+        if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE or step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Traveler.STEP_TYPE_FLY_TO then
             local nextStep = State.steps[step.index + 1]
             if nextStep then
                 return IsStepComplete(nextStep)
@@ -251,6 +251,16 @@ function State:OnQuestAbandoned(questId)
     self:Update()
 end
 
+function State:OnLevelUp(level)
+    self:Update(false, function()
+        local step = FindStep(Traveler.STEP_TYPE_REACH_LEVEL, level)
+        if step then
+            step.isComplete = true
+            self:OnStepComplete()
+        end
+    end)
+end
+
 function State:OnHearthstoneBound(areaId)
     self:Update(false, function()
         local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId)
@@ -271,14 +281,17 @@ function State:OnHearthstoneUsed(areaId)
     end)
 end
 
-function State:OnLevelUp(level)
+function State:OnLearnFlightPath(areaId)
     self:Update(false, function()
-        local step = FindStep(Traveler.STEP_TYPE_REACH_LEVEL, level)
+        local step = FindStep(Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, areaId)
         if step then
             step.isComplete = true
             self:OnStepComplete()
         end
     end)
+end
+
+function State:OnTakeFlightPath(areaId)
 end
 
 function State:OnStepComplete()
@@ -330,14 +343,16 @@ function State:GetStepLocation(step, neededObjectivesOnly)
         return Traveler.DataSource:GetNearestQuestObjective(step.data, neededObjectivesOnly)
     elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
         return Traveler.DataSource:GetNearestQuestFinisher(step.data)
-    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-        return Traveler.DataSource:GetNearestFlightMaster()
+    elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+        return nil
     elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
         return Traveler.DataSource:GetNearestInnkeeper(step.data)
     elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
         return nil
-    elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-        return nil
+    elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
+        return Traveler.DataSource:GetNearestFlightMaster(step.data)
+    elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+        return Traveler.DataSource:GetNearestFlightMaster(step.data)
     else
         Traveler:Error("Step type %s not implemented.", step.type)
     end

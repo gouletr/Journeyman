@@ -39,6 +39,19 @@ function Traveler:InitializeEvents()
         Traveler.State:Update()
     end)
 
+    self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
+        if message == ERR_NEWTAXIPATH then
+            local areaId
+            local zoneName = GetZoneText()
+            Traveler:Debug("UI_INFO_MESSAGE zone text = %s", zoneName)
+            if zoneName then
+                areaId = Traveler:GetAreaIdFromLocalizedName(zoneName)
+                Traveler:Debug("UI_INFO_MESSAGE areaId = %d", areaId)
+            end
+            self:OnFlightPathLearned(areaId)
+        end
+    end)
+
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
         local areaId = Traveler:GetAreaIdFromLocalizedName(location)
         if areaId then
@@ -100,6 +113,11 @@ end
 function Traveler:OnQuestAbandoned(questId)
     self.State:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
+end
+
+function Traveler:OnFlightPathLearned(areaId)
+    self.State:OnFlightPathLearned(areaId)
+    self.Journey:OnFlightPathLearned(areaId)
 end
 
 function Traveler:OnHearthstoneBound(areaId)

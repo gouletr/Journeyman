@@ -409,14 +409,16 @@ function Window:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, L["Complete %s"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["Turn-in %s"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredHighlightText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            self:GetNextLine():SetStepText(step, depth, L["Reach level %s"], self:GetColoredHighlightText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, L["Bind %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            self:GetNextLine():SetStepText(step, depth, L["Reach level %s"], self:GetColoredHighlightText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
+            self:GetNextLine():SetStepText(step, depth, L["Learn flight path to %s"], self:GetColoredAreaText(step.data, step.isComplete))
+        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredAreaText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end

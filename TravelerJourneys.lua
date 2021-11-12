@@ -149,15 +149,6 @@ function Journey:CreateStep(chapter, type, data)
     end
 end
 
-function Journey:AddStep(chapter, type, data, force)
-    if chapter and (force or not self:ContainsStep(chapter, type, data)) then
-        local step = self:CreateStep(chapter, type, data)
-        if step then
-            Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
-        end
-    end
-end
-
 function Journey:GetStep(chapter, index)
     if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
         return chapter.steps[index]
@@ -192,11 +183,22 @@ function Journey:DeleteStep(chapter, index)
     return false
 end
 
+local function AddStep(chapter, type, data, force)
+    if Traveler.db.char.updateJourney then
+        if chapter and (force or not Journey:ContainsStep(chapter, type, data)) then
+            local step = Journey:CreateStep(chapter, type, data)
+            if step then
+                Traveler:Debug("Added step '%s' to chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
+            end
+        end
+    end
+end
+
 function Journey:OnQuestAccepted(questId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
+        AddStep(chapter, Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
     end
 end
 
@@ -204,7 +206,7 @@ function Journey:OnQuestCompleted(questId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
+        AddStep(chapter, Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
     end
 end
 
@@ -212,28 +214,36 @@ function Journey:OnQuestTurnedIn(questId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_TURNIN_QUEST, questId)
+        AddStep(chapter, Traveler.STEP_TYPE_TURNIN_QUEST, questId)
     end
 end
 
 function Journey:OnQuestAbandoned(questId)
+    -- if Traveler.db.char.updateJourney then
+        -- local journey = self:GetActiveJourney()
+        -- if journey.chapters then
+            -- for chapterIndex = 1, #journey.chapters do
+                -- local chapter = journey.chapters[chapterIndex]
+                -- if chapter and chapter.steps then
+                    -- for stepIndex = #chapter.steps, 1, -1 do
+                        -- local step = chapter.steps[stepIndex]
+                        -- if Traveler:IsStepTypeQuest(step) and step.data == questId then
+                            -- if self:DeleteStep(chapter, stepIndex) then
+                                -- Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
+                            -- end
+                        -- end
+                    -- end
+                -- end
+            -- end
+        -- end
+    -- end
+end
+
+function Journey:OnLevelUp(level)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
-        if journey.chapters then
-            for chapterIndex = 1, #journey.chapters do
-                local chapter = journey.chapters[chapterIndex]
-                if chapter and chapter.steps then
-                    for stepIndex = #chapter.steps, 1, -1 do
-                        local step = chapter.steps[stepIndex]
-                        if Traveler:IsStepTypeQuest(step) and step.data == questId then
-                            if self:DeleteStep(chapter, stepIndex) then
-                                Traveler:Debug("Removed step '%s' from chapter '%s'", Traveler:GetStepText(step, true, true), chapter.title)
-                            end
-                        end
-                    end
-                end
-            end
-        end
+        local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
+        AddStep(chapter, Traveler.STEP_TYPE_REACH_LEVEL, level)
     end
 end
 
@@ -241,7 +251,7 @@ function Journey:OnHearthstoneBound(areaId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId, true)
+        AddStep(chapter, Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId, true)
     end
 end
 
@@ -249,14 +259,17 @@ function Journey:OnHearthstoneUsed(areaId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_USE_HEARTHSTONE, areaId, true)
+        AddStep(chapter, Traveler.STEP_TYPE_USE_HEARTHSTONE, areaId, true)
     end
 end
 
-function Journey:OnLevelUp(level)
+function Journey:OnLearnFlightPath(areaId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey, Traveler:GetMapName())
-        self:AddStep(chapter, Traveler.STEP_TYPE_REACH_LEVEL, level)
+        AddStep(chapter, Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, areaId)
     end
+end
+
+function Journey:OnTakeFlightPath(areaId)
 end

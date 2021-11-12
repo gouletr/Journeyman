@@ -9,10 +9,11 @@ Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
 Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
-Traveler.STEP_TYPE_FLY_TO = "FLYTO"
+Traveler.STEP_TYPE_REACH_LEVEL = "LEVEL"
 Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Traveler.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
-Traveler.STEP_TYPE_REACH_LEVEL = "LEVEL"
+Traveler.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
+Traveler.STEP_TYPE_FLY_TO = "FLYTO"
 Traveler.ITEM_HEARTHSTONE = 6948
 Traveler.SPELL_HEARTHSTONE = 8690
 Traveler.SPELL_ASTRAL_RECALL = 556
@@ -198,11 +199,7 @@ function Traveler:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
-function Traveler:IsStepDataNumber(step)
-    return self:IsStepTypeQuest(step) or step.type == self.STEP_TYPE_BIND_HEARTHSTONE or step.type == self.STEP_TYPE_USE_HEARTHSTONE or step.type == self.STEP_TYPE_REACH_LEVEL
-end
-
-function Traveler:GetStepText(step, showQuestLevel, showQuestId, callback)
+function Traveler:GetStepText(step, showQuestLevel, showId, callback)
     if self:IsStepTypeQuest(step) then
         local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
         if questName == nil then
@@ -214,7 +211,7 @@ function Traveler:GetStepText(step, showQuestLevel, showQuestId, callback)
                 questName = string.format("quest:%d", step.data)
             end
         end
-        if showQuestId then
+        if showId then
             questName = string.format("%s (%s)", questName, step.data)
         end
         if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
@@ -229,14 +226,14 @@ function Traveler:GetStepText(step, showQuestLevel, showQuestId, callback)
     else
         if step.type == Traveler.STEP_TYPE_UNDEFINED then
             return string.format("<%s>", L["Undefined"])
-        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            local location = step.data
-            if location == nil then
-                location = string.format("<%s>", L["No Value"])
-            elseif type(location) ~= "string" then
-                location = string.format("<%s>", L["Not a String"])
+        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+            local level = step.data
+            if level == nil then
+                level = string.format("<%s>", L["No Value"])
+            elseif type(level) ~= "number" then
+                level = string.format("<%s>", L["Not a Number"])
             end
-            return string.format(L["Fly to %s"], location)
+            return string.format(L["Reach level %d"], level)
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             local itemLink = Traveler:GetItemLink(Traveler.ITEM_HEARTHSTONE, callback)
             if itemLink == nil then
@@ -254,19 +251,33 @@ function Traveler:GetStepText(step, showQuestLevel, showQuestId, callback)
                     areaName = string.format("area:%d", step.data)
                 end
             end
+            if showId then
+                areaName = string.format("%s (%s)", areaName, step.data)
+            end
             if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
                 return string.format(L["Bind %s to %s"], itemLink, areaName)
             else
                 return string.format(L["Use %s to %s"], itemLink, areaName)
             end
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            local level = step.data
-            if level == nil then
-                level = string.format("<%s>", L["No Value"])
-            elseif type(level) ~= "number" then
-                level = string.format("<%s>", L["Not a Number"])
+        elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Traveler.STEP_TYPE_FLY_TO then
+            local areaName = self:GetAreaName(step.data)
+            if areaName == nil then
+                if step.data == nil then
+                    areaName = string.format("<%s>", L["No Value"])
+                elseif type(step.data) ~= "number" then
+                    areaName = string.format("<%s>", L["Not a Number"])
+                else
+                    areaName = string.format("area:%d", step.data)
+                end
             end
-            return string.format(L["Reach level %d"], level)
+            if showId then
+                areaName = string.format("%s (%s)", areaName, step.data)
+            end
+            if step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
+                return string.format(L["Learn flight path to %s"], areaName)
+            else
+                return string.format(L["Fly to %s"], areaName)
+            end
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end

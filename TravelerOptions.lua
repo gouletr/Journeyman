@@ -7,10 +7,11 @@ local STEP_TYPE_DROPDOWN_UNDEFINED = L["Undefined"]
 local STEP_TYPE_DROPDOWN_ACCEPT_QUEST = L["Accept Quest"]
 local STEP_TYPE_DROPDOWN_COMPLETE_QUEST = L["Complete Quest"]
 local STEP_TYPE_DROPDOWN_TURNIN_QUEST = L["Turn-in Quest"]
-local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
 local STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE = L["Bind Hearthstone"]
 local STEP_TYPE_DROPDOWN_USE_HEARTHSTONE = L["Use Hearthstone"]
 local STEP_TYPE_DROPDOWN_REACH_LEVEL = L["Reach Level"]
+local STEP_TYPE_DROPDOWN_LEARN_FLIGHT_PATH = L["Learn Flight Path"]
+local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
 
 local function Percent(value)
     local windowWidth = 600
@@ -742,7 +743,7 @@ function Traveler:GetJourneyEditor()
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
         local chapter = Traveler.editor:GetSelectedChapter()
-        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED) then
+        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED, 0) then
             Traveler.editor:SetSelectedStepIndex(#chapter.steps)
             frame.refresh()
             Traveler:Reset(true)
@@ -942,10 +943,11 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Traveler.STEP_TYPE_ACCEPT_QUEST] = STEP_TYPE_DROPDOWN_ACCEPT_QUEST,
             [Traveler.STEP_TYPE_COMPLETE_QUEST] = STEP_TYPE_DROPDOWN_COMPLETE_QUEST,
             [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
-            [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
+            [Traveler.STEP_TYPE_REACH_LEVEL] = STEP_TYPE_DROPDOWN_REACH_LEVEL,
             [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
             [Traveler.STEP_TYPE_USE_HEARTHSTONE] = STEP_TYPE_DROPDOWN_USE_HEARTHSTONE,
-            [Traveler.STEP_TYPE_REACH_LEVEL] = STEP_TYPE_DROPDOWN_REACH_LEVEL,
+            [Traveler.STEP_TYPE_LEARN_FLIGHT_PATH] = STEP_TYPE_DROPDOWN_LEARN_FLIGHT_PATH,
+            [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
         }
     end
     stepType.GetSorting = function(self)
@@ -954,31 +956,17 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             Traveler.STEP_TYPE_ACCEPT_QUEST,
             Traveler.STEP_TYPE_COMPLETE_QUEST,
             Traveler.STEP_TYPE_TURNIN_QUEST,
-            Traveler.STEP_TYPE_FLY_TO,
+            Traveler.STEP_TYPE_REACH_LEVEL,
             Traveler.STEP_TYPE_BIND_HEARTHSTONE,
             Traveler.STEP_TYPE_USE_HEARTHSTONE,
-            Traveler.STEP_TYPE_REACH_LEVEL,
+            Traveler.STEP_TYPE_LEARN_FLIGHT_PATH,
+            Traveler.STEP_TYPE_FLY_TO,
         }
     end
     stepType.OnValueChanged = function(self, value)
         local step = Traveler.editor:GetSelectedStep()
         if step then
             step.type = value
-            if step.data then
-                if Traveler:IsStepDataNumber(step) and type(step.data) ~= "number" then
-                    local data = tonumber(step.data)
-                    if data == nil then
-                        data = 0
-                    end
-                    step.data = data
-                elseif type(step.data) ~= "string" then
-                    local data = tostring(step.data)
-                    if data == nil then
-                        data = ""
-                    end
-                    step.data = data
-                end
-            end
         end
         Traveler.editor.refresh()
         Traveler:Reset(true)
@@ -990,13 +978,13 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepData:SetPoint("TOPLEFT", stepType, "BOTTOMLEFT")
     stepData:SetPoint("BOTTOMRIGHT", stepType, "BOTTOMRIGHT", 0, -40)
     stepData:SetTitle(L["Step Data"])
+    stepData:SetNumeric(true)
     stepData.OnEnterPressed = function(self)
         local step = Traveler.editor:GetSelectedStep()
         if step then
-            if Traveler:IsStepDataNumber(step) then
-                step.data = self:GetNumber()
-            else
-                step.data = self:GetText()
+            step.data = self:GetNumber()
+            if step.data == nil then
+                step.data = 0
             end
         end
         Traveler.editor.refresh()

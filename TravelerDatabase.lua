@@ -4,6 +4,8 @@ local L = addon.Locale
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 
+local tinsert = table.insert
+
 local databaseDefaults = {
     profile = {
         window = {
@@ -69,10 +71,35 @@ function Traveler:DeserializeDatabase()
         for i,v in ipairs(self.db.profile.journeys) do
             local result, deserialized = self:Deserialize(v)
             if result then
-                if deserialized.guid == nil or type(deserialized.guid) ~= "string" then
-                    deserialized.guid = Traveler.Utils:CreateGUID()
+                local journey = deserialized
+                if journey then
+                    local newJourney = {
+                        guid = journey.guid or Traveler.Utils:CreateGUID(),
+                        title = journey.title or L["NEW_JOURNEY_TITLE"],
+                        chapters = {}
+                    }
+                    if journey.chapters then
+                        for chapterIndex = 1, #journey.chapters do
+                            local chapter = journey.chapters[chapterIndex]
+                            local newChapter = {
+                                title = chapter.title or L["NEW_CHAPTER_TITLE"],
+                                steps = {}
+                            }
+                            if chapter.steps then
+                                for stepIndex = 1, #chapter.steps do
+                                    local step = chapter.steps[stepIndex]
+                                    local newStep = {
+                                        type = step.type or Traveler.STEP_TYPE_UNDEFINED,
+                                        data = step.data or 0
+                                    }
+                                    tinsert(newChapter, newStep)
+                                end
+                            end
+                            tinsert(newJourney.chapters, chapter)
+                        end
+                    end
+                    tinsert(self.journeys, newJourney)
                 end
-                self.journeys[i] = deserialized
             end
         end
     end
