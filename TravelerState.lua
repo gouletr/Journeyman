@@ -4,6 +4,8 @@ local L = addon.Locale
 local State = {}
 Traveler.State = State
 
+local HBD = LibStub("HereBeDragons-2.0")
+
 local function IsStepComplete(step)
     if Traveler:IsStepTypeQuest(step) then
         -- Check if quest is already turned-in
@@ -48,6 +50,14 @@ local function IsStepComplete(step)
             local cooldownLeft = duration - (GetTime() - startTime)
             if cooldownLeft > 0 and GetBindLocation() == Traveler:GetAreaName(step.data) then
                 return true
+            end
+        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+            local taxiNodeWorldCoords = Traveler:GetTaxiNodeWorldCoordinates(step.data)
+            if taxiNodeWorldCoords then
+                local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], C_Map.GetBestMapForUnit("player"), false)
+                if x and y then -- If we have coordinates, it means we are in same zone
+                    return true
+                end
             end
         end
 
@@ -222,6 +232,7 @@ function State:OnQuestAccepted(questId)
         local step = FindStep(Traveler.STEP_TYPE_ACCEPT_QUEST, questId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -232,6 +243,7 @@ function State:OnQuestCompleted(questId)
         local step = FindStep(Traveler.STEP_TYPE_COMPLETE_QUEST, questId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -242,6 +254,7 @@ function State:OnQuestTurnedIn(questId)
         local step = FindStep(Traveler.STEP_TYPE_TURNIN_QUEST, questId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -256,6 +269,7 @@ function State:OnLevelUp(level)
         local step = FindStep(Traveler.STEP_TYPE_REACH_LEVEL, level)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -266,6 +280,7 @@ function State:OnHearthstoneBound(areaId)
         local step = FindStep(Traveler.STEP_TYPE_BIND_HEARTHSTONE, areaId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -276,26 +291,29 @@ function State:OnHearthstoneUsed(areaId)
         local step = FindStep(Traveler.STEP_TYPE_USE_HEARTHSTONE, areaId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
 end
 
-function State:OnLearnFlightPath(areaId)
+function State:OnLearnFlightPath(taxiNodeId)
     self:Update(false, function()
-        local step = FindStep(Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, areaId)
+        local step = FindStep(Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, taxiNodeId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
 end
 
-function State:OnTakeFlightPath(areaId)
+function State:OnTakeFlightPath(taxiNodeId)
     self:Update(false, function()
-        local step = FindStep(Traveler.STEP_TYPE_FLY_TO, areaId)
+        local step = FindStep(Traveler.STEP_TYPE_FLY_TO, taxiNodeId)
         if step then
             step.isComplete = true
+            step.isShown = IsStepShown(step)
             self:OnStepComplete()
         end
     end)
@@ -357,9 +375,9 @@ function State:GetStepLocation(step, neededObjectivesOnly)
     elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
         return nil
     elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
-        return Traveler.DataSource:GetNearestFlightMaster(step.data)
+        return Traveler.DataSource:GetFlightMasterLocation(step.data)
     elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-        return Traveler.DataSource:GetNearestFlightMaster(step.data)
+        return Traveler.DataSource:GetNearestFlightMasterLocation()
     else
         Traveler:Error("Step type %s not implemented.", step.type)
     end

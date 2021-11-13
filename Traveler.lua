@@ -196,6 +196,34 @@ function Traveler:GetAreaParentAreaId(areaId)
     end
 end
 
+function Traveler:GetTaxiNodeIdFromLocalizedName(name)
+    if self.taxiNodeNameToTaxiNodeId == nil then
+        self.taxiNodeNameToTaxiNodeId = {}
+        for k, v in pairs(L.taxiNodes) do
+            self.taxiNodeNameToTaxiNodeId[v.Name_lang] = k
+        end
+    end
+    return self.taxiNodeNameToTaxiNodeId[name]
+end
+
+function Traveler:GetTaxiNodeName(taxiNodeId)
+    if taxiNodeId and type(taxiNodeId) == "number" then
+        local info = L.taxiNodes[taxiNodeId]
+        if info then
+            return info.Name_lang
+        end
+    end
+end
+
+function Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
+    if taxiNodeId and type(taxiNodeId) == "number" then
+        local info = L.taxiNodes[taxiNodeId]
+        if info then
+            return { [1] = info.Pos[2], [2] = info.Pos[1] }
+        end
+    end
+end
+
 function Traveler:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
@@ -261,23 +289,23 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
                 return string.format(L["Use %s to %s"], itemLink, areaName)
             end
         elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Traveler.STEP_TYPE_FLY_TO then
-            local areaName = self:GetAreaName(step.data)
-            if areaName == nil then
+            local taxiNodeName = self:GetTaxiNodeName(step.data)
+            if taxiNodeName == nil then
                 if step.data == nil then
-                    areaName = string.format("<%s>", L["No Value"])
+                    taxiNodeName = string.format("<%s>", L["No Value"])
                 elseif type(step.data) ~= "number" then
-                    areaName = string.format("<%s>", L["Not a Number"])
+                    taxiNodeName = string.format("<%s>", L["Not a Number"])
                 else
-                    areaName = string.format("area:%d", step.data)
+                    taxiNodeName = string.format("taxiNode:%d", step.data)
                 end
             end
             if showId then
-                areaName = string.format("%s (%s)", areaName, step.data)
+                taxiNodeName = string.format("%s (%s)", taxiNodeName, step.data)
             end
             if step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
-                return string.format(L["Learn flight path to %s"], areaName)
+                return string.format(L["Learn flight path to %s"], taxiNodeName)
             else
-                return string.format(L["Fly to %s"], areaName)
+                return string.format(L["Fly to %s"], taxiNodeName)
             end
         else
             Traveler:Error("Step type %s not implemented.", step.type)
@@ -286,18 +314,20 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
 end
 
 function Traveler:SetWaypoint(step, force, neededObjectivesOnly)
-    if step then
-        if TomTom and TomTom.AddWaypoint then
-            if self.db.char.waypoint and TomTom.RemoveWaypoint then
-                TomTom:RemoveWaypoint(self.db.char.waypoint)
-            end
+    if TomTom then
+        if self.db.char.waypoint and TomTom.RemoveWaypoint then
+            TomTom:RemoveWaypoint(self.db.char.waypoint)
+            self.db.char.waypoint = nil
+        end
 
+        if step and TomTom.AddWaypoint then
             local location
             if step.hasChildren then
                 location = step.location
             else
                 location = self.State:GetStepLocation(step, neededObjectivesOnly)
             end
+
             if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
                 self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
             end

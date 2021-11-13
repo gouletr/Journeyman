@@ -414,9 +414,9 @@ function Window:DisplayStep(step, depth)
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
-            self:GetNextLine():SetStepText(step, depth, L["Learn flight path to %s"], self:GetColoredAreaText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Learn flight path to %s"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredAreaText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
@@ -487,6 +487,17 @@ function Window:GetColoredAreaText(areaId, isComplete)
     end
 
     return areaName
+end
+
+function Window:GetColoredTaxiNodeText(taxiNodeId, isComplete)
+    local taxiNodeName = Traveler:GetTaxiNodeName(taxiNodeId)
+    if taxiNodeName == nil then return string.format("taxiNode:%s", taxiNodeId) end
+
+    if not isComplete then
+        return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, taxiNodeName)
+    end
+
+    return taxiNodeName
 end
 
 function Window:GetColoredQuestText(questId, isComplete)

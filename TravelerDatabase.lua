@@ -90,7 +90,8 @@ function Traveler:DeserializeDatabase()
                                     local step = chapter.steps[stepIndex]
                                     local newStep = {
                                         type = step.type or Traveler.STEP_TYPE_UNDEFINED,
-                                        data = step.data or 0
+                                        data = step.data or 0,
+                                        note = step.node
                                     }
                                     tinsert(newChapter, newStep)
                                 end

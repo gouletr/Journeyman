@@ -79,17 +79,16 @@ function Traveler:InitializeEvents()
 
     self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
         if message == ERR_NEWTAXIPATH then
-            local zoneName = GetSubZoneText()
-            if zoneName == nil or string.len(zoneName) == 0 then
-                zoneName = GetZoneText()
-            end
-            if zoneName then
-                areaId = Traveler:GetAreaIdFromLocalizedName(zoneName)
-                if areaId then
-                    self:OnLearnFlightPath(areaId)
+            local location = Traveler.DataSource:GetNearestFlightMasterLocation()
+            if location then
+                local taxiNodeId = Traveler.DataSource:GetNPCTaxiNodeId(location.id)
+                if taxiNodeId then
+                    self:OnLearnFlightPath(taxiNodeId)
                 else
-                    Traveler:Error("Could not find areaId for location name '%s'.", zoneName)
+                    Traveler:Error("Could not find taxiNodeId for npcId %d.", location.id)
                 end
+            else
+                Traveler:Error("Could not find nearest flight master location.")
             end
         end
     end)

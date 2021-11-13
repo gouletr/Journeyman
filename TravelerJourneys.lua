@@ -264,18 +264,18 @@ function Journey:OnHearthstoneUsed(areaId)
     end
 end
 
-function Journey:OnLearnFlightPath(areaId)
+function Journey:OnLearnFlightPath(taxiNodeId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, areaId)
+        AddStep(chapter, Traveler.STEP_TYPE_LEARN_FLIGHT_PATH, taxiNodeId)
     end
 end
 
-function Journey:OnTakeFlightPath(areaId)
+function Journey:OnTakeFlightPath(taxiNodeId)
     if Traveler.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Traveler.STEP_TYPE_FLY_TO, areaId)
+        AddStep(chapter, Traveler.STEP_TYPE_FLY_TO, taxiNodeId)
     end
 end
