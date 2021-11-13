@@ -292,6 +292,13 @@ function State:OnLearnFlightPath(areaId)
 end
 
 function State:OnTakeFlightPath(areaId)
+    self:Update(false, function()
+        local step = FindStep(Traveler.STEP_TYPE_FLY_TO, areaId)
+        if step then
+            step.isComplete = true
+            self:OnStepComplete()
+        end
+    end)
 end
 
 function State:OnStepComplete()

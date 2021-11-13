@@ -14,6 +14,12 @@ function Traveler:InitializeEvents()
         self:SerializeDatabase()
     end)
 
+    self:RegisterEvent("PLAYER_REGEN_ENABLED", function(event)
+        if Traveler.macroNeedUpdate then
+            Traveler:SetMacro()
+        end
+    end)
+
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId)
         self:OnQuestAccepted(questId)
     end)
@@ -21,14 +27,6 @@ function Traveler:InitializeEvents()
     self:RegisterEvent("QUEST_TURNED_IN", function(event, questId)
         self.questTurnedIn[questId] = true
         self:OnQuestTurnedIn(questId)
-    end)
-
-    self:RegisterEvent("QUEST_REMOVED", function(event, questId)
-        if self.questTurnedIn[questId] == nil then
-           self:OnQuestAbandoned(questId)
-        else
-            self.questTurnedIn[questId] = nil
-        end
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
@@ -39,17 +37,17 @@ function Traveler:InitializeEvents()
         Traveler.State:Update()
     end)
 
-    self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
-        if message == ERR_NEWTAXIPATH then
-            local areaId
-            local zoneName = GetZoneText()
-            Traveler:Debug("UI_INFO_MESSAGE zone text = %s", zoneName)
-            if zoneName then
-                areaId = Traveler:GetAreaIdFromLocalizedName(zoneName)
-                Traveler:Debug("UI_INFO_MESSAGE areaId = %d", areaId)
-            end
-            self:OnFlightPathLearned(areaId)
+    self:RegisterEvent("QUEST_REMOVED", function(event, questId)
+        if self.questTurnedIn[questId] == nil then
+           self:OnQuestAbandoned(questId)
+        else
+            self.questTurnedIn[questId] = nil
         end
+    end)
+
+    self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
+        -- Delay level up so that it happens after quests turn-in
+        C_Timer.After(2, function() self:OnLevelUp(level) end)
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
@@ -79,15 +77,21 @@ function Traveler:InitializeEvents()
         end
     end)
 
-    self:RegisterEvent("PLAYER_REGEN_ENABLED", function(event)
-        if Traveler.macroNeedUpdate then
-            Traveler:SetMacro()
+    self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
+        if message == ERR_NEWTAXIPATH then
+            local zoneName = GetSubZoneText()
+            if zoneName == nil or string.len(zoneName) == 0 then
+                zoneName = GetZoneText()
+            end
+            if zoneName then
+                areaId = Traveler:GetAreaIdFromLocalizedName(zoneName)
+                if areaId then
+                    self:OnLearnFlightPath(areaId)
+                else
+                    Traveler:Error("Could not find areaId for location name '%s'.", zoneName)
+                end
+            end
         end
-    end)
-
-    self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
-        -- Delay level up so that it happens after quests turn-in
-        C_Timer.After(2, function() self:OnLevelUp(level) end)
     end)
 end
 
@@ -115,9 +119,9 @@ function Traveler:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
 end
 
-function Traveler:OnFlightPathLearned(areaId)
-    self.State:OnFlightPathLearned(areaId)
-    self.Journey:OnFlightPathLearned(areaId)
+function Traveler:OnLearnFlightPath(areaId)
+    self.State:OnLearnFlightPath(areaId)
+    self.Journey:OnLearnFlightPath(areaId)
 end
 
 function Traveler:OnHearthstoneBound(areaId)

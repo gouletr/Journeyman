@@ -10,11 +10,18 @@ function Traveler:OnTakeTaxiNode(slot)
     self:Debug("OnTakeTaxiNode %s", dump(slot))
 
     local name = TaxiNodeName(slot)
-    Traveler:Debug("OnTakeTaxiNode taxi node name = %s", dump(name))
+    if name then
+        Traveler:Debug("OnTakeTaxiNode taxi node name = %s", dump(name))
 
-    local areaId = Traveler:GetAreaIdFromLocalizedName(name)
-    Traveler:Debug("OnTakeTaxiNode areaId = %s", dump(areaId))
+        local areaName = string.match(name, "[^,]*")
+        Traveler:Debug("OnTakeTaxiNode area name = %s", areaName)
 
-    self.State:OnTakeFlightPath(areaId)
-    self.Journey:OnTakeFlightPath(areaId)
+        local areaId = Traveler:GetAreaIdFromLocalizedName(areaName)
+        Traveler:Debug("OnTakeTaxiNode areaId = %s", dump(areaId))
+
+        if areaId then
+            self.State:OnTakeFlightPath(areaId)
+            self.Journey:OnTakeFlightPath(areaId)
+        end
+    end
 end

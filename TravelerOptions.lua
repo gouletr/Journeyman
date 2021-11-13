@@ -743,8 +743,7 @@ function Traveler:GetJourneyEditor()
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
         local chapter = Traveler.editor:GetSelectedChapter()
-        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED, 0) then
-            Traveler.editor:SetSelectedStepIndex(#chapter.steps)
+        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED, 0, Traveler.editor:GetSelectedStepIndex()) then
             frame.refresh()
             Traveler:Reset(true)
         end

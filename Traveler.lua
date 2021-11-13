@@ -32,7 +32,6 @@ function Traveler:OnInitialize()
 end
 
 function Traveler:OnEnable()
-    self:UpdateMacro()
     self:Reset()
 end
 
@@ -43,6 +42,8 @@ end
 
 function Traveler:Reset(immediate)
     if self.db.char.window.show then
+        self:UpdateWaypoint()
+        self:UpdateMacro()
         self.State:Reset(immediate)
     end
 end
