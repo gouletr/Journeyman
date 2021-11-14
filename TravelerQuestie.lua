@@ -237,11 +237,13 @@ function DataSourceQuestie:IsInitialized()
     return true
 end
 
-function DataSourceQuestie:GetQuestName(questId, showLevel)
-    if questId == nil or type(questId) ~= "number" then
-        return nil
-    end
+function DataSourceQuestie:IsQuestAvailable(questId)
+    if questId == nil or type(questId) ~= "number" then return false end
+    return QuestieDB:GetQuest(questId) ~= nil
+end
 
+function DataSourceQuestie:GetQuestName(questId, showLevel)
+    if questId == nil or type(questId) ~= "number" then return nil end
     local name = QuestieDB.QueryQuestSingle(questId, "name");
     if name then
         local level, _ = QuestieLib:GetTbcLevel(questId)
@@ -320,7 +322,7 @@ end
 function DataSourceQuestie:GetQuestHasRequiredRace(questId)
     local requiredRaces = QuestieDB.QueryQuestSingle(questId, "requiredRaces")
     if requiredRaces then
-        return QuestiePlayer:HasRequiredRace(requiredRaces)
+        return QuestiePlayer:HasRequiredRace(requiredRaces) == true
     end
     return false
 end
@@ -328,7 +330,7 @@ end
 function DataSourceQuestie:GetQuestHasRequiredClass(questId)
     local requiredClasses = QuestieDB.QueryQuestSingle(questId, "requiredClasses")
     if requiredClasses then
-        return QuestiePlayer:HasRequiredClass(requiredClasses)
+        return QuestiePlayer:HasRequiredClass(requiredClasses) == true
     end
     return false
 end

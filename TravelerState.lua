@@ -150,8 +150,11 @@ function State:UpdateImmediate()
                     -- Check if step is ever doable
                     local doable = true
                     if Traveler:IsStepTypeQuest(step) then
-                        doable = doable and Traveler.DataSource:GetQuestHasRequiredRace(step.data) == true
-                        doable = doable and Traveler.DataSource:GetQuestHasRequiredClass(step.data) == true
+                        doable = doable and Traveler.DataSource:IsQuestAvailable(step.data)
+                        doable = doable and Traveler.DataSource:GetQuestHasRequiredRace(step.data)
+                        doable = doable and Traveler.DataSource:GetQuestHasRequiredClass(step.data)
+                    elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Traveler.STEP_TYPE_FLY_TO then
+                        doable = doable and Traveler:IsTaxiNodeAvailable(step.data)
                     end
 
                     -- Clone step only if ever doable
