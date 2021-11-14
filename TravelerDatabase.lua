@@ -55,14 +55,15 @@ function Traveler:InitializeDatabase()
 end
 
 function Traveler:SerializeDatabase()
-    if self.journeys then
+    -- Serialize journeys
+    if self.journeys and type(self.journeys) == "table" then
         self.db.profile.journeys = {}
         for i = 1, #self.journeys do
             local journey = self.journeys[i]
             if journey then
-                local result, serialized = self:Serialize(journey)
-                if result then
-                    self.db.profile.journeys[i] = serialized
+                local serialized = self:ExportJourney(journey)
+                if serialized then
+                    tinsert(self.db.profile.journeys, serialized)
                 end
             end
         end
@@ -71,40 +72,14 @@ end
 
 function Traveler:DeserializeDatabase()
     -- Deserialize journeys
-    if self.db.profile.journeys then
+    if self.db.profile.journeys and type(self.db.profile.journeys) == "table" then
         self.journeys = {}
-        for journeyIndex = 1, #self.db.profile.journeys do
-            local result, deserialized = self:Deserialize(self.db.profile.journeys[journeyIndex])
-            if result then
-                local journey = deserialized
-                if journey then
-                    local newJourney = {
-                        guid = journey.guid or Traveler.Utils:CreateGUID(),
-                        title = journey.title or L["NEW_JOURNEY_TITLE"],
-                        chapters = {}
-                    }
-                    if journey.chapters then
-                        for chapterIndex = 1, #journey.chapters do
-                            local chapter = journey.chapters[chapterIndex]
-                            local newChapter = {
-                                title = chapter.title or L["NEW_CHAPTER_TITLE"],
-                                steps = {}
-                            }
-                            if chapter.steps then
-                                for stepIndex = 1, #chapter.steps do
-                                    local step = chapter.steps[stepIndex]
-                                    local newStep = {
-                                        type = step.type or Traveler.STEP_TYPE_UNDEFINED,
-                                        data = step.data or 0,
-                                        note = step.node
-                                    }
-                                    tinsert(newChapter, newStep)
-                                end
-                            end
-                            tinsert(newJourney.chapters, chapter)
-                        end
-                    end
-                    tinsert(self.journeys, newJourney)
+        for i = 1, #self.db.profile.journeys do
+            local journey = self.db.profile.journeys[i]
+            if journey then
+                local deserialized = self:ImportJourney(journey)
+                if deserialized then
+                    tinsert(self.journeys, deserialized)
                 end
             end
         end
@@ -119,6 +94,134 @@ function Traveler:DeserializeDatabase()
             self.db.char.chapter = 1
         end
     end
+end
+
+function Traveler:ExportJourney(deserializedJourney)
+    local journey = { chapters = {} }
+
+    if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
+        journey.guid = deserializedJourney.guid
+    else
+        journey.guid = Traveler.Utils:CreateGUID()
+    end
+
+    if deserializedJourney.title and type(deserializedJourney.title) == "string" then
+        journey.title = deserializedJourney.title
+    else
+        journey.title = L["NEW_JOURNEY_TITLE"]
+    end
+
+    if deserializedJourney.chapters and type(deserializedJourney.chapters) == "table" then
+        for chapterIndex = 1, #deserializedJourney.chapters do
+            local deserializedChapter = deserializedJourney.chapters[chapterIndex]
+
+            local chapter = { steps = {} }
+
+            if deserializedChapter.title and type(deserializedChapter.title) == "string" then
+                chapter.title = deserializedChapter.title
+            else
+                chapter.title = L["NEW_CHAPTER_TITLE"]
+            end
+
+            if deserializedChapter.steps and type(deserializedChapter.steps) == "table" then
+                for stepIndex = 1, #deserializedChapter.steps do
+                    local deserializedStep = deserializedChapter.steps[stepIndex]
+
+                    local step = {}
+
+                    if deserializedStep.type and type(deserializedStep.type) == "string" then
+                        step.type = deserializedStep.type
+                    else
+                        step.type = Traveler.STEP_TYPE_UNDEFINED
+                    end
+
+                    if deserializedStep.data and type(deserializedStep.data) == "number" then
+                        step.data = deserializedStep.data
+                    else
+                        step.data = 0
+                    end
+
+                    if deserializedStep.note and type(deserializedStep.note) == "string" then
+                        step.note = deserializedStep.note
+                    end
+
+                    tinsert(chapter.steps, step)
+                end
+            end
+
+            tinsert(journey.chapters, chapter)
+        end
+    end
+
+    local result, serializedJourney = self:Serialize(journey)
+    if result then
+        return serializedJourney
+    end
+end
+
+function Traveler:ImportJourney(serializedJourney)
+    local result, deserializedJourney = self:Deserialize(serializedJourney)
+    if not result or deserializedJourney == nil then
+        return nil
+    end
+
+    local journey = { chapters = {} }
+
+    if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
+        journey.guid = deserializedJourney.guid
+    else
+        journey.guid = Traveler.Utils:CreateGUID()
+    end
+
+    if deserializedJourney.title and type(deserializedJourney.title) == "string" then
+        journey.title = deserializedJourney.title
+    else
+        journey.title = L["NEW_JOURNEY_TITLE"]
+    end
+
+    if deserializedJourney.chapters and type(deserializedJourney.chapters) == "table" then
+        for chapterIndex = 1, #deserializedJourney.chapters do
+            local deserializedChapter = deserializedJourney.chapters[chapterIndex]
+
+            local chapter = { steps = {} }
+
+            if deserializedChapter.title and type(deserializedChapter.title) == "string" then
+                chapter.title = deserializedChapter.title
+            else
+                chapter.title = L["NEW_CHAPTER_TITLE"]
+            end
+
+            if deserializedChapter.steps and type(deserializedChapter.steps) == "table" then
+                for stepIndex = 1, #deserializedChapter.steps do
+                    local deserializedStep = deserializedChapter.steps[stepIndex]
+
+                    local step = {}
+
+                    if deserializedStep.type and type(deserializedStep.type) == "string" then
+                        step.type = deserializedStep.type
+                    else
+                        step.type = Traveler.STEP_TYPE_UNDEFINED
+                    end
+
+                    if deserializedStep.data and type(deserializedStep.data) == "number" then
+                        step.data = deserializedStep.data
+                    else
+                        step.data = 0
+                    end
+
+                    if deserializedStep.note and type(deserializedStep.note) == "string" then
+                        step.note = deserializedStep.note
+                    end
+
+                    tinsert(chapter.steps, step)
+                end
+            end
+
+            tinsert(journey.chapters, chapter)
+        end
+    end
+
+    return journey
 end
 
 function Traveler:Serialize(...)
