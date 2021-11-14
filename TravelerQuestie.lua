@@ -13,11 +13,6 @@ local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 --local QuestieL10n = QuestieLoader and QuestieLoader:ImportModule("l10n")
 
 local tinsert = table.insert
-local taxiNodeIdsToSkip = {1, 3, 24, 34, 35, 36, 47, 50, 51, 54, 78, 84, 85, 86, 87}
-local skipTaxiNodeIds = {}
-for i = 1, #taxiNodeIdsToSkip do
-    skipTaxiNodeIds[taxiNodeIdsToSkip[i]] = true
-end
 
 local function GetNearestSpawn(spawns, player, zoneFilter)
     local bestDistance = 999999999
@@ -34,13 +29,11 @@ local function GetNearestSpawn(spawns, player, zoneFilter)
                             local mapId = QuestieZoneDB:GetUiMapIdByAreaId(dungeonCoords[1])
                             local worldX, worldY = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                             local distance = HBD:GetWorldDistance(player.mapId, player.x, player.y, worldX, worldY)
-                            if distance then
-                                if distance < bestDistance then
-                                    bestDistance = distance
-                                    bestX = x
-                                    bestY = y
-                                    bestMapId = mapId
-                                end
+                            if distance and distance < bestDistance then
+                                bestDistance = distance
+                                bestX = x
+                                bestY = y
+                                bestMapId = mapId
                             end
                         end
                     else
@@ -48,13 +41,11 @@ local function GetNearestSpawn(spawns, player, zoneFilter)
                         local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zone)
                         local worldX, worldY = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                         local distance = HBD:GetWorldDistance(player.mapId, player.x, player.y, worldX, worldY)
-                        if distance then
-                            if distance < bestDistance then
-                                bestDistance = distance
-                                bestX = x
-                                bestY = y
-                                bestMapId = mapId
-                            end
+                        if distance and distance < bestDistance then
+                            bestDistance = distance
+                            bestX = x
+                            bestY = y
+                            bestMapId = mapId
                         end
                     end
                 end
@@ -77,7 +68,7 @@ local function GetNearestNPC(npcs, player, zoneFilter)
             local npc = QuestieDB:GetNPC(npcId)
             if npc and npc.spawns then
                 local nearest = GetNearestSpawn(npc.spawns, player, zoneFilter)
-                if nearest and (nearest.distance < bestDistance) then
+                if nearest and nearest.distance < bestDistance then
                     bestDistance = nearest.distance
                     bestX = nearest.x
                     bestY = nearest.y
@@ -104,7 +95,7 @@ local function GetNearestObject(objects, player, zoneFilter)
             local obj = QuestieDB:GetObject(objectId)
             if obj and obj.spawns then
                 local nearest = GetNearestSpawn(obj.spawns, player, zoneFilter)
-                if nearest and (nearest.distance < bestDistance) then
+                if nearest and nearest.distance < bestDistance then
                     bestDistance = nearest.distance
                     bestX = nearest.x
                     bestY = nearest.y
@@ -132,7 +123,7 @@ local function GetNearestItem(items, player, zoneFilter)
             if item then
                 if item.spawns then
                     local nearest = GetNearestSpawn(item.spawns, player, zoneFilter)
-                    if nearest and (nearest.distance < bestDistance) then
+                    if nearest and nearest.distance < bestDistance then
                         bestDistance = nearest.distance
                         bestX = nearest.x
                         bestY = nearest.y
@@ -144,7 +135,7 @@ local function GetNearestItem(items, player, zoneFilter)
                 end
                 if item.npcDrops then
                     local nearest = GetNearestNPC(item.npcDrops, player, zoneFilter)
-                    if nearest and (nearest.distance < bestDistance) then
+                    if nearest and nearest.distance < bestDistance then
                         bestDistance = nearest.distance
                         bestX = nearest.x
                         bestY = nearest.y
@@ -156,7 +147,7 @@ local function GetNearestItem(items, player, zoneFilter)
                 end
                 if item.objectDrops then
                     local nearest = GetNearestObject(item.objectDrops, player, zoneFilter)
-                    if nearest and (nearest.distance < bestDistance) then
+                    if nearest and nearest.distance < bestDistance then
                         bestDistance = nearest.distance
                         bestX = nearest.x
                         bestY = nearest.y
@@ -212,7 +203,7 @@ local function GetNearestQuestLocation(entities, questLogObjectives, zoneFilter)
                 nearest.type = "Event"
             end
 
-            if nearest and (nearest.distance < bestDistance) then
+            if nearest and nearest.distance < bestDistance then
                 bestDistance = nearest.distance
                 bestX = nearest.x
                 bestY = nearest.y
@@ -428,7 +419,7 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
         local bestDistance = 999999999
         local bestNPCId
 
-        if not skipTaxiNodeIds[taxiNodeId] then
+        if Traveler:IsTaxiNodeAvailable(taxiNodeId) then
             local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
             local taxiNodeWorldCoords = Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
 
@@ -444,7 +435,7 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
                                     local mapId = QuestieZoneDB:GetUiMapIdByAreaId(zone)
                                     local worldX, worldY, worldI = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                                     local distance = HBD:GetWorldDistance(worldI, worldX, worldY, taxiNodeWorldCoords[1], taxiNodeWorldCoords[2])
-                                    if distance < bestDistance then
+                                    if distance and distance <= 15 and distance < bestDistance then
                                         bestDistance = distance
                                         bestNPCId = npcId
                                     end
@@ -464,13 +455,16 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
         end
     end
 
-    return self.taxiNodeIdToNPCId[taxiNodeId]
+    local npcId = self.taxiNodeIdToNPCId[taxiNodeId]
+    if npcId and npcId > 0 then
+        return npcId
+    end
 end
 
 function DataSourceQuestie:GetFlightMasterLocation(taxiNodeId)
     if taxiNodeId then
         local npcId = self:GetTaxiNodeNPCId(taxiNodeId)
-        if npcId and npcId > 0 then
+        if npcId then
             local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
             return GetNearestNPC({ npcId }, { x = playerX, y = playerY, mapId = playerMapId })
         end
@@ -484,14 +478,19 @@ function DataSourceQuestie:GetNPCTaxiNodeId(npcId)
 
     if self.npcIdToTaxiNodeId[npcId] == nil then
         for taxiNodeId, _ in pairs(L.taxiNodes) do
-            if self:GetTaxiNodeNPCId(taxiNodeId) == npcId then
-                return taxiNodeId
+            if Traveler:IsTaxiNodeAvailable(taxiNodeId) then
+                if self:GetTaxiNodeNPCId(taxiNodeId) == npcId then
+                    return taxiNodeId
+                end
             end
         end
         self.npcIdToTaxiNodeId[npcId] = -1
     end
 
-    return self.npcIdToTaxiNodeId[npcId]
+    local taxiNodeId = self.npcIdToTaxiNodeId[npcId]
+    if taxiNodeId and taxiNodeId > 0 then
+        return taxiNodeId
+    end
 end
 
 function DataSourceQuestie:GetNearestFlightMasterLocation()

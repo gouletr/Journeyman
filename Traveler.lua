@@ -21,6 +21,13 @@ Traveler.ICON_HUNTERS_MARK = 132212
 
 local tinsert = table.insert
 
+-- Some taxi nodes were never implemented in game, or are innacessible, or don't need to be considered (e.g. battlegrounds)
+local taxiNodeIdsToSkip = {1, 3, 9, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
+local skipTaxiNodeIds = {}
+for i = 1, #taxiNodeIdsToSkip do
+    skipTaxiNodeIds[taxiNodeIdsToSkip[i]] = true
+end
+
 function Traveler:OnInitialize()
     self:InitializeDatabase()
     self:InitializeOptions()
@@ -206,6 +213,20 @@ function Traveler:GetTaxiNodeIdFromLocalizedName(name)
     return self.taxiNodeNameToTaxiNodeId[name]
 end
 
+function Traveler:IsTaxiNodeAvailable(taxiNodeId)
+    if skipTaxiNodeIds[taxiNodeId] then
+        return false
+    end
+
+    local playerFaction = UnitFactionGroup("player")
+    local taxiNodeFaction = Traveler:GetTaxiNodeFaction(taxiNodeId)
+    if playerFaction ~= taxiNodeFaction and taxiNodeFaction ~= "Neutral" then
+        return false
+    end
+
+    return true
+end
+
 function Traveler:GetTaxiNodeName(taxiNodeId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
@@ -220,6 +241,21 @@ function Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
         local info = L.taxiNodes[taxiNodeId]
         if info then
             return { [1] = info.Pos[2], [2] = info.Pos[1] }
+        end
+    end
+end
+
+function Traveler:GetTaxiNodeFaction(taxiNodeId)
+    if taxiNodeId and type(taxiNodeId) == "number" then
+        local info = L.taxiNodes[taxiNodeId]
+        if info then
+            if info.Flags == 1 then
+                return "Alliance"
+            elseif info.Flags == 2 then
+                return "Horde"
+            elseif info.Flags == 3 then
+                return "Neutral"
+            end
         end
     end
 end
