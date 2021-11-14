@@ -22,7 +22,7 @@ Traveler.ICON_HUNTERS_MARK = 132212
 local tinsert = table.insert
 
 -- Some taxi nodes were never implemented in game, or are innacessible, or don't need to be considered (e.g. battlegrounds)
-local taxiNodeIdsToSkip = {1, 3, 9, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
+local taxiNodeIdsToSkip = {1, 3, 9, 15, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
 local skipTaxiNodeIds = {}
 for i = 1, #taxiNodeIdsToSkip do
     skipTaxiNodeIds[taxiNodeIdsToSkip[i]] = true
