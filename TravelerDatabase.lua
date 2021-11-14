@@ -68,6 +68,14 @@ function Traveler:SerializeDatabase()
             end
         end
     end
+
+    -- Serialize state
+    -- if self.State.steps and type(self.State.steps) == "table" then
+        -- local serialized = self:ExportState(self.State.steps)
+        -- if serialized then
+            -- self.db.char.state = serialized
+        -- end
+    -- end
 end
 
 function Traveler:DeserializeDatabase()
@@ -84,6 +92,14 @@ function Traveler:DeserializeDatabase()
             end
         end
     end
+
+    -- Deserialize state
+    -- if self.db.char.state and type(self.db.char.state) == "string" then
+        -- local deserialized = self:ImportState(self.db.char.state)
+        -- if deserialized then
+            -- self.State.steps = deserialized
+        -- end
+    -- end
 
     -- Validate active chapter
     local journey = Traveler.Journey:GetActiveJourney()
@@ -222,6 +238,82 @@ function Traveler:ImportJourney(serializedJourney)
     end
 
     return journey
+end
+
+function Traveler:ExportState(deserializedState)
+    local state = {}
+
+    for i = 1, #deserializedState do
+        local deserializedStep = deserializedState[i]
+
+        local step = {}
+
+        if deserializedStep.type and type(deserializedStep.type) == "string" then
+            step.type = deserializedStep.type
+        end
+
+        if deserializedStep.data and type(deserializedStep.data) == "number" then
+            step.data = deserializedStep.data
+        end
+
+        if deserializedStep.note and type(deserializedStep.note) == "string" then
+            step.note = deserializedStep.note
+        end
+
+        if deserializedStep.index and type(deserializedStep.index) == "number" then
+            step.index = deserializedStep.index
+        end
+
+        if deserializedStep.isComplete and type(deserializedStep.isComplete) == "boolean" then
+            step.isComplete = deserializedStep.isComplete
+        end
+
+        tinsert(state, step)
+    end
+
+    local result, serializedState = self:Serialize(state)
+    if result and serializedState then
+        return serializedState
+    end
+end
+
+function Traveler:ImportState(serializedState)
+    local result, deserializedState = self:Deserialize(serializedState)
+    if not result or deserializedState == nil or type(deserializedState) ~= "table" then
+        return nil
+    end
+
+    local state = {}
+
+    for i = 1, #deserializedState do
+        local deserializedStep = deserializedState[i]
+
+        local step = {}
+
+        if deserializedStep.type and type(deserializedStep.type) == "string" then
+            step.type = deserializedStep.type
+        end
+
+        if deserializedStep.data and type(deserializedStep.data) == "number" then
+            step.data = deserializedStep.data
+        end
+
+        if deserializedStep.note and type(deserializedStep.note) == "string" then
+            step.note = deserializedStep.note
+        end
+
+        if deserializedStep.index and type(deserializedStep.index) == "number" then
+            step.index = deserializedStep.index
+        end
+
+        if deserializedStep.isComplete and type(deserializedStep.isComplete) == "boolean" then
+            step.isComplete = deserializedStep.isComplete
+        end
+
+        tinsert(state, step)
+    end
+
+    return state
 end
 
 function Traveler:Serialize(...)
