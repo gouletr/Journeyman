@@ -76,14 +76,12 @@ local function IsStepComplete(step)
 end
 
 local function IsStepShown(step)
-    -- Optimization: Assume step is not shown if shown step count is reached. Since we don't know grouping here, use conservative estimate.
-    if Traveler.db.profile.window.stepsShown > 0 then
-        local stepShownMax = math.max(math.min(Traveler.db.profile.window.stepsShown * 3, 25), 10)
-        if State.stepShownCount >= stepShownMax then
-            return false
-        end
+    -- Optimization: early exit if shown step count is reached
+    if Traveler.db.profile.window.stepsShown > 0 and State.stepShownCount >= Traveler.db.profile.window.stepsShown then
+        return false
     end
 
+    -- Check if step is completed, or if we show completed steps
     local showStep = not step.isComplete or Traveler.db.profile.window.showCompletedSteps
 
     -- Hide quest steps that originate from an NPC drop, that isn't in the quest log or flagged completed

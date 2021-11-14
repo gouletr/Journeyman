@@ -344,18 +344,16 @@ function Window:UpdateSteps()
                     local lastStep = steps[#steps]
                     if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
                         tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
-                        if not step.isComplete then
-                            stepShownCount = stepShownCount + 1
-                        end
                     else
                         tinsert(lastStep.children, step)
                         lastStep.isComplete = lastStep.isComplete and step.isComplete
                     end
                 else
                     tinsert(steps, step)
-                    if not step.isComplete then
-                        stepShownCount = stepShownCount + 1
-                    end
+                end
+
+                if not step.isComplete then
+                    stepShownCount = stepShownCount + 1
                 end
             end
 
