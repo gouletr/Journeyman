@@ -52,10 +52,10 @@ function Journey:DeleteJourney(index)
 end
 
 function Journey:GetActiveJourney()
-    if Traveler.journeys and Traveler.db.char.window.journey and type(Traveler.db.char.window.journey) == "string" then
+    if Traveler.journeys and Traveler.db.char.journey and type(Traveler.db.char.journey) == "string" then
         for i = 1, #Traveler.journeys do
             local journey = Traveler.journeys[i]
-            if journey.guid == Traveler.db.char.window.journey then
+            if journey.guid == Traveler.db.char.journey then
                 return journey
             end
         end
@@ -64,7 +64,7 @@ end
 
 function Journey:SetActiveJourney(journey)
     if journey and journey.guid and type(journey.guid) == "string" then
-        Traveler.db.char.window.journey = journey.guid
+        Traveler.db.char.journey = journey.guid
     end
 end
 
@@ -108,14 +108,14 @@ function Journey:DeleteChapter(journey, index)
 end
 
 function Journey:AdvanceChapter(journey)
-    local index = Traveler.db.char.window.chapter + 1
+    local index = Traveler.db.char.chapter + 1
     if journey and index > 0 and index <= #journey.chapters then
-        Traveler.db.char.window.chapter = index
+        Traveler.db.char.chapter = index
     end
 end
 
 function Journey:GetActiveChapter(journey)
-    return self:GetChapter(journey, Traveler.db.char.window.chapter)
+    return self:GetChapter(journey, Traveler.db.char.chapter)
 end
 
 function Journey:GetOrCreateLastChapter(journey)

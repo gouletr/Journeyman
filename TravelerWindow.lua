@@ -87,8 +87,8 @@ function Window:Initialize()
     nextChapterButton:SetScript("OnClick", function()
         local journey = Traveler.Journey:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.window.chapter < #journey.chapters then
-                Traveler.db.char.window.chapter = Traveler.db.char.window.chapter + 1
+            if Traveler.db.char.chapter < #journey.chapters then
+                Traveler.db.char.chapter = Traveler.db.char.chapter + 1
                 Traveler:Reset(true)
             end
         end
@@ -106,8 +106,8 @@ function Window:Initialize()
     prevChapterButton:SetScript("OnClick", function()
         local journey = Traveler.Journey:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.window.chapter > 1 then
-                Traveler.db.char.window.chapter = Traveler.db.char.window.chapter - 1
+            if Traveler.db.char.chapter > 1 then
+                Traveler.db.char.chapter = Traveler.db.char.chapter - 1
                 Traveler:Reset(true)
             end
         end
@@ -271,7 +271,7 @@ function Window:UpdateNextChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler.db.char.window.chapter
+        local index = Traveler.db.char.chapter
         enabled = index >= 1 and index < #journey.chapters
     end
     self.nextChapterButton:SetEnabled(enabled)
@@ -281,7 +281,7 @@ function Window:UpdatePreviousChapterButton()
     local enabled = false
     local journey = Traveler.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler.db.char.window.chapter
+        local index = Traveler.db.char.chapter
         enabled = index > 1 and index <= #journey.chapters
     end
     self.prevChapterButton:SetEnabled(enabled)
@@ -293,7 +293,7 @@ function Window:UpdateChapterTitle()
 
     local title
     if chapter then
-        local index = Traveler.db.char.window.chapter
+        local index = Traveler.db.char.chapter
         title = string.format(L["CHAPTER_TITLE"], index, chapter.title)
     else
         title = L["MISSING_CHAPTER_TITLE"]

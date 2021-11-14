@@ -83,9 +83,9 @@ function Traveler:GetGeneralOptionsTable()
                     return sorting
                 end,
                 set = function(info, value)
-                    if self.db.char.window.journey ~= value then
-                        self.db.char.window.journey = value
-                        self.db.char.window.chapter = 1
+                    if self.db.char.journey ~= value then
+                        self.db.char.journey = value
+                        self.db.char.chapter = 1
                         if self.db.char.updateJourney then
                             self.db.char.updateJourney = false
                             Traveler:Print(L["Disabled Update Active Journey option for this character."])
@@ -94,7 +94,7 @@ function Traveler:GetGeneralOptionsTable()
                         Traveler:Reset(true)
                     end
                 end,
-                get = function(info) return self.db.char.window.journey end
+                get = function(info) return self.db.char.journey end
             },
             reserved1 = {
                 order = 2,

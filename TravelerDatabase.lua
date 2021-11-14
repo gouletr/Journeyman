@@ -42,9 +42,9 @@ local databaseDefaults = {
     char = {
         window = {
             show = true,
-            journey = "",
-            chapter = 1
         },
+        journey = "",
+        chapter = 1,
         updateJourney = false
     }
 }
@@ -57,9 +57,14 @@ end
 function Traveler:SerializeDatabase()
     if self.journeys then
         self.db.profile.journeys = {}
-        for i,v in ipairs(self.journeys) do
-            local result, serialized = self:Serialize(v)
-            if result then self.db.profile.journeys[i] = serialized end
+        for i = 1, #self.journeys do
+            local journey = self.journeys[i]
+            if journey then
+                local result, serialized = self:Serialize(journey)
+                if result then
+                    self.db.profile.journeys[i] = serialized
+                end
+            end
         end
     end
 end
@@ -68,8 +73,8 @@ function Traveler:DeserializeDatabase()
     -- Deserialize journeys
     if self.db.profile.journeys then
         self.journeys = {}
-        for i,v in ipairs(self.db.profile.journeys) do
-            local result, deserialized = self:Deserialize(v)
+        for journeyIndex = 1, #self.db.profile.journeys do
+            local result, deserialized = self:Deserialize(self.db.profile.journeys[journeyIndex])
             if result then
                 local journey = deserialized
                 if journey then
@@ -105,18 +110,13 @@ function Traveler:DeserializeDatabase()
         end
     end
 
-    -- Validate active journey
-    if self.db.char.window.journey == nil or type(self.db.char.window.journey) ~= "string" then
-        self.db.char.window.journey = ""
-    end
-
     -- Validate active chapter
     local journey = Traveler.Journey:GetActiveJourney()
     if journey then
         if #journey.chapters <= 0 then
-            self.db.char.window.chapter = -1
-        elseif self.db.char.window.chapter <= 0 or self.db.char.window.chapter > #journey.chapters then
-            self.db.char.window.chapter = 1
+            self.db.char.chapter = -1
+        elseif self.db.char.chapter <= 0 or self.db.char.chapter > #journey.chapters then
+            self.db.char.chapter = 1
         end
     end
 end
