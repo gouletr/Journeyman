@@ -98,6 +98,14 @@ function Traveler:InitializeEvents()
             end
         end
     end)
+
+    self:RegisterEvent("PLAYER_CONTROL_GAINED", function(event)
+        if not InCombatLockdown() then
+            Traveler:UpdateWaypoint()
+            Traveler:UpdateMacro()
+            Traveler:Update()
+        end
+    end)
 end
 
 function Traveler:ShutdownEvents()
