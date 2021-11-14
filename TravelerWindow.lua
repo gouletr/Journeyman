@@ -335,7 +335,8 @@ function Window:UpdateSteps()
             if step.isShown then
                 -- Optimization: Update step location only if we're going to show it
                 -- Also, don't need location for step type complete quest, because its meaningless here
-                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location == nil then
+                -- Thought we always need to update fly to steps location, because they change
+                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and (step.location == nil or step.type == Traveler.STEP_TYPE_FLY_TO) then
                     step.location = Traveler.State:GetStepLocation(step)
                 end
 
