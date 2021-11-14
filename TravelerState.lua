@@ -215,7 +215,7 @@ function State:UpdateImmediate()
 
         -- Update waypoint arrow
         if Traveler.waypointNeedUpdate then
-            if Traveler.db.profile.autoSetWaypoint then
+            if Traveler.db.profile.autoSetWaypoint and not UnitOnTaxi("player") then
                 Traveler:SetWaypoint(self:GetCurrentStep(), false, true)
             end
             Traveler.waypointNeedUpdate = false
