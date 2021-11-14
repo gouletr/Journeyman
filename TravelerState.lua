@@ -189,7 +189,13 @@ function State:UpdateImmediate()
     self.stepShownCount = 0
     for i = 1, #self.steps do
         local step = self.steps[i]
-        step.isComplete = IsStepComplete(step)
+        if Traveler:IsStepTypeQuest(step) then
+            -- Quest steps isComplete can regress (e.g. when abandoning or failing), always reset it
+            step.isComplete = IsStepComplete(step)
+        else
+            -- Other steps isComplete cannot regress, set it if not already set
+            step.isComplete = step.isComplete or IsStepComplete(step)
+        end
         step.isShown = IsStepShown(step)
         if not step.isComplete and step.isShown then
             self.stepShownCount = self.stepShownCount + 1
