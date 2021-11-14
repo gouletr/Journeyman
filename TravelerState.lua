@@ -134,7 +134,7 @@ function State:Update(immediate, postUpdateCallback)
 end
 
 function State:UpdateImmediate()
-    if not Traveler.worldLoaded or not Traveler.DataSource.IsInitialized() then return end
+    if not Traveler.worldLoaded or not Traveler.DataSource:IsInitialized() then return end
     local now = GetTimePreciseSec()
 
     -- Clone steps

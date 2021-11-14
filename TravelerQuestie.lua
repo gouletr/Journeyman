@@ -221,20 +221,27 @@ local function GetNearestQuestLocation(entities, questLogObjectives, zoneFilter)
 end
 
 function DataSourceQuestie:IsInitialized()
-    if
-        QuestieDB == nil or
-        QuestieDB.QueryNPC == nil or type(QuestieDB.QueryNPC) ~= "function" or
-        QuestieDB.QueryQuest == nil or type(QuestieDB.QueryQuest) ~= "function" or
-        QuestieDB.QueryObject == nil or type(QuestieDB.QueryObject) ~= "function" or
-        QuestieDB.QueryItem == nil or type(QuestieDB.QueryItem) ~= "function" or
-        QuestieDB.QueryNPCSingle == nil or type(QuestieDB.QueryNPCSingle) ~= "function" or
-        QuestieDB.QueryQuestSingle == nil or type(QuestieDB.QueryQuestSingle) ~= "function" or
-        QuestieDB.QueryObjectSingle == nil or type(QuestieDB.QueryObjectSingle) ~= "function" or
-        QuestieDB.QueryItemSingle == nil or type(QuestieDB.QueryItemSingle) ~= "function"
-    then
-        return false
+    if self.initialized then
+        return true
     end
-    return true
+
+    local initialized =
+        QuestieDB ~= nil and
+        QuestieDB.QueryNPC ~= nil and type(QuestieDB.QueryNPC) == "function" and
+        QuestieDB.QueryQuest ~= nil and type(QuestieDB.QueryQuest) == "function" and
+        QuestieDB.QueryObject ~= nil and type(QuestieDB.QueryObject) == "function" and
+        QuestieDB.QueryItem ~= nil and type(QuestieDB.QueryItem) == "function" and
+        QuestieDB.QueryNPCSingle ~= nil and type(QuestieDB.QueryNPCSingle) == "function" and
+        QuestieDB.QueryQuestSingle ~= nil and type(QuestieDB.QueryQuestSingle) == "function" and
+        QuestieDB.QueryObjectSingle ~= nil and type(QuestieDB.QueryObjectSingle) == "function" and
+        QuestieDB.QueryItemSingle ~= nil and type(QuestieDB.QueryItemSingle) == "function"
+
+    if initialized then
+        self.initialized = true
+        return true
+    end
+
+    return false
 end
 
 function DataSourceQuestie:IsQuestAvailable(questId)
