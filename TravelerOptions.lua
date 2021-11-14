@@ -90,7 +90,6 @@ function Traveler:GetGeneralOptionsTable()
                             self.db.char.updateJourney = false
                             Traveler:Print(L["Disabled Update Active Journey option for this character."])
                         end
-                        Traveler:UpdateWaypoint()
                         Traveler:Reset(true)
                     end
                 end,
@@ -155,7 +154,6 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
                         if value then
-                            Traveler:UpdateWaypoint()
                             Traveler:Reset(true)
                         else
                             Traveler.Window:Update(true)

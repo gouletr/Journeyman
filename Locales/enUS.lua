@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = LibStub("AceLocale-3.0"):NewLocale(addonName, "enUS", true, true)
-
+--if not L then return end
 
 L["AUTO_SET_WAYPOINT"] = "Auto Set Waypoint Arrow"
 L["AUTO_SET_WAYPOINT_DESC"] = "Automatically set TomTom waypoint arrow to next step."
