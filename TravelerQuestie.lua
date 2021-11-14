@@ -221,7 +221,20 @@ local function GetNearestQuestLocation(entities, questLogObjectives, zoneFilter)
 end
 
 function DataSourceQuestie:IsInitialized()
-    return QuestieDB ~= nil and QuestieDB.QueryQuest ~= nil and type(QuestieDB.QueryQuest) == "function"
+    if
+        QuestieDB == nil or
+        QuestieDB.QueryNPC == nil or type(QuestieDB.QueryNPC) ~= "function" or
+        QuestieDB.QueryQuest == nil or type(QuestieDB.QueryQuest) ~= "function" or
+        QuestieDB.QueryObject == nil or type(QuestieDB.QueryObject) ~= "function" or
+        QuestieDB.QueryItem == nil or type(QuestieDB.QueryItem) ~= "function" or
+        QuestieDB.QueryNPCSingle == nil or type(QuestieDB.QueryNPCSingle) ~= "function" or
+        QuestieDB.QueryQuestSingle == nil or type(QuestieDB.QueryQuestSingle) ~= "function" or
+        QuestieDB.QueryObjectSingle == nil or type(QuestieDB.QueryObjectSingle) ~= "function" or
+        QuestieDB.QueryItemSingle == nil or type(QuestieDB.QueryItemSingle) ~= "function"
+    then
+        return false
+    end
+    return true
 end
 
 function DataSourceQuestie:GetQuestName(questId, showLevel)

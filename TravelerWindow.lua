@@ -213,8 +213,7 @@ function Window:Update(immediate)
 end
 
 function Window:UpdateImmediate()
-    if not Traveler.DataSource.IsInitialized() then return end
-
+    if not Traveler.worldLoaded or not Traveler.DataSource.IsInitialized() then return end
     local now = GetTimePreciseSec()
 
     self.needUpdate = false

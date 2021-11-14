@@ -10,7 +10,12 @@ function Traveler:InitializeEvents()
         -- self:SerializeDatabase()
     -- end)
 
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", function(event)
+        Traveler.worldLoaded = true
+    end)
+
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
+        Traveler.worldLoaded = false
         self:SerializeDatabase()
     end)
 
