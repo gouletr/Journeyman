@@ -16,6 +16,7 @@ function Traveler:InitializeEvents()
 
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
         Traveler.worldLoaded = false
+        Traveler:OnDisable()
         self:SerializeDatabase()
     end)
 
@@ -97,6 +98,10 @@ function Traveler:InitializeEvents()
             end
         end
     end)
+end
+
+function Traveler:ShutdownEvents()
+    self:UnregisterAllEvents()
 end
 
 function Traveler:OnPlayerLeavingWorld()

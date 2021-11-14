@@ -44,6 +44,7 @@ end
 
 function Traveler:OnDisable()
     self.Window:Shutdown()
+    self:ShutdownEvents()
     self.State:Shutdown()
 end
 
