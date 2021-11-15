@@ -1,8 +1,8 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 local GUI = {}
-Traveler.GUI = GUI
+Journeyman.GUI = GUI
 
 local tinsert = table.insert
 
@@ -201,7 +201,7 @@ function GUI:CreateListView(frameType, name, parent, template, id)
     end
 
     frame.CreateRow = function(self, index, parent)
-        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
+        local row = Journeyman.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)

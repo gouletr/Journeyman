@@ -1,23 +1,23 @@
 local addonName, addon = ...
-addon.Traveler = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceHook-3.0", "AceEvent-3.0", "AceConsole-3.0")
+addon.Journeyman = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceHook-3.0", "AceEvent-3.0", "AceConsole-3.0")
 addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 
-Traveler.STEP_TYPE_UNDEFINED = "UNDEFINED"
-Traveler.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
-Traveler.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
-Traveler.STEP_TYPE_TURNIN_QUEST = "TURNIN"
-Traveler.STEP_TYPE_REACH_LEVEL = "LEVEL"
-Traveler.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
-Traveler.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
-Traveler.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
-Traveler.STEP_TYPE_FLY_TO = "FLYTO"
-Traveler.ITEM_HEARTHSTONE = 6948
-Traveler.SPELL_HEARTHSTONE = 8690
-Traveler.SPELL_ASTRAL_RECALL = 556
-Traveler.ICON_HUNTERS_MARK = 132212
+Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
+Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
+Journeyman.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
+Journeyman.STEP_TYPE_TURNIN_QUEST = "TURNIN"
+Journeyman.STEP_TYPE_REACH_LEVEL = "LEVEL"
+Journeyman.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
+Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
+Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
+Journeyman.STEP_TYPE_FLY_TO = "FLYTO"
+Journeyman.ITEM_HEARTHSTONE = 6948
+Journeyman.SPELL_HEARTHSTONE = 8690
+Journeyman.SPELL_ASTRAL_RECALL = 556
+Journeyman.ICON_HUNTERS_MARK = 132212
 
 local tinsert = table.insert
 
@@ -28,7 +28,7 @@ for i = 1, #taxiNodeIdsToSkip do
     skipTaxiNodeIds[taxiNodeIdsToSkip[i]] = true
 end
 
-function Traveler:OnInitialize()
+function Journeyman:OnInitialize()
     self:InitializeDatabase()
     self:InitializeOptions()
     self.State:Initialize()
@@ -38,17 +38,17 @@ function Traveler:OnInitialize()
     self.Window:Initialize()
 end
 
-function Traveler:OnEnable()
+function Journeyman:OnEnable()
     self:Reset()
 end
 
-function Traveler:OnDisable()
+function Journeyman:OnDisable()
     self.Window:Shutdown()
     self:ShutdownEvents()
     self.State:Shutdown()
 end
 
-function Traveler:Reset(immediate)
+function Journeyman:Reset(immediate)
     if self.db.char.window.show then
         self:UpdateWaypoint()
         self:UpdateMacro()
@@ -56,27 +56,27 @@ function Traveler:Reset(immediate)
     end
 end
 
-function Traveler:Update(immediate)
+function Journeyman:Update(immediate)
     if self.db.char.window.show then
         self.State:Update(immediate)
     end
 end
 
-function Traveler:UpdateWaypoint()
+function Journeyman:UpdateWaypoint()
     self.waypointNeedUpdate = true
 end
 
-function Traveler:UpdateMacro()
+function Journeyman:UpdateMacro()
     self.macroNeedUpdate = true
 end
 
-function Traveler:Debug(fmt, ...)
+function Journeyman:Debug(fmt, ...)
     if self.db.profile.advanced.debug then
         self:Print("[DEBUG] " .. string.format(fmt, ...))
     end
 end
 
-function Traveler:Error(fmt, ...)
+function Journeyman:Error(fmt, ...)
     if self.db.profile.advanced.debug then
         local text = string.format(fmt, ...)
         self:Print("[ERROR] " .. text)
@@ -84,7 +84,7 @@ function Traveler:Error(fmt, ...)
     end
 end
 
-function Traveler:GetQuestLogNumEntries()
+function Journeyman:GetQuestLogNumEntries()
     if C_QuestLog.GetNumQuestLogEntries ~= nil then
         return C_QuestLog.GetNumQuestLogEntries()
     else
@@ -92,7 +92,7 @@ function Traveler:GetQuestLogNumEntries()
     end
 end
 
-function Traveler:GetQuestLogInfo(questLogIndex)
+function Journeyman:GetQuestLogInfo(questLogIndex)
     if C_QuestLog.GetInfo then
         local info = C_QuestLog.GetInfo(questLogIndex)
         if info then
@@ -128,7 +128,7 @@ function Traveler:GetQuestLogInfo(questLogIndex)
     end
 end
 
-function Traveler:GetQuestLog()
+function Journeyman:GetQuestLog()
     local questLog = {}
     local entriesCount = self:GetQuestLogNumEntries()
     for i = 1, entriesCount do
@@ -140,7 +140,7 @@ function Traveler:GetQuestLog()
     return questLog
 end
 
-function Traveler:GetItemName(itemId, callback)
+function Journeyman:GetItemName(itemId, callback)
     if itemId and type(itemId) == "number" then
         local itemName = GetItemInfo(itemId)
         if itemName == nil then
@@ -154,7 +154,7 @@ function Traveler:GetItemName(itemId, callback)
     end
 end
 
-function Traveler:GetItemLink(itemId, callback)
+function Journeyman:GetItemLink(itemId, callback)
     if itemId and type(itemId) == "number" then
         local itemName, itemLink = GetItemInfo(itemId)
         if itemName == nil then
@@ -168,7 +168,7 @@ function Traveler:GetItemLink(itemId, callback)
     end
 end
 
-function Traveler:GetMapName()
+function Journeyman:GetMapName()
     local uiMapId = C_Map.GetBestMapForUnit("player")
     local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
     if mapInfo then
@@ -176,7 +176,7 @@ function Traveler:GetMapName()
     end
 end
 
-function Traveler:GetAreaIdFromLocalizedName(name)
+function Journeyman:GetAreaIdFromLocalizedName(name)
     if self.areaNameToAreaId == nil then
         self.areaNameToAreaId = {}
         for k, v in pairs(L.areaTable) do
@@ -186,7 +186,7 @@ function Traveler:GetAreaIdFromLocalizedName(name)
     return self.areaNameToAreaId[name]
 end
 
-function Traveler:GetAreaName(areaId)
+function Journeyman:GetAreaName(areaId)
     if areaId and type(areaId) == "number" then
         local info = L.areaTable[areaId]
         if info then
@@ -195,7 +195,7 @@ function Traveler:GetAreaName(areaId)
     end
 end
 
-function Traveler:GetAreaParentAreaId(areaId)
+function Journeyman:GetAreaParentAreaId(areaId)
     if areaId and type(areaId) == "number" then
         local info = L.areaTable[areaId]
         if info then
@@ -204,7 +204,7 @@ function Traveler:GetAreaParentAreaId(areaId)
     end
 end
 
-function Traveler:GetTaxiNodeIdFromLocalizedName(name)
+function Journeyman:GetTaxiNodeIdFromLocalizedName(name)
     if self.taxiNodeNameToTaxiNodeId == nil then
         self.taxiNodeNameToTaxiNodeId = {}
         for k, v in pairs(L.taxiNodes) do
@@ -214,13 +214,13 @@ function Traveler:GetTaxiNodeIdFromLocalizedName(name)
     return self.taxiNodeNameToTaxiNodeId[name]
 end
 
-function Traveler:IsTaxiNodeAvailable(taxiNodeId)
+function Journeyman:IsTaxiNodeAvailable(taxiNodeId)
     if skipTaxiNodeIds[taxiNodeId] then
         return false
     end
 
     local playerFaction = UnitFactionGroup("player")
-    local taxiNodeFaction = Traveler:GetTaxiNodeFaction(taxiNodeId)
+    local taxiNodeFaction = Journeyman:GetTaxiNodeFaction(taxiNodeId)
     if playerFaction ~= taxiNodeFaction and taxiNodeFaction ~= "Neutral" then
         return false
     end
@@ -228,7 +228,7 @@ function Traveler:IsTaxiNodeAvailable(taxiNodeId)
     return true
 end
 
-function Traveler:GetTaxiNodeName(taxiNodeId)
+function Journeyman:GetTaxiNodeName(taxiNodeId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
         if info then
@@ -237,7 +237,7 @@ function Traveler:GetTaxiNodeName(taxiNodeId)
     end
 end
 
-function Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
+function Journeyman:GetTaxiNodeWorldCoordinates(taxiNodeId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
         if info then
@@ -246,7 +246,7 @@ function Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
     end
 end
 
-function Traveler:GetTaxiNodeFaction(taxiNodeId)
+function Journeyman:GetTaxiNodeFaction(taxiNodeId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
         if info then
@@ -261,11 +261,11 @@ function Traveler:GetTaxiNodeFaction(taxiNodeId)
     end
 end
 
-function Traveler:IsStepTypeQuest(step)
+function Journeyman:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
-function Traveler:GetStepText(step, showQuestLevel, showId, callback)
+function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
     if self:IsStepTypeQuest(step) then
         local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
         if questName == nil then
@@ -280,19 +280,19 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
         if showId then
             questName = string.format("%s (%d)", questName, step.data)
         end
-        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
             return string.format(L["STEP_ACCEPT_QUEST"], questName)
-        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             return string.format(L["STEP_COMPLETE_QUEST"], questName)
-        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             return string.format(L["STEP_TURNIN_QUEST"], questName)
         else
-            Traveler:Error("Step type %s not implemented.", step.type)
+            Journeyman:Error("Step type %s not implemented.", step.type)
         end
     else
-        if step.type == Traveler.STEP_TYPE_UNDEFINED then
+        if step.type == Journeyman.STEP_TYPE_UNDEFINED then
             return string.format("<%s>", L["UNDEFINED"])
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             local level = step.data
             if level == nil then
                 level = string.format("<%s>", L["NO_VALUE"])
@@ -300,8 +300,8 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
                 level = string.format("<%s>", L["NOT_A_NUMBER"])
             end
             return string.format(L["STEP_REACH_LEVEL"], level)
-        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE or step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            local itemLink = Traveler:GetItemLink(Traveler.ITEM_HEARTHSTONE, callback)
+        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+            local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)
             if itemLink == nil then
                 itemLink = string.format("<%s>", L["NO_VALUE"])
             elseif type(itemLink) ~= "string" then
@@ -320,12 +320,12 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
             if showId then
                 areaName = string.format("%s (%s)", areaName, step.data)
             end
-            if step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
+            if step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
                 return string.format(L["STEP_BIND_HEARTHSTONE"], itemLink, areaName)
             else
                 return string.format(L["STEP_USE_HEARTHSTONE"], itemLink, areaName)
             end
-        elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Traveler.STEP_TYPE_FLY_TO then
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
             local taxiNodeName = self:GetTaxiNodeName(step.data)
             if taxiNodeName == nil then
                 if step.data == nil then
@@ -339,18 +339,18 @@ function Traveler:GetStepText(step, showQuestLevel, showId, callback)
             if showId then
                 taxiNodeName = string.format("%s (%s)", taxiNodeName, step.data)
             end
-            if step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
+            if step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
                 return string.format(L["STEP_LEARN_FLIGHT_PATH"], taxiNodeName)
             else
                 return string.format(L["STEP_FLY_TO"], taxiNodeName)
             end
         else
-            Traveler:Error("Step type %s not implemented.", step.type)
+            Journeyman:Error("Step type %s not implemented.", step.type)
         end
     end
 end
 
-function Traveler:SetWaypoint(step, force, neededObjectivesOnly)
+function Journeyman:SetWaypoint(step, force, neededObjectivesOnly)
     if TomTom then
         if self.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(self.db.char.waypoint)
@@ -372,7 +372,7 @@ function Traveler:SetWaypoint(step, force, neededObjectivesOnly)
     end
 end
 
-function Traveler:SetMacro()
+function Journeyman:SetMacro()
     if InCombatLockdown() then
         return
     end
@@ -391,7 +391,7 @@ function Traveler:SetMacro()
 
     -- Create macro if not found
     if macroId == nil then
-        macroId = CreateMacro(addonName, Traveler.ICON_HUNTERS_MARK)
+        macroId = CreateMacro(addonName, Journeyman.ICON_HUNTERS_MARK)
         if macroId then
             local name, icon, body, isLocal = GetMacroInfo(macroId)
             macroIcon = icon
@@ -401,7 +401,7 @@ function Traveler:SetMacro()
 
     -- Early exit if we can't create a new macro
     if macroId == nil then
-        Traveler:Error("Failed to create targeting macro.")
+        Journeyman:Error("Failed to create targeting macro.")
         return
     end
 
@@ -450,14 +450,14 @@ function Traveler:SetMacro()
     self.macroNeedUpdate = false
 end
 
-function Traveler:ReplaceAllItemStringToHyperlinks(input, callback)
+function Journeyman:ReplaceAllItemStringToHyperlinks(input, callback)
     if input and type(input) == "string" then
         local result = input
         local itemString, itemId
         while true do
             itemString, itemId = string.match(result, "[^H](item:(%d+))")
             if itemString and itemId then
-                local itemLink = Traveler:GetItemLink(tonumber(itemId), callback)
+                local itemLink = Journeyman:GetItemLink(tonumber(itemId), callback)
                 if itemLink and itemLink ~= itemString then
                     result = string.gsub(result, itemString, itemLink)
                 else

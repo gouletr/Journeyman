@@ -1,19 +1,19 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local function GetTaxiNodeId(slot)
     local name = TaxiNodeName(slot)
     if name then
-        return Traveler:GetTaxiNodeIdFromLocalizedName(name)
+        return Journeyman:GetTaxiNodeIdFromLocalizedName(name)
     end
 end
 
-function Traveler:InitializeHooks()
+function Journeyman:InitializeHooks()
     self:Hook("TakeTaxiNode", "OnTakeTaxiNode", true)
 end
 
-function Traveler:OnTakeTaxiNode(slot)
+function Journeyman:OnTakeTaxiNode(slot)
     local taxiNodeId = GetTaxiNodeId(slot)
     if taxiNodeId then
         self.State:OnTakeFlightPath(taxiNodeId)

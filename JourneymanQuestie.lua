@@ -1,8 +1,8 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 local DataSourceQuestie = {}
-Traveler.DataSource = DataSourceQuestie
+Journeyman.DataSource = DataSourceQuestie
 
 local HBD = LibStub("HereBeDragons-2.0")
 local QuestieDB = QuestieLoader and QuestieLoader:ImportModule("QuestieDB")
@@ -425,7 +425,7 @@ function DataSourceQuestie:GetNearestInnkeeper(areaId)
     if npcs == nil then return nil end
 
     local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-    local parentAreaId = Traveler:GetAreaParentAreaId(areaId)
+    local parentAreaId = Journeyman:GetAreaParentAreaId(areaId)
     return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId }, parentAreaId)
 end
 
@@ -441,9 +441,9 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
         local bestDistance = 999999999
         local bestNPCId
 
-        if Traveler:IsTaxiNodeAvailable(taxiNodeId) then
+        if Journeyman:IsTaxiNodeAvailable(taxiNodeId) then
             local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
-            local taxiNodeWorldCoords = Traveler:GetTaxiNodeWorldCoordinates(taxiNodeId)
+            local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(taxiNodeId)
 
             if npcs and taxiNodeWorldCoords then
                 for i = 1, #npcs do
@@ -500,7 +500,7 @@ function DataSourceQuestie:GetNPCTaxiNodeId(npcId)
 
     if self.npcIdToTaxiNodeId[npcId] == nil then
         for taxiNodeId, _ in pairs(L.taxiNodes) do
-            if Traveler:IsTaxiNodeAvailable(taxiNodeId) then
+            if Journeyman:IsTaxiNodeAvailable(taxiNodeId) then
                 if self:GetTaxiNodeNPCId(taxiNodeId) == npcId then
                     return taxiNodeId
                 end

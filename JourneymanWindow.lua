@@ -1,8 +1,8 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 local Window = {}
-Traveler.Window = Window
+Journeyman.Window = Window
 
 local TomTom = TomTom
 
@@ -22,34 +22,34 @@ function Window:Initialize()
 
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
-    frame:SetClampedToScreen(Traveler.db.profile.window.clamped)
-    frame:SetFrameStrata(Traveler.db.profile.window.strata)
-    frame:SetFrameLevel(Traveler.db.profile.window.level)
-    frame:SetWidth(Traveler.db.profile.window.width)
-    frame:SetHeight(Traveler.db.profile.window.height)
-    frame:SetPoint(Traveler.db.profile.window.relativePoint, UIParent, Traveler.db.profile.window.relativePoint, Traveler.db.profile.window.x, Traveler.db.profile.window.y)
+    frame:SetClampedToScreen(Journeyman.db.profile.window.clamped)
+    frame:SetFrameStrata(Journeyman.db.profile.window.strata)
+    frame:SetFrameLevel(Journeyman.db.profile.window.level)
+    frame:SetWidth(Journeyman.db.profile.window.width)
+    frame:SetHeight(Journeyman.db.profile.window.height)
+    frame:SetPoint(Journeyman.db.profile.window.relativePoint, UIParent, Journeyman.db.profile.window.relativePoint, Journeyman.db.profile.window.x, Journeyman.db.profile.window.y)
     frame:SetMovable(true)
     frame:SetResizable(true)
     frame:SetMinResize(200, 100)
     frame:EnableMouse(true)
     frame:SetScript("OnMouseDown", function(self, button)
-        if not Traveler.db.profile.window.locked and button == "LeftButton" then
+        if not Journeyman.db.profile.window.locked and button == "LeftButton" then
             frame:StartMoving()
         end
     end)
     frame:SetScript("OnMouseUp", function(self, button)
-        if not Traveler.db.profile.window.locked and button == "LeftButton" then
+        if not Journeyman.db.profile.window.locked and button == "LeftButton" then
             frame:StopMovingOrSizing()
             local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
-            Traveler.db.profile.window.relativePoint = relativePoint
-            Traveler.db.profile.window.x = offsetX
-            Traveler.db.profile.window.y = offsetY
+            Journeyman.db.profile.window.relativePoint = relativePoint
+            Journeyman.db.profile.window.x = offsetX
+            Journeyman.db.profile.window.y = offsetY
             Window:Update(true)
         end
     end)
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
     frame.bg:SetAllPoints(frame)
-    frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
+    frame.bg:SetColorTexture(Journeyman.db.profile.window.backgroundColor.r, Journeyman.db.profile.window.backgroundColor.g, Journeyman.db.profile.window.backgroundColor.b, Journeyman.db.profile.window.backgroundColor.a)
     frame:Hide()
     self.frame = frame
 
@@ -61,7 +61,7 @@ function Window:Initialize()
     closeButton:SetHighlightTexture("Interface/Buttons/UI-Panel-MinimizeButton-Highlight")
     closeButton:SetPushedTexture("Interface/Buttons/UI-Panel-MinimizeButton-Down")
     closeButton:SetScript("OnClick", function()
-        Traveler.db.char.window.show = false
+        Journeyman.db.char.window.show = false
         Window:Update(true)
     end)
     self.closeButton = closeButton
@@ -71,7 +71,7 @@ function Window:Initialize()
     lockButton:SetSize(HEADER_HEIGHT, HEADER_HEIGHT)
     lockButton:SetPoint("TOPRIGHT", closeButton, "TOPLEFT")
     lockButton:SetScript("OnClick", function()
-        Traveler.db.profile.window.locked = not Traveler.db.profile.window.locked
+        Journeyman.db.profile.window.locked = not Journeyman.db.profile.window.locked
         Window:Update(true)
     end)
     self.lockButton = lockButton
@@ -85,11 +85,11 @@ function Window:Initialize()
     nextChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Down")
     nextChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Disabled")
     nextChapterButton:SetScript("OnClick", function()
-        local journey = Traveler.Journey:GetActiveJourney()
+        local journey = Journeyman.Journey:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.chapter < #journey.chapters then
-                Traveler.db.char.chapter = Traveler.db.char.chapter + 1
-                Traveler:Reset(true)
+            if Journeyman.db.char.chapter < #journey.chapters then
+                Journeyman.db.char.chapter = Journeyman.db.char.chapter + 1
+                Journeyman:Reset(true)
             end
         end
     end)
@@ -104,23 +104,23 @@ function Window:Initialize()
     prevChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Down")
     prevChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Disabled")
     prevChapterButton:SetScript("OnClick", function()
-        local journey = Traveler.Journey:GetActiveJourney()
+        local journey = Journeyman.Journey:GetActiveJourney()
         if journey ~= nil then
-            if Traveler.db.char.chapter > 1 then
-                Traveler.db.char.chapter = Traveler.db.char.chapter - 1
-                Traveler:Reset(true)
+            if Journeyman.db.char.chapter > 1 then
+                Journeyman.db.char.chapter = Journeyman.db.char.chapter - 1
+                Journeyman:Reset(true)
             end
         end
     end)
     self.prevChapterButton = prevChapterButton
 
     -- Chapter title
-    local chapterTitle = Traveler.GUI:CreateLabel("FRAME", nil, frame)
+    local chapterTitle = Journeyman.GUI:CreateLabel("FRAME", nil, frame)
     chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
     chapterTitle:SetJustifyH("LEFT")
     chapterTitle:SetJustifyV("CENTER")
-    chapterTitle:SetFontSize(Traveler.db.profile.window.fontSize)
+    chapterTitle:SetFontSize(Journeyman.db.profile.window.fontSize)
     self.chapterTitle = chapterTitle
 
     -- Create resize button
@@ -132,20 +132,20 @@ function Window:Initialize()
     resizeButton:SetHighlightTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Highlight")
     resizeButton:SetPushedTexture("Interface/ChatFrame/UI-ChatIM-SizeGrabber-Down")
     resizeButton:SetScript("OnMouseDown", function(_, button)
-        if not Traveler.db.profile.window.locked and button == "LeftButton" then
+        if not Journeyman.db.profile.window.locked and button == "LeftButton" then
             frame:StartSizing("BOTTOMRIGHT")
         end
     end)
     resizeButton:SetScript("OnMouseUp", function(_, button)
-        if not Traveler.db.profile.window.locked and button == "LeftButton" then
+        if not Journeyman.db.profile.window.locked and button == "LeftButton" then
             frame:StopMovingOrSizing()
             local point, relativeTo, relativePoint, offsetX, offsetY = frame:GetPoint()
-            Traveler.db.profile.window.relativePoint = relativePoint
-            Traveler.db.profile.window.x = offsetX
-            Traveler.db.profile.window.y = offsetY
+            Journeyman.db.profile.window.relativePoint = relativePoint
+            Journeyman.db.profile.window.x = offsetX
+            Journeyman.db.profile.window.y = offsetY
             local width, height = frame:GetSize()
-            Traveler.db.profile.window.width = width
-            Traveler.db.profile.window.height = height
+            Journeyman.db.profile.window.width = width
+            Journeyman.db.profile.window.height = height
             Window:Update(true)
         end
     end)
@@ -157,7 +157,7 @@ function Window:Initialize()
     scrollFrame:SetHeight(frame:GetHeight() - HEADER_HEIGHT)
     scrollFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -HEADER_HEIGHT)
     scrollFrame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
-    if Traveler.db.profile.window.showScrollBar then
+    if Journeyman.db.profile.window.showScrollBar then
         scrollFrame.ScrollBar:SetAlpha(1)
     else
         scrollFrame.ScrollBar:SetAlpha(0)
@@ -173,8 +173,8 @@ function Window:Initialize()
     self.scrollChild = scrollChild
 
     -- Journey Selection Label
-    local journeySelectionLabel = Traveler.GUI:CreateLabel("FRAME", nil, scrollChild)
-    journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Traveler.db.profile.window.fontSize + 4)
+    local journeySelectionLabel = Journeyman.GUI:CreateLabel("FRAME", nil, scrollChild)
+    journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Journeyman.db.profile.window.fontSize + 4)
     journeySelectionLabel:SetWordWrap(true)
     journeySelectionLabel:SetMaxLines(10)
     journeySelectionLabel:SetText(L["NO_JOURNEY_SELECTED"])
@@ -190,13 +190,13 @@ function Window:Initialize()
     journeySelectionButton:SetHeight(22)
     journeySelectionButton:SetText(L["OPEN_OPTIONS"])
     journeySelectionButton:SetScript("OnClick", function()
-        InterfaceOptionsFrame_OpenToCategory(Traveler.generalOptions)
-        InterfaceOptionsFrame_OpenToCategory(Traveler.generalOptions)
+        InterfaceOptionsFrame_OpenToCategory(Journeyman.generalOptions)
+        InterfaceOptionsFrame_OpenToCategory(Journeyman.generalOptions)
     end)
     self.journeySelectionButton = journeySelectionButton
 
     -- Install update ticker
-    self.ticker = C_Timer.NewTicker(Traveler.db.profile.advanced.updateFrequency, function()
+    self.ticker = C_Timer.NewTicker(Journeyman.db.profile.advanced.updateFrequency, function()
         if self.needUpdate then self:UpdateImmediate() end
     end)
 end
@@ -213,7 +213,7 @@ function Window:Update(immediate)
 end
 
 function Window:UpdateImmediate()
-    if not Traveler.worldLoaded or not Traveler.DataSource:IsInitialized() then return end
+    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then return end
     local now = GetTimePreciseSec()
 
     self.needUpdate = false
@@ -230,24 +230,24 @@ function Window:UpdateImmediate()
     self:UpdateJourneySelection()
     self:UpdateSteps()
 
-    self.frame:SetShown(Traveler.db.char.window.show)
+    self.frame:SetShown(Journeyman.db.char.window.show)
 
     local elapsed = (GetTimePreciseSec() - now) * 1000
     if elapsed > 20 then
-        Traveler:Debug("Window update took %.2fms", elapsed)
+        Journeyman:Debug("Window update took %.2fms", elapsed)
     end
 end
 
 function Window:UpdateFrame()
-    self.frame:SetClampedToScreen(Traveler.db.profile.window.clamped)
-    self.frame:SetFrameStrata(Traveler.db.profile.window.strata)
-    self.frame:SetFrameLevel(Traveler.db.profile.window.level)
-    self.frame:SetSize(Traveler.db.profile.window.width, Traveler.db.profile.window.height)
-    self.frame.bg:SetColorTexture(Traveler.db.profile.window.backgroundColor.r, Traveler.db.profile.window.backgroundColor.g, Traveler.db.profile.window.backgroundColor.b, Traveler.db.profile.window.backgroundColor.a)
+    self.frame:SetClampedToScreen(Journeyman.db.profile.window.clamped)
+    self.frame:SetFrameStrata(Journeyman.db.profile.window.strata)
+    self.frame:SetFrameLevel(Journeyman.db.profile.window.level)
+    self.frame:SetSize(Journeyman.db.profile.window.width, Journeyman.db.profile.window.height)
+    self.frame.bg:SetColorTexture(Journeyman.db.profile.window.backgroundColor.r, Journeyman.db.profile.window.backgroundColor.g, Journeyman.db.profile.window.backgroundColor.b, Journeyman.db.profile.window.backgroundColor.a)
 end
 
 function Window:UpdateLockButton()
-    if Traveler.db.profile.window.locked then
+    if Journeyman.db.profile.window.locked then
         self.lockButton:SetNormalTexture("Interface/Buttons/LockButton-Locked-Up")
         self.lockButton:SetHighlightTexture("Interface/Buttons/LockButton-Border")
         self.lockButton:SetPushedTexture("Interface/Buttons/LockButton-Unlocked-Down")
@@ -259,7 +259,7 @@ function Window:UpdateLockButton()
 end
 
 function Window:UpdateResizeButton()
-    if Traveler.db.profile.window.locked then
+    if Journeyman.db.profile.window.locked then
         self.resizeButton:Hide()
     else
         self.resizeButton:Show()
@@ -268,9 +268,9 @@ end
 
 function Window:UpdateNextChapterButton()
     local enabled = false
-    local journey = Traveler.Journey:GetActiveJourney()
+    local journey = Journeyman.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler.db.char.chapter
+        local index = Journeyman.db.char.chapter
         enabled = index >= 1 and index < #journey.chapters
     end
     self.nextChapterButton:SetEnabled(enabled)
@@ -278,34 +278,34 @@ end
 
 function Window:UpdatePreviousChapterButton()
     local enabled = false
-    local journey = Traveler.Journey:GetActiveJourney()
+    local journey = Journeyman.Journey:GetActiveJourney()
     if journey ~= nil then
-        local index = Traveler.db.char.chapter
+        local index = Journeyman.db.char.chapter
         enabled = index > 1 and index <= #journey.chapters
     end
     self.prevChapterButton:SetEnabled(enabled)
 end
 
 function Window:UpdateChapterTitle()
-    local journey = Traveler.Journey:GetActiveJourney()
-    local chapter = Traveler.Journey:GetActiveChapter(journey)
+    local journey = Journeyman.Journey:GetActiveJourney()
+    local chapter = Journeyman.Journey:GetActiveChapter(journey)
 
     local title
     if chapter then
-        local index = Traveler.db.char.chapter
+        local index = Journeyman.db.char.chapter
         title = string.format(L["CHAPTER_TITLE"], index, chapter.title)
     else
         title = L["MISSING_CHAPTER_TITLE"]
     end
 
-    self.chapterTitle:SetFontSize(Traveler.db.profile.window.fontSize)
+    self.chapterTitle:SetFontSize(Journeyman.db.profile.window.fontSize)
     self.chapterTitle:SetText(title)
 end
 
 function Window:UpdateScrollFrame()
     self.scrollFrame:SetWidth(self.frame:GetWidth())
     self.scrollFrame:SetHeight(self.frame:GetHeight() - HEADER_HEIGHT)
-    if Traveler.db.profile.window.showScrollBar then
+    if Journeyman.db.profile.window.showScrollBar then
         self.scrollFrame.ScrollBar:SetAlpha(1)
     else
         self.scrollFrame.ScrollBar:SetAlpha(0)
@@ -315,7 +315,7 @@ function Window:UpdateScrollFrame()
 end
 
 function Window:UpdateJourneySelection()
-    local shown = Traveler.Journey:GetActiveJourney() == nil
+    local shown = Journeyman.Journey:GetActiveJourney() == nil
     if shown then
         self.journeySelectionLabel:SetFontSize(12)
         self.journeySelectionLabel:SetWidth(self.scrollChild:GetWidth() - 48)
@@ -329,18 +329,18 @@ function Window:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     local stepShownCount = 0
-    if Traveler.State.steps then
-        for i = 1, #Traveler.State.steps do
-            local step = Traveler.State.steps[i]
+    if Journeyman.State.steps then
+        for i = 1, #Journeyman.State.steps do
+            local step = Journeyman.State.steps[i]
             if step.isShown then
                 -- Optimization: Update step location only if we're going to show it
                 -- Also, don't need location for step type complete quest, because its meaningless here
                 -- Thought we always need to update fly to steps location, because they change
-                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and (step.location == nil or step.type == Traveler.STEP_TYPE_FLY_TO) then
-                    step.location = Traveler.State:GetStepLocation(step)
+                if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and (step.location == nil or step.type == Journeyman.STEP_TYPE_FLY_TO) then
+                    step.location = Journeyman.State:GetStepLocation(step)
                 end
 
-                if step.type ~= Traveler.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
+                if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                     local lastStep = steps[#steps]
                     if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
                         tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
@@ -358,7 +358,7 @@ function Window:UpdateSteps()
             end
 
             -- Check shown step count
-            if Traveler.db.profile.window.stepsShown > 0 and stepShownCount >= Traveler.db.profile.window.stepsShown then
+            if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
                 break
             end
         end
@@ -391,7 +391,7 @@ function Window:DisplayStep(step, depth)
                 self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredHighlightText(step.location.name, step.isComplete))
             end
         else
-            Traveler:Error("Unknown location for step %s", dump(step))
+            Journeyman:Error("Unknown location for step %s", dump(step))
         end
         -- Display child steps
         for i = 1, #step.children do
@@ -399,29 +399,29 @@ function Window:DisplayStep(step, depth)
         end
     else
         -- Display step
-        if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_ACCEPT_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_COMPLETE_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TURNIN_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
+        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             self:GetNextLine():SetStepText(step, depth, L["STEP_REACH_LEVEL"], self:GetColoredHighlightText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_USE_HEARTHSTONE"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
+        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
             self:GetNextLine():SetStepText(step, depth, L["STEP_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
-        elseif step.type == Traveler.STEP_TYPE_FLY_TO then
+        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
             self:GetNextLine():SetStepText(step, depth, L["STEP_FLY_TO"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
         else
-            Traveler:Error("Step type %s not implemented.", step.type)
+            Journeyman:Error("Step type %s not implemented.", step.type)
         end
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            local note = Traveler:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
+            local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
             self:GetNextLine():SetStepText(step, depth + 1, L["STEP_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
         end
     end
@@ -430,15 +430,15 @@ end
 function Window:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = Traveler.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild)
+        line = Journeyman.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild)
         line:SetJustifyH("LEFT")
         line:SetWordWrap(true)
         line:EnableHyperlinks(true)
         line.index = self.lineIndex
         line.SetStepText = function(self, step, depth, fmt, ...)
-            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Traveler.db.profile.window.fontSize * depth, 0)
+            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Journeyman.db.profile.window.fontSize * depth, 0)
             if self.index == 1 then
-                self:SetPoint("TOP", Window.scrollChild, "TOP", 0, -Traveler.db.profile.window.fontSize * (self.index - 1))
+                self:SetPoint("TOP", Window.scrollChild, "TOP", 0, -Journeyman.db.profile.window.fontSize * (self.index - 1))
             else
                 self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM", 0, 0)
             end
@@ -449,12 +449,12 @@ function Window:GetNextLine()
                 self:SetText(fmt, ...)
             end
 
-            self:SetFontSize(Traveler.db.profile.window.fontSize)
-            self:SetWidth(Window.scrollChild:GetWidth() - (Traveler.db.profile.window.fontSize * depth))
-            self:SetHeight((Traveler.db.profile.window.fontSize * self:GetNumLines()) + Traveler.db.profile.window.lineSpacing)
+            self:SetFontSize(Journeyman.db.profile.window.fontSize)
+            self:SetWidth(Window.scrollChild:GetWidth() - (Journeyman.db.profile.window.fontSize * depth))
+            self:SetHeight((Journeyman.db.profile.window.fontSize * self:GetNumLines()) + Journeyman.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" and IsControlKeyDown() then
-                    Traveler:SetWaypoint(step, true, true)
+                    Journeyman:SetWaypoint(step, true, true)
                 end
             end)
             self:Show()
@@ -477,7 +477,7 @@ function Window:GetColoredHighlightText(text, isComplete)
 end
 
 function Window:GetColoredAreaText(areaId, isComplete)
-    local areaName = Traveler:GetAreaName(areaId)
+    local areaName = Journeyman:GetAreaName(areaId)
     if areaName == nil then return string.format("area:%s", areaId) end
 
     if not isComplete then
@@ -488,7 +488,7 @@ function Window:GetColoredAreaText(areaId, isComplete)
 end
 
 function Window:GetColoredTaxiNodeText(taxiNodeId, isComplete)
-    local taxiNodeName = Traveler:GetTaxiNodeName(taxiNodeId)
+    local taxiNodeName = Journeyman:GetTaxiNodeName(taxiNodeId)
     if taxiNodeName == nil then return string.format("taxiNode:%s", taxiNodeId) end
 
     if not isComplete then
@@ -499,11 +499,11 @@ function Window:GetColoredTaxiNodeText(taxiNodeId, isComplete)
 end
 
 function Window:GetColoredQuestText(questId, isComplete)
-    local questName = Traveler.DataSource:GetQuestName(questId, Traveler.db.profile.window.showQuestLevel)
+    local questName = Journeyman.DataSource:GetQuestName(questId, Journeyman.db.profile.window.showQuestLevel)
     if questName == nil then return string.format("quest:%s", questId) end
 
     if not isComplete then
-        local questLevel = Traveler.DataSource:GetQuestLevel(questId)
+        local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
         if questLevel ~= nil then
             local colorHex
             local levelDiff = questLevel - self.playerLevel
@@ -527,7 +527,7 @@ end
 
 function Window:GetColoredItemText(step, itemId)
     if step and itemId and type(itemId) == "number" then
-        local itemLink = Traveler:GetItemLink(itemId, function() Window:Update() end)
+        local itemLink = Journeyman:GetItemLink(itemId, function() Window:Update() end)
         if itemLink then
             return itemLink
         end

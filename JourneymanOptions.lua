@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local addonVersion = GetAddOnMetadata(addonName, "version")
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local function Percent(value)
@@ -9,21 +9,21 @@ local function Percent(value)
     return (value * windowWidth) / widthMultiplier
 end
 
-function Traveler:InitializeOptions()
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable(), "traveler")
+function Journeyman:InitializeOptions()
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable(), addonName)
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
     self.generalOptions = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
     xpcall(function()
-        Traveler.editor = self:GetJourneyEditor()
-        InterfaceOptions_AddCategory(Traveler.editor)
+        Journeyman.editor = self:GetJourneyEditor()
+        InterfaceOptions_AddCategory(Journeyman.editor)
     end, geterrorhandler())
     --self.journeysOptions = aceConfigDialog:AddToBlizOptions(addonName, "Journeys (OLD)", addonName, "journeys")
     self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
     self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
-function Traveler:GetOptionsTable()
+function Journeyman:GetOptionsTable()
     return {
         type = "group",
         name = string.format("%s v%s", addonName, addonVersion),
@@ -36,7 +36,7 @@ function Traveler:GetOptionsTable()
     }
 end
 
-function Traveler:GetGeneralOptionsTable()
+function Journeyman:GetGeneralOptionsTable()
     return {
         type = "group",
         name = "General",
@@ -78,9 +78,9 @@ function Traveler:GetGeneralOptionsTable()
                         self.db.char.chapter = 1
                         if self.db.char.updateJourney then
                             self.db.char.updateJourney = false
-                            Traveler:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
+                            Journeyman:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
                         end
-                        Traveler:Reset(true)
+                        Journeyman:Reset(true)
                     end
                 end,
                 get = function(info) return self.db.char.journey end
@@ -102,9 +102,9 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.profile.autoSetWaypoint ~= value then
                         self.db.profile.autoSetWaypoint = value
                         if value then
-                            Traveler:UpdateWaypoint()
+                            Journeyman:UpdateWaypoint()
                         end
-                        Traveler:Update()
+                        Journeyman:Update()
                     end
                 end
             },
@@ -124,7 +124,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypointMin ~= value then
                         self.db.profile.autoSetWaypointMin = value
-                        Traveler:Update()
+                        Journeyman:Update()
                     end
                 end
             },
@@ -144,9 +144,9 @@ function Traveler:GetGeneralOptionsTable()
                     if self.db.char.window.show ~= value then
                         self.db.char.window.show = value
                         if value then
-                            Traveler:Reset(true)
+                            Journeyman:Reset(true)
                         else
-                            Traveler.Window:Update(true)
+                            Journeyman.Window:Update(true)
                         end
                     end
                 end
@@ -232,7 +232,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showCompletedSteps ~= value then
                         self.db.profile.window.showCompletedSteps = value
-                        Traveler:Update(true)
+                        Journeyman:Update(true)
                     end
                 end
             },
@@ -246,7 +246,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.showSkippedSteps ~= value then
                         self.db.profile.window.showSkippedSteps = value
-                        Traveler:Update(true)
+                        Journeyman:Update(true)
                     end
                 end
             },
@@ -264,7 +264,7 @@ function Traveler:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.window.stepsShown ~= value then
                         self.db.profile.window.stepsShown = value
-                        Traveler:Update(true)
+                        Journeyman:Update(true)
                     end
                 end
             },
@@ -412,7 +412,7 @@ function Traveler:GetGeneralOptionsTable()
     }
 end
 
-function Traveler:GetJourneysOptionsTable()
+function Journeyman:GetJourneysOptionsTable()
     return {
         name = "Journeys",
         type = "group",
@@ -445,7 +445,7 @@ function Traveler:GetJourneysOptionsTable()
     }
 end
 
-function Traveler:GetAdvancedOptionsTable()
+function Journeyman:GetAdvancedOptionsTable()
     return {
         name = "Advanced",
         type = "group",
@@ -536,7 +536,7 @@ function Traveler:GetAdvancedOptionsTable()
     }
 end
 
-function Traveler:GetJourneyEditor()
+function Journeyman:GetJourneyEditor()
     local frame = CreateFrame("FRAME", "Journeys", UIParent)
     frame.name = "Journeys"
     frame.parent = addonName
@@ -549,7 +549,7 @@ function Traveler:GetJourneyEditor()
     content:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15)
     content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 10)
 
-    local title = Traveler.GUI:CreateLabel("FRAME", "Title", content)
+    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", content)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", content, "TOPRIGHT", 0, -30)
     title:SetJustifyH("LEFT")
@@ -563,8 +563,8 @@ function Traveler:GetJourneyEditor()
     journeySelector:SetTitle(L["SELECT_JOURNEY"])
     journeySelector.list.GetValues = function(self)
         local values = {}
-        for i = 1, #Traveler.journeys do
-            values[i] = Traveler.journeys[i].title
+        for i = 1, #Journeyman.journeys do
+            values[i] = Journeyman.journeys[i].title
         end
         return values
     end
@@ -576,7 +576,7 @@ function Traveler:GetJourneyEditor()
     chapterSelector:SetTitle(L["SELECT_CHAPTER"])
     chapterSelector.list.GetValues = function(self)
         local values = {}
-        local journey = Traveler.editor:GetSelectedJourney()
+        local journey = Journeyman.editor:GetSelectedJourney()
         if journey then
             for i, v in ipairs(journey.chapters) do
                 values[i] = v.title
@@ -591,10 +591,10 @@ function Traveler:GetJourneyEditor()
     newJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOM", 0, -22)
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
-        if Traveler.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
-            Traveler.editor:SetSelectedJourneyIndex(#Traveler.journeys)
-            Traveler.editor:SetSelectedChapterIndex(-1)
-            Traveler.editor:SetSelectedStepIndex(-1)
+        if Journeyman.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
+            Journeyman.editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+            Journeyman.editor:SetSelectedChapterIndex(-1)
+            Journeyman.editor:SetSelectedStepIndex(-1)
             frame.refresh()
         end
     end)
@@ -605,12 +605,12 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            if Traveler.Journey:DeleteJourney(Traveler.editor:GetSelectedJourneyIndex()) then
-                Traveler.editor:SetSelectedJourneyIndex(-1)
-                Traveler.editor:SetSelectedChapterIndex(-1)
-                Traveler.editor:SetSelectedStepIndex(-1)
+            if Journeyman.Journey:DeleteJourney(Journeyman.editor:GetSelectedJourneyIndex()) then
+                Journeyman.editor:SetSelectedJourneyIndex(-1)
+                Journeyman.editor:SetSelectedChapterIndex(-1)
+                Journeyman.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
-                Traveler:Reset(true)
+                Journeyman:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -629,12 +629,12 @@ function Traveler:GetJourneyEditor()
     newChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOM", 0, -22)
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
-        local journey = Traveler.editor:GetSelectedJourney()
-        if journey and Traveler.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
-            Traveler.editor:SetSelectedChapterIndex(#journey.chapters)
-            Traveler.editor:SetSelectedStepIndex(-1)
+        local journey = Journeyman.editor:GetSelectedJourney()
+        if journey and Journeyman.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
+            Journeyman.editor:SetSelectedChapterIndex(#journey.chapters)
+            Journeyman.editor:SetSelectedStepIndex(-1)
             frame.refresh()
-            Traveler:Reset(true)
+            Journeyman:Reset(true)
         end
     end)
 
@@ -644,12 +644,12 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local journey = Traveler.editor:GetSelectedJourney()
-            if journey and Traveler.Journey:DeleteChapter(journey, Traveler.editor:GetSelectedChapterIndex()) then
-                Traveler.editor:SetSelectedChapterIndex(-1)
-                Traveler.editor:SetSelectedStepIndex(-1)
+            local journey = Journeyman.editor:GetSelectedJourney()
+            if journey and Journeyman.Journey:DeleteChapter(journey, Journeyman.editor:GetSelectedChapterIndex()) then
+                Journeyman.editor:SetSelectedChapterIndex(-1)
+                Journeyman.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
-                Traveler:Reset(true)
+                Journeyman:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -668,7 +668,7 @@ function Traveler:GetJourneyEditor()
     stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
     stepSelector:SetTitle(L["SELECT_STEP"])
     stepSelector.list.GetValues = function(self)
-        local chapter = Traveler.editor:GetSelectedChapter()
+        local chapter = Journeyman.editor:GetSelectedChapter()
         if chapter then
             return chapter.steps
         end
@@ -676,7 +676,7 @@ function Traveler:GetJourneyEditor()
     frame.stepSelector = stepSelector
 
     stepSelector.list.CreateRow = function(self, index, parent)
-        local row = Traveler.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
+        local row = Journeyman.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)
@@ -691,7 +691,7 @@ function Traveler:GetJourneyEditor()
 
         row.SetValue = function(self, step)
             local prefix = self.index .. ". "
-            self:SetText(prefix .. Traveler:GetStepText(step, true, true, function() stepSelector:Refresh() end))
+            self:SetText(prefix .. Journeyman:GetStepText(step, true, true, function() stepSelector:Refresh() end))
             if self.list.selectedIndex == self.index then
                 self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             elseif row:IsMouseOver() then
@@ -730,10 +730,10 @@ function Traveler:GetJourneyEditor()
     newStepButton:SetPoint("BOTTOMRIGHT", stepSelector, "BOTTOM", 0, -22)
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
-        local chapter = Traveler.editor:GetSelectedChapter()
-        if chapter and Traveler.Journey:CreateStep(chapter, Traveler.STEP_TYPE_UNDEFINED, 0, Traveler.editor:GetSelectedStepIndex()) then
+        local chapter = Journeyman.editor:GetSelectedChapter()
+        if chapter and Journeyman.Journey:CreateStep(chapter, Journeyman.STEP_TYPE_UNDEFINED, 0, Journeyman.editor:GetSelectedStepIndex()) then
             frame.refresh()
-            Traveler:Reset(true)
+            Journeyman:Reset(true)
         end
     end)
 
@@ -743,11 +743,11 @@ function Traveler:GetJourneyEditor()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local chapter = Traveler.editor:GetSelectedChapter()
-            if chapter and Traveler.Journey:DeleteStep(chapter, Traveler.editor:GetSelectedStepIndex()) then
-                Traveler.editor:SetSelectedStepIndex(-1)
+            local chapter = Journeyman.editor:GetSelectedChapter()
+            if chapter and Journeyman.Journey:DeleteStep(chapter, Journeyman.editor:GetSelectedStepIndex()) then
+                Journeyman.editor:SetSelectedStepIndex(-1)
                 frame.refresh()
-                Traveler:Reset(true)
+                Journeyman:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -767,13 +767,13 @@ function Traveler:GetJourneyEditor()
 
     -- Setup events
     journeySelector.list.OnSelectionChanged = function(self)
-        Traveler.editor:SetSelectedChapterIndex(-1)
-        Traveler.editor:SetSelectedStepIndex(-1)
+        Journeyman.editor:SetSelectedChapterIndex(-1)
+        Journeyman.editor:SetSelectedStepIndex(-1)
         frame.refresh()
     end
 
     chapterSelector.list.OnSelectionChanged = function(self)
-        Traveler.editor:SetSelectedStepIndex(-1)
+        Journeyman.editor:SetSelectedStepIndex(-1)
         frame.refresh()
     end
 
@@ -783,13 +783,13 @@ function Traveler:GetJourneyEditor()
 
     frame.GetSelectedJourneyIndex = function(self) return self.journeySelector.list.selectedIndex end
     frame.SetSelectedJourneyIndex = function(self, index) self.journeySelector.list.selectedIndex = index end
-    frame.GetSelectedJourney = function(self) return Traveler.Journey:GetJourney(self:GetSelectedJourneyIndex()) end
+    frame.GetSelectedJourney = function(self) return Journeyman.Journey:GetJourney(self:GetSelectedJourneyIndex()) end
     frame.GetSelectedChapterIndex = function(self) return self.chapterSelector.list.selectedIndex end
     frame.SetSelectedChapterIndex = function(self, index) self.chapterSelector.list.selectedIndex = index end
-    frame.GetSelectedChapter = function(self) return Traveler.Journey:GetChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
+    frame.GetSelectedChapter = function(self) return Journeyman.Journey:GetChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
     frame.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     frame.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
-    frame.GetSelectedStep = function(self) return Traveler.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
+    frame.GetSelectedStep = function(self) return Journeyman.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
 
     -- Refresh method
     frame.refresh = function()
@@ -809,10 +809,10 @@ function Traveler:GetJourneyEditor()
     return frame
 end
 
-function Traveler:CreateSelector(name, parent)
+function Journeyman:CreateSelector(name, parent)
     local frame = CreateFrame("FRAME", name, parent)
 
-    local title = Traveler.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -820,11 +820,11 @@ function Traveler:CreateSelector(name, parent)
     title:SetFontSize(12)
     frame.title = title
 
-    local container = Traveler.GUI:CreateGroup("FRAME", "Container", frame)
+    local container = Journeyman.GUI:CreateGroup("FRAME", "Container", frame)
     container:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     container:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 
-    local list = Traveler.GUI:CreateListView("FRAME", "List", container)
+    local list = Journeyman.GUI:CreateListView("FRAME", "List", container)
     list:SetPoint("TOPLEFT", 5, -5)
     list:SetPoint("BOTTOMRIGHT", -5, 5)
     frame.list = list
@@ -835,10 +835,10 @@ function Traveler:CreateSelector(name, parent)
     return frame
 end
 
-function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
+function Journeyman:CreatePropertiesGroup(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local title = Traveler.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -847,7 +847,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     title:SetText("Properties")
     frame.title = title
 
-    local group = Traveler.GUI:CreateGroup("FRAME", "Group", frame)
+    local group = Journeyman.GUI:CreateGroup("FRAME", "Group", frame)
     group:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     group:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     frame.group = group
@@ -866,12 +866,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyTitle:SetPoint("BOTTOMRIGHT", scrollChild, "TOPRIGHT", 0, -40)
     journeyTitle:SetTitle(L["JOURNEY_TITLE_LABEL"])
     journeyTitle.OnEnterPressed = function(self)
-        local journey = Traveler.editor:GetSelectedJourney()
+        local journey = Journeyman.editor:GetSelectedJourney()
         if journey then
             journey.title = self:GetText()
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.journeyTitle = journeyTitle
 
@@ -882,11 +882,11 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyIndex:SetNumeric(true)
     journeyIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        if index and Traveler.Journey:MoveJourney(Traveler.editor:GetSelectedJourneyIndex(), index) then
-            Traveler.editor:SetSelectedJourneyIndex(index)
+        if index and Journeyman.Journey:MoveJourney(Journeyman.editor:GetSelectedJourneyIndex(), index) then
+            Journeyman.editor:SetSelectedJourneyIndex(index)
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.journeyIndex = journeyIndex
 
@@ -895,12 +895,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterTitle:SetPoint("BOTTOMRIGHT", journeyIndex, "BOTTOMRIGHT", 0, -40)
     chapterTitle:SetTitle(L["CHAPTER_TITLE_LABEL"])
     chapterTitle.OnEnterPressed = function(self)
-        local chapter = Traveler.editor:GetSelectedChapter()
+        local chapter = Journeyman.editor:GetSelectedChapter()
         if chapter then
             chapter.title = self:GetText()
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.chapterTitle = chapterTitle
 
@@ -911,12 +911,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterIndex:SetNumeric(true)
     chapterIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        local journey = Traveler.editor:GetSelectedJourney()
-        if index and journey and Traveler.Journey:MoveChapter(journey, Traveler.editor:GetSelectedChapterIndex(), index) then
-            Traveler.editor:SetSelectedChapterIndex(index)
+        local journey = Journeyman.editor:GetSelectedJourney()
+        if index and journey and Journeyman.Journey:MoveChapter(journey, Journeyman.editor:GetSelectedChapterIndex(), index) then
+            Journeyman.editor:SetSelectedChapterIndex(index)
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.chapterIndex = chapterIndex
 
@@ -926,37 +926,37 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepType:SetTitle(L["STEP_TYPE_LABEL"])
     stepType.GetValues = function(self)
         return {
-            [Traveler.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
-            [Traveler.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
-            [Traveler.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
-            [Traveler.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
-            [Traveler.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
-            [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
-            [Traveler.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
-            [Traveler.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
-            [Traveler.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
+            [Journeyman.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
+            [Journeyman.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
+            [Journeyman.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
+            [Journeyman.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
+            [Journeyman.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
+            [Journeyman.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
+            [Journeyman.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
+            [Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
+            [Journeyman.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
         }
     end
     stepType.GetSorting = function(self)
         return {
-            Traveler.STEP_TYPE_UNDEFINED,
-            Traveler.STEP_TYPE_ACCEPT_QUEST,
-            Traveler.STEP_TYPE_COMPLETE_QUEST,
-            Traveler.STEP_TYPE_TURNIN_QUEST,
-            Traveler.STEP_TYPE_REACH_LEVEL,
-            Traveler.STEP_TYPE_BIND_HEARTHSTONE,
-            Traveler.STEP_TYPE_USE_HEARTHSTONE,
-            Traveler.STEP_TYPE_LEARN_FLIGHT_PATH,
-            Traveler.STEP_TYPE_FLY_TO,
+            Journeyman.STEP_TYPE_UNDEFINED,
+            Journeyman.STEP_TYPE_ACCEPT_QUEST,
+            Journeyman.STEP_TYPE_COMPLETE_QUEST,
+            Journeyman.STEP_TYPE_TURNIN_QUEST,
+            Journeyman.STEP_TYPE_REACH_LEVEL,
+            Journeyman.STEP_TYPE_BIND_HEARTHSTONE,
+            Journeyman.STEP_TYPE_USE_HEARTHSTONE,
+            Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
+            Journeyman.STEP_TYPE_FLY_TO,
         }
     end
     stepType.OnValueChanged = function(self, value)
-        local step = Traveler.editor:GetSelectedStep()
+        local step = Journeyman.editor:GetSelectedStep()
         if step then
             step.type = value
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     stepType:Initialize()
     frame.stepType = stepType
@@ -967,15 +967,15 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepData:SetTitle(L["STEP_DATA_LABEL"])
     stepData:SetNumeric(true)
     stepData.OnEnterPressed = function(self)
-        local step = Traveler.editor:GetSelectedStep()
+        local step = Journeyman.editor:GetSelectedStep()
         if step then
             step.data = self:GetNumber()
             if step.data == nil then
                 step.data = 0
             end
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.stepData = stepData
 
@@ -986,12 +986,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepIndex:SetNumeric(true)
     stepIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        local chapter = Traveler.editor:GetSelectedChapter()
-        if index and chapter and Traveler.Journey:MoveStep(chapter, Traveler.editor:GetSelectedStepIndex(), index) then
-            Traveler.editor:SetSelectedStepIndex(index)
+        local chapter = Journeyman.editor:GetSelectedChapter()
+        if index and chapter and Journeyman.Journey:MoveStep(chapter, Journeyman.editor:GetSelectedStepIndex(), index) then
+            Journeyman.editor:SetSelectedStepIndex(index)
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.stepIndex = stepIndex
 
@@ -1000,27 +1000,27 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepNote:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
     stepNote:SetTitle(L["STEP_NOTE_LABEL"])
     stepNote.OnEnterPressed = function(self)
-        local step = Traveler.editor:GetSelectedStep()
+        local step = Journeyman.editor:GetSelectedStep()
         if step then
             step.note = self:GetText()
             if step.note and string.len(step.note) == 0 then
                 step.note = nil
             end
         end
-        Traveler.editor.refresh()
-        Traveler:Reset(true)
+        Journeyman.editor.refresh()
+        Journeyman:Reset(true)
     end
     frame.stepNote = stepNote
 
     frame.Refresh = function(self)
         self.scrollChild:SetSize(self.scrollFrame:GetWidth(), self.scrollFrame:GetHeight())
 
-        local journey = Traveler.editor:GetSelectedJourney()
+        local journey = Journeyman.editor:GetSelectedJourney()
         if journey then
             self.journeyTitle:SetEnabled(true)
             self.journeyTitle:SetText(journey.title)
             self.journeyIndex:SetEnabled(true)
-            self.journeyIndex:SetText(Traveler.editor:GetSelectedJourneyIndex())
+            self.journeyIndex:SetText(Journeyman.editor:GetSelectedJourneyIndex())
         else
             self.journeyTitle:SetEnabled(false)
             self.journeyTitle:SetText("")
@@ -1028,12 +1028,12 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.journeyIndex:SetText("")
         end
 
-        local chapter = Traveler.editor:GetSelectedChapter()
+        local chapter = Journeyman.editor:GetSelectedChapter()
         if chapter then
             self.chapterTitle:SetEnabled(true)
             self.chapterTitle:SetText(chapter.title)
             self.chapterIndex:SetEnabled(true)
-            self.chapterIndex:SetText(Traveler.editor:GetSelectedChapterIndex())
+            self.chapterIndex:SetText(Journeyman.editor:GetSelectedChapterIndex())
         else
             self.chapterTitle:SetEnabled(false)
             self.chapterTitle:SetText("")
@@ -1042,7 +1042,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
         end
 
         self.stepType:SetWidth(self.scrollFrame:GetWidth())
-        local step = Traveler.editor:GetSelectedStep()
+        local step = Journeyman.editor:GetSelectedStep()
         if step then
             self.stepType:SetValue(step.type)
             self.stepType:SetEnabled(true)
@@ -1052,7 +1052,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
                 self.stepData:SetText("")
             end
             self.stepData:SetEnabled(true)
-            self.stepIndex:SetText(Traveler.editor:GetSelectedStepIndex())
+            self.stepIndex:SetText(Journeyman.editor:GetSelectedStepIndex())
             self.stepIndex:SetEnabled(true)
             if step.note then
                 self.stepNote:SetText(step.note)
@@ -1075,10 +1075,10 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     return frame
 end
 
-function Traveler:CreateEditBoxProperty(frameType, name, parent, template, id)
+function Journeyman:CreateEditBoxProperty(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = Traveler.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = Journeyman.GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -1086,7 +1086,7 @@ function Traveler:CreateEditBoxProperty(frameType, name, parent, template, id)
     label:SetFontSize(10)
     frame.label = label
 
-    local editBox = Traveler.GUI:CreateEditBox("FRAME", "EditBox", frame)
+    local editBox = Journeyman.GUI:CreateEditBox("FRAME", "EditBox", frame)
     editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     editBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     editBox:SetTextColor(1, 1, 1, 1)
@@ -1107,10 +1107,10 @@ function Traveler:CreateEditBoxProperty(frameType, name, parent, template, id)
     return frame
 end
 
-function Traveler:CreateDropDownMenuProperty(frameType, name, parent, template, id)
+function Journeyman:CreateDropDownMenuProperty(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = Traveler.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = Journeyman.GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -1118,7 +1118,7 @@ function Traveler:CreateDropDownMenuProperty(frameType, name, parent, template, 
     label:SetFontSize(10)
     frame.label = label
 
-    local dropDownMenu = Traveler.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame)
+    local dropDownMenu = Journeyman.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame)
     dropDownMenu:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     dropDownMenu:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     dropDownMenu.GetValues = function(self) return frame:GetValues() end

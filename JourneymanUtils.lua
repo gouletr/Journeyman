@@ -1,8 +1,8 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 local Utils = {}
-Traveler.Utils = Utils
+Journeyman.Utils = Utils
 
 function Utils:Clone(t)
     local c

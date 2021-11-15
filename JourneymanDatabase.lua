@@ -1,5 +1,5 @@
 local addonName, addon = ...
-local Traveler = addon.Traveler
+local Journeyman = addon.Journeyman
 local L = addon.Locale
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
@@ -49,12 +49,12 @@ local databaseDefaults = {
     }
 }
 
-function Traveler:InitializeDatabase()
+function Journeyman:InitializeDatabase()
     self.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
     self:DeserializeDatabase()
 end
 
-function Traveler:SerializeDatabase()
+function Journeyman:SerializeDatabase()
     -- Serialize journeys
     if self.journeys and type(self.journeys) == "table" then
         self.db.profile.journeys = {}
@@ -78,7 +78,7 @@ function Traveler:SerializeDatabase()
     -- end
 end
 
-function Traveler:DeserializeDatabase()
+function Journeyman:DeserializeDatabase()
     -- Deserialize journeys
     if self.db.profile.journeys and type(self.db.profile.journeys) == "table" then
         self.journeys = {}
@@ -102,7 +102,7 @@ function Traveler:DeserializeDatabase()
     -- end
 
     -- Validate active chapter
-    local journey = Traveler.Journey:GetActiveJourney()
+    local journey = Journeyman.Journey:GetActiveJourney()
     if journey then
         if #journey.chapters <= 0 then
             self.db.char.chapter = -1
@@ -112,13 +112,13 @@ function Traveler:DeserializeDatabase()
     end
 end
 
-function Traveler:ExportJourney(deserializedJourney)
+function Journeyman:ExportJourney(deserializedJourney)
     local journey = { chapters = {} }
 
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = Traveler.Utils:CreateGUID()
+        journey.guid = Journeyman.Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -148,7 +148,7 @@ function Traveler:ExportJourney(deserializedJourney)
                     if deserializedStep.type and type(deserializedStep.type) == "string" then
                         step.type = deserializedStep.type
                     else
-                        step.type = Traveler.STEP_TYPE_UNDEFINED
+                        step.type = Journeyman.STEP_TYPE_UNDEFINED
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
@@ -175,7 +175,7 @@ function Traveler:ExportJourney(deserializedJourney)
     end
 end
 
-function Traveler:ImportJourney(serializedJourney)
+function Journeyman:ImportJourney(serializedJourney)
     local result, deserializedJourney = self:Deserialize(serializedJourney)
     if not result or deserializedJourney == nil then
         return nil
@@ -186,7 +186,7 @@ function Traveler:ImportJourney(serializedJourney)
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = Traveler.Utils:CreateGUID()
+        journey.guid = Journeyman.Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -216,7 +216,7 @@ function Traveler:ImportJourney(serializedJourney)
                     if deserializedStep.type and type(deserializedStep.type) == "string" then
                         step.type = deserializedStep.type
                     else
-                        step.type = Traveler.STEP_TYPE_UNDEFINED
+                        step.type = Journeyman.STEP_TYPE_UNDEFINED
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
@@ -240,7 +240,7 @@ function Traveler:ImportJourney(serializedJourney)
     return journey
 end
 
-function Traveler:ExportState(deserializedState)
+function Journeyman:ExportState(deserializedState)
     local state = {}
 
     for i = 1, #deserializedState do
@@ -277,7 +277,7 @@ function Traveler:ExportState(deserializedState)
     end
 end
 
-function Traveler:ImportState(serializedState)
+function Journeyman:ImportState(serializedState)
     local result, deserializedState = self:Deserialize(serializedState)
     if not result or deserializedState == nil or type(deserializedState) ~= "table" then
         return nil
@@ -316,7 +316,7 @@ function Traveler:ImportState(serializedState)
     return state
 end
 
-function Traveler:Serialize(...)
+function Journeyman:Serialize(...)
     local serialized = LibAceSerializer:Serialize(...)
     if serialized == nil then
         self:Error("Failed to serialize.")
@@ -338,7 +338,7 @@ function Traveler:Serialize(...)
     return true, encoded
 end
 
-function Traveler:Deserialize(str)
+function Journeyman:Deserialize(str)
     local decoded = LibDeflate:DecodeForPrint(str)
     if decoded == nil then
         self:Error("Failed to decode string.")
