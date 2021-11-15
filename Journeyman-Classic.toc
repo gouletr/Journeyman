@@ -1,7 +1,7 @@
 ## Interface: 11401
 ## Title: Journeyman
-## Author: Erunehtar
-## Notes: Helps you travel around and reach max level quickly
+## Author: Robert Goulet
+## Notes: Provides step by step instructions for leveling and glory.
 ## Version: 0.1.0
 ## Dependencies: Questie
 ## OptionalDeps: TomTom
