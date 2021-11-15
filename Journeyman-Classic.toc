@@ -1,10 +1,11 @@
 ## Interface: 11401
-## Title: Traveler
+## Title: Journeyman
 ## Author: Erunehtar
 ## Notes: Helps you travel around and reach max level quickly
 ## Version: 0.1.0
 ## Dependencies: Questie
-## SavedVariables: TravelerDatabase
+## OptionalDeps: TomTom
+## SavedVariables: JourneymanDatabase
 
 # Embedded libraries
 Libs\LibStub\LibStub.lua
@@ -19,23 +20,23 @@ Libs\AceSerializer-3.0\AceSerializer-3.0.xml
 Libs\AceGUI-3.0\AceGUI-3.0.xml
 Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
-Libs\LibDeflate\LibDeflate.lua
 Libs\HereBeDragons\HereBeDragons-2.0.lua
+Libs\LibDeflate\LibDeflate.lua
 
 # Locale files
 Locales\Locales.xml
 
 # Addon files
-Traveler.lua
-TravelerUtils.lua
-TravelerGUI.lua
-TravelerDatabase.lua
-TravelerOptions.lua
-TravelerState.lua
-TravelerHooks.lua
-TravelerEvents.lua
-TravelerJourneys.lua
-TravelerWindow.lua
+Journeyman.lua
+JourneymanUtils.lua
+JourneymanGUI.lua
+JourneymanDatabase.lua
+JourneymanOptions.lua
+JourneymanState.lua
+JourneymanHooks.lua
+JourneymanEvents.lua
+JourneymanJourneys.lua
+JourneymanWindow.lua
 
 # Data sources
-TravelerQuestie.lua
+JourneymanQuestie.lua
