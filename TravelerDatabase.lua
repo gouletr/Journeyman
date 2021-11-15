@@ -319,19 +319,19 @@ end
 function Traveler:Serialize(...)
     local serialized = LibAceSerializer:Serialize(...)
     if serialized == nil then
-        self:Print("Failed to serialize.")
+        self:Error("Failed to serialize.")
         return false
     end
 
     local compressed = LibDeflate:CompressDeflate(serialized)
     if compressed == nil then
-        self:Print("Failed to compress.")
+        self:Error("Failed to compress.")
         return false
     end
 
     local encoded = LibDeflate:EncodeForPrint(compressed)
     if encoded == nil then
-        self:Print("Failed to encode.")
+        self:Error("Failed to encode.")
         return false
     end
 
@@ -341,19 +341,19 @@ end
 function Traveler:Deserialize(str)
     local decoded = LibDeflate:DecodeForPrint(str)
     if decoded == nil then
-        self:Print("Failed to decode string.")
+        self:Error("Failed to decode string.")
         return false
     end
 
     local decompressed, extraBytes = LibDeflate:DecompressDeflate(decoded)
     if decompressed == nil or extraBytes > 0 then
-        self:Print("Failed to decompress ("..extraBytes.." extra bytes).")
+        self:Error("Failed to decompress ("..extraBytes.." extra bytes).")
         return false
     end
 
     local result, deserialized = LibAceSerializer:Deserialize(decompressed)
     if result == false then
-        self:Print("Failed to deserialize.")
+        self:Error("Failed to deserialize.")
         return false
     end
 

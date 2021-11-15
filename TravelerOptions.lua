@@ -3,16 +3,6 @@ local addonVersion = GetAddOnMetadata(addonName, "version")
 local Traveler = addon.Traveler
 local L = addon.Locale
 
-local STEP_TYPE_DROPDOWN_UNDEFINED = L["Undefined"]
-local STEP_TYPE_DROPDOWN_ACCEPT_QUEST = L["Accept Quest"]
-local STEP_TYPE_DROPDOWN_COMPLETE_QUEST = L["Complete Quest"]
-local STEP_TYPE_DROPDOWN_TURNIN_QUEST = L["Turn-in Quest"]
-local STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE = L["Bind Hearthstone"]
-local STEP_TYPE_DROPDOWN_USE_HEARTHSTONE = L["Use Hearthstone"]
-local STEP_TYPE_DROPDOWN_REACH_LEVEL = L["Reach Level"]
-local STEP_TYPE_DROPDOWN_LEARN_FLIGHT_PATH = L["Learn Flight Path"]
-local STEP_TYPE_DROPDOWN_FLY_TO = L["Fly To"]
-
 local function Percent(value)
     local windowWidth = 600
     local widthMultiplier = 170
@@ -88,7 +78,7 @@ function Traveler:GetGeneralOptionsTable()
                         self.db.char.chapter = 1
                         if self.db.char.updateJourney then
                             self.db.char.updateJourney = false
-                            Traveler:Print(L["Disabled Update Active Journey option for this character."])
+                            Traveler:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
                         end
                         Traveler:Reset(true)
                     end
@@ -463,16 +453,16 @@ function Traveler:GetAdvancedOptionsTable()
             journeyHeader = {
                 order = 0,
                 type = "header",
-                name = L["Journey Options"]
+                name = L["JOURNEY_OPTIONS"]
             },
             updateJourney = {
                 order = 1,
                 type = "toggle",
-                name = L["Update Active Journey"] .. "*",
-                desc = L["Update active journey with new steps."] .. "\n" .. L["SAVED_PER_CHARACTER"],
+                name = L["UPDATE_ACTIVE_JOURNEY"] .. "*",
+                desc = L["UPDATE_ACTIVE_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(1.0),
                 confirm = true,
-                confirmText = L["Enabling this will modify active journey when playing, proceed?"],
+                confirmText = L["UPDATE_ACTIVE_JOURNEY_CONFIRM"],
                 get = function(info) return self.db.char.updateJourney end,
                 set = function(info, value)
                     if self.db.char.updateJourney ~= value then
@@ -483,13 +473,13 @@ function Traveler:GetAdvancedOptionsTable()
             updateJourneyDesc = {
                 order = 2,
                 type = "description",
-                name = L["Enabling this option will cause new steps to be appended into the active journey chapter. Abandoning a quest will remove all steps of that quest from all chapters. Changing active journey will disable this option."],
+                name = L["UPDATE_ACTIVE_JOURNEY_TEXT"],
                 width = Percent(1.0)
             },
             updateHeader = {
                 order = 10,
                 type = "header",
-                name = L["Update Options"]
+                name = L["UPDATE_OPTIONS"]
             },
             updateFrequency = {
                 order = 11,
@@ -502,7 +492,7 @@ function Traveler:GetAdvancedOptionsTable()
                 bigStep = 0.1,
                 width = Percent(0.5),
                 confirm = true,
-                confirmText = L["Changing this setting requires a UI reload, proceed?"],
+                confirmText = L["UPDATE_FREQUENCY_CONFIRM"],
                 get = function(info) return self.db.profile.advanced.updateFrequency end,
                 set = function(info, value)
                     if self.db.profile.advanced.updateFrequency ~= value then
@@ -514,13 +504,13 @@ function Traveler:GetAdvancedOptionsTable()
             updateFrequencyDesc = {
                 order = 12,
                 type = "description",
-                name = L["This option controls the frequency of update checks. Decreasing the value will cause the addon to periodically check more often if any state or window updates are needed. It is recommended to not change this value."],
+                name = L["UPDATE_FREQUENCY_TEXT"],
                 width = Percent(1.0)
             },
             header = {
                 order = 20,
                 type = "header",
-                name = L["Debugging Options"]
+                name = L["DEBUGGING_OPTIONS"]
             },
             debug = {
                 order = 21,
@@ -539,7 +529,7 @@ function Traveler:GetAdvancedOptionsTable()
             debugDesc = {
                 order = 22,
                 type = "description",
-                name = L["This option controls whether or not debugging information and tools are enabled. This can add a great deal of spam in the console and should not be needed unless debugging the addon."],
+                name = L["ENABLE_DEBUG_TEXT"],
                 width = Percent(1.0)
             }
         }
@@ -565,7 +555,7 @@ function Traveler:GetJourneyEditor()
     title:SetJustifyH("LEFT")
     title:SetJustifyV("TOP")
     title:SetFontSize(16)
-    title:SetText("%s v%s - Journey Editor", addonName, addonVersion)
+    title:SetText("%s v%s - Journeys", addonName, addonVersion)
 
     local journeySelector = self:CreateSelector("Journeys", content)
     journeySelector:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
@@ -874,7 +864,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local journeyTitle = self:CreateEditBoxProperty("FRAME", "JourneyTitle", scrollChild)
     journeyTitle:SetPoint("TOPLEFT")
     journeyTitle:SetPoint("BOTTOMRIGHT", scrollChild, "TOPRIGHT", 0, -40)
-    journeyTitle:SetTitle(L["Journey Title"])
+    journeyTitle:SetTitle(L["JOURNEY_TITLE_LABEL"])
     journeyTitle.OnEnterPressed = function(self)
         local journey = Traveler.editor:GetSelectedJourney()
         if journey then
@@ -888,7 +878,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local journeyIndex = self:CreateEditBoxProperty("FRAME", "JourneyIndex", scrollChild)
     journeyIndex:SetPoint("TOPLEFT", journeyTitle, "BOTTOMLEFT")
     journeyIndex:SetPoint("BOTTOMRIGHT", journeyTitle, "BOTTOMRIGHT", 0, -40)
-    journeyIndex:SetTitle(L["Journey Index"])
+    journeyIndex:SetTitle(L["JOURNEY_INDEX_LABEL"])
     journeyIndex:SetNumeric(true)
     journeyIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
@@ -903,7 +893,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local chapterTitle = self:CreateEditBoxProperty("FRAME", "ChapterTitle", scrollChild)
     chapterTitle:SetPoint("TOPLEFT", journeyIndex, "BOTTOMLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", journeyIndex, "BOTTOMRIGHT", 0, -40)
-    chapterTitle:SetTitle(L["Chapter Title"])
+    chapterTitle:SetTitle(L["CHAPTER_TITLE_LABEL"])
     chapterTitle.OnEnterPressed = function(self)
         local chapter = Traveler.editor:GetSelectedChapter()
         if chapter then
@@ -917,7 +907,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local chapterIndex = self:CreateEditBoxProperty("FRAME", "ChapterIndex", scrollChild)
     chapterIndex:SetPoint("TOPLEFT", chapterTitle, "BOTTOMLEFT")
     chapterIndex:SetPoint("BOTTOMRIGHT", chapterTitle, "BOTTOMRIGHT", 0, -40)
-    chapterIndex:SetTitle(L["Chapter Index"])
+    chapterIndex:SetTitle(L["CHAPTER_INDEX_LABEL"])
     chapterIndex:SetNumeric(true)
     chapterIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
@@ -933,18 +923,18 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local stepType = self:CreateDropDownMenuProperty("FRAME", "StepType", scrollChild)
     stepType:SetPoint("TOPLEFT", chapterIndex, "BOTTOMLEFT")
     stepType:SetPoint("BOTTOMRIGHT", chapterIndex, "BOTTOMRIGHT", 0, -40)
-    stepType:SetTitle(L["Step Type"])
+    stepType:SetTitle(L["STEP_TYPE_LABEL"])
     stepType.GetValues = function(self)
         return {
-            [Traveler.STEP_TYPE_UNDEFINED] = STEP_TYPE_DROPDOWN_UNDEFINED,
-            [Traveler.STEP_TYPE_ACCEPT_QUEST] = STEP_TYPE_DROPDOWN_ACCEPT_QUEST,
-            [Traveler.STEP_TYPE_COMPLETE_QUEST] = STEP_TYPE_DROPDOWN_COMPLETE_QUEST,
-            [Traveler.STEP_TYPE_TURNIN_QUEST] = STEP_TYPE_DROPDOWN_TURNIN_QUEST,
-            [Traveler.STEP_TYPE_REACH_LEVEL] = STEP_TYPE_DROPDOWN_REACH_LEVEL,
-            [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = STEP_TYPE_DROPDOWN_BIND_HEARTHSTONE,
-            [Traveler.STEP_TYPE_USE_HEARTHSTONE] = STEP_TYPE_DROPDOWN_USE_HEARTHSTONE,
-            [Traveler.STEP_TYPE_LEARN_FLIGHT_PATH] = STEP_TYPE_DROPDOWN_LEARN_FLIGHT_PATH,
-            [Traveler.STEP_TYPE_FLY_TO] = STEP_TYPE_DROPDOWN_FLY_TO,
+            [Traveler.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
+            [Traveler.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
+            [Traveler.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
+            [Traveler.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
+            [Traveler.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
+            [Traveler.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
+            [Traveler.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
+            [Traveler.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
+            [Traveler.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
         }
     end
     stepType.GetSorting = function(self)
@@ -974,7 +964,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local stepData = self:CreateEditBoxProperty("FRAME", "StepData", scrollChild)
     stepData:SetPoint("TOPLEFT", stepType, "BOTTOMLEFT")
     stepData:SetPoint("BOTTOMRIGHT", stepType, "BOTTOMRIGHT", 0, -40)
-    stepData:SetTitle(L["Step Data"])
+    stepData:SetTitle(L["STEP_DATA_LABEL"])
     stepData:SetNumeric(true)
     stepData.OnEnterPressed = function(self)
         local step = Traveler.editor:GetSelectedStep()
@@ -992,7 +982,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local stepIndex = self:CreateEditBoxProperty("FRAME", "StepIndex", scrollChild)
     stepIndex:SetPoint("TOPLEFT", stepData, "BOTTOMLEFT")
     stepIndex:SetPoint("BOTTOMRIGHT", stepData, "BOTTOMRIGHT", 0, -40)
-    stepIndex:SetTitle(L["Step Index"])
+    stepIndex:SetTitle(L["STEP_INDEX_LABEL"])
     stepIndex:SetNumeric(true)
     stepIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
@@ -1008,7 +998,7 @@ function Traveler:CreatePropertiesGroup(frameType, name, parent, template, id)
     local stepNote = self:CreateEditBoxProperty("FRAME", "StepNote", scrollChild)
     stepNote:SetPoint("TOPLEFT", stepIndex, "BOTTOMLEFT")
     stepNote:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
-    stepNote:SetTitle(L["Step Note"])
+    stepNote:SetTitle(L["STEP_NOTE_LABEL"])
     stepNote.OnEnterPressed = function(self)
         local step = Traveler.editor:GetSelectedStep()
         if step then

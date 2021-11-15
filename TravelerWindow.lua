@@ -383,9 +383,9 @@ function Window:DisplayStep(step, depth)
         if step.location then
             local prefix
             if step.location.type == "NPC" then
-                prefix = L["Go talk to"]
+                prefix = L["STEP_GO_TALK_TO"]
             elseif step.location.type == "Object" or step.location.type == "Item" then
-                prefix = L["Go to"]
+                prefix = L["STEP_GO_TO"]
             end
             if prefix then
                 self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredHighlightText(step.location.name, step.isComplete))
@@ -400,21 +400,21 @@ function Window:DisplayStep(step, depth)
     else
         -- Display step
         if step.type == Traveler.STEP_TYPE_ACCEPT_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["Accept %s"], self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_ACCEPT_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_COMPLETE_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["Complete %s"], self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_COMPLETE_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_TURNIN_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["Turn-in %s"], self:GetColoredQuestText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TURNIN_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_REACH_LEVEL then
-            self:GetNextLine():SetStepText(step, depth, L["Reach level %s"], self:GetColoredHighlightText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_REACH_LEVEL"], self:GetColoredHighlightText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["Bind %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["Use %s to %s"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_USE_HEARTHSTONE"], self:GetColoredItemText(step, Traveler.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_LEARN_FLIGHT_PATH then
-            self:GetNextLine():SetStepText(step, depth, L["Learn flight path to %s"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
         elseif step.type == Traveler.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, L["Fly to %s"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_FLY_TO"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
         else
             Traveler:Error("Step type %s not implemented.", step.type)
         end
