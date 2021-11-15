@@ -190,7 +190,9 @@ function Window:Initialize()
     journeySelectionButton:SetHeight(22)
     journeySelectionButton:SetText(L["OPEN_OPTIONS"])
     journeySelectionButton:SetScript("OnClick", function()
-        InterfaceOptionsFrame_OpenToCategory(Journeyman.generalOptions)
+        if not InterfaceOptionsFrame:IsShown() then
+            InterfaceOptionsFrame:Show()
+        end
         InterfaceOptionsFrame_OpenToCategory(Journeyman.generalOptions)
     end)
     self.journeySelectionButton = journeySelectionButton
