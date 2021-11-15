@@ -11,6 +11,8 @@ if not L then return end
 -- L["CHAPTER_TITLE_LABEL"] = "Chapter Title"
 -- L["CLAMP_WINDOW"] = "Clamp Window"
 -- L["CLAMP_WINDOW_DESC"] = "Prevent window from moving outside the screen."
+-- L["CREATE_NEW_JOURNEY"] = "Create New Journey"
+-- L["CREATE_NEW_JOURNEY_DESC"] = "Create a new journey, make it active and open it in the journey editor."
 -- L["DEBUGGING_OPTIONS"] = "Debugging Options"
 -- L["DELETE_CHAPTER"] = "Delete Chapter"
 -- L["DELETE_JOURNEY"] = "Delete Journey"

@@ -52,6 +52,9 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SELECT_JOURNEY"] .. "*",
                 desc = L["SELECT_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
+                disabled = function()
+                    return #self.journeys <= 0
+                end,
                 values = function(info)
                     local values = {}
                     if self.journeys then
@@ -85,11 +88,26 @@ function Journeyman:GetGeneralOptionsTable()
                 end,
                 get = function(info) return self.db.char.journey end
             },
-            reserved1 = {
+            createNewJourney = {
                 order = 2,
-                type = "description",
-                name = "",
-                width = Percent(0.5)
+                type = "execute",
+                name = L["CREATE_NEW_JOURNEY"],
+                desc = L["CREATE_NEW_JOURNEY_DESC"],
+                width = Percent(0.5),
+                func = function()
+                    local journey = Journeyman.Journey:CreateJourney()
+                    if journey then
+                        local chapter = Journeyman.Journey:CreateChapter(journey)
+                        if chapter then
+                            InterfaceOptionsFrame_OpenToCategory(Journeyman.editor)
+                            Journeyman.editor.journeySelector.list.selectedIndex = #Journeyman.journeys
+                            Journeyman.editor.chapterSelector.list.selectedIndex = #journey.chapters
+                            Journeyman.editor.refresh()
+                            Journeyman.db.char.journey = journey.guid
+                            Journeyman:Reset(true)
+                        end
+                    end
+                end
             },
             autoSetWaypoint = {
                 order = 3,
