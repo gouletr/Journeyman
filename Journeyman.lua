@@ -198,11 +198,15 @@ function Journeyman:GetAreaName(areaId)
     end
 end
 
-function Journeyman:GetAreaParentAreaId(areaId)
+function Journeyman:GetAreaParentId(areaId)
     if areaId and type(areaId) == "number" then
         local info = L.areaTable[areaId]
         if info then
-            return info.ParentAreaID
+            if info.ParentAreaID ~= 0 then
+                return info.ParentAreaID
+            else
+                return areaId
+            end
         end
     end
 end

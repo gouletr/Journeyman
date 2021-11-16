@@ -153,6 +153,8 @@ function State:UpdateImmediate()
                         doable = doable and Journeyman.DataSource:IsQuestAvailable(step.data)
                         doable = doable and Journeyman.DataSource:GetQuestHasRequiredRace(step.data)
                         doable = doable and Journeyman.DataSource:GetQuestHasRequiredClass(step.data)
+                    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+                        doable = doable and Journeyman.DataSource:GetNearestInnkeeperLocation(step.data) ~= nil
                     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
                         doable = doable and Journeyman:IsTaxiNodeAvailable(step.data)
                     end
@@ -378,7 +380,7 @@ function State:GetStepLocation(step, neededObjectivesOnly)
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
         return nil
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-        return Journeyman.DataSource:GetNearestInnkeeper(step.data)
+        return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data)
     elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then

@@ -420,13 +420,15 @@ function DataSourceQuestie:IsQuestNPCDrop(questId)
     return false
 end
 
-function DataSourceQuestie:GetNearestInnkeeper(areaId)
+function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
     if npcs == nil then return nil end
 
     local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-    local parentAreaId = Journeyman:GetAreaParentAreaId(areaId)
-    return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId }, parentAreaId)
+    local parentAreaId = Journeyman:GetAreaParentId(areaId)
+    if parentAreaId then
+        return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId }, parentAreaId)
+    end
 end
 
 function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
