@@ -193,7 +193,7 @@ function Window:Initialize()
         if not InterfaceOptionsFrame:IsShown() then
             InterfaceOptionsFrame:Show()
         end
-        InterfaceOptionsFrame_OpenToCategory(Journeyman.generalOptions)
+        InterfaceOptionsFrame_OpenToCategory(Journeyman.generalPanel)
     end)
     self.journeySelectionButton = journeySelectionButton
 

@@ -7,7 +7,7 @@ Journeyman.Editor = Editor
 
 function Editor:Initialize()
     local frame = CreateFrame("FRAME", "Editor", UIParent)
-    frame.name = "Journeys"
+    frame.name = "Editor"
     frame.parent = addonName
     frame.refresh = function() Journeyman.Editor:Refresh() end
     frame:Hide()
@@ -26,7 +26,7 @@ function Editor:Initialize()
     title:SetJustifyH("LEFT")
     title:SetJustifyV("TOP")
     title:SetFontSize(16)
-    title:SetText("%s v%s - Journeys", addonName, addonVersion)
+    title:SetText("%s v%s - %s", addonName, addonVersion, frame.name)
     self.title = title
 
     local journeySelector = self:CreateSelector("Journeys", content)

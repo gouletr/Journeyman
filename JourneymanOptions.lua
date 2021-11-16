@@ -13,10 +13,10 @@ function Journeyman:InitializeOptions()
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable(), addonName)
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
-    self.generalOptions = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
-    self.journeysOptions = self:GetJourneysOptionsTable()
-    self.advancedOptions = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
-    self.profileOptions = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
+    self.generalPanel = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
+    self.editorPanel = self:GetEditorPanel()
+    self.advancedPanel = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
+    self.profilePanel = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
 function Journeyman:GetOptionsTable()
@@ -425,13 +425,6 @@ function Journeyman:GetGeneralOptionsTable()
     }
 end
 
-function Journeyman:GetJourneysOptionsTable()
-    xpcall(function()
-        InterfaceOptions_AddCategory(Journeyman.Editor.frame)
-        return Journeyman.Editor.frame
-    end, geterrorhandler())
-end
-
 function Journeyman:GetAdvancedOptionsTable()
     return {
         name = "Advanced",
@@ -521,4 +514,11 @@ function Journeyman:GetAdvancedOptionsTable()
             }
         }
     }
+end
+
+function Journeyman:GetEditorPanel()
+    xpcall(function()
+        InterfaceOptions_AddCategory(Journeyman.Editor.frame)
+        return Journeyman.Editor.frame
+    end, geterrorhandler())
 end
