@@ -226,6 +226,33 @@ function Editor:Initialize()
     end)
     self.deleteChapterButton = deleteChapterButton
 
+    local copyChapterButton = CreateFrame("BUTTON", "CopyChapter", content, "UIPanelButtonTemplate")
+    copyChapterButton:SetPoint("TOPLEFT", newChapterButton, "BOTTOMLEFT")
+    copyChapterButton:SetPoint("BOTTOMRIGHT", newChapterButton, "BOTTOMRIGHT", 0, -22)
+    copyChapterButton:SetText(L["COPY_CHAPTER"])
+    copyChapterButton:SetScript("OnClick", function(self, button, down)
+        Journeyman.Editor.clipBoard = {
+            type = "Chapter",
+            data = Journeyman.Editor:GetSelectedChapter()
+        }
+    end)
+    self.copyChapterButton = copyChapterButton
+
+    local pasteChapterButton = CreateFrame("BUTTON", "PasteChapter", content, "UIPanelButtonTemplate")
+    pasteChapterButton:SetPoint("TOPLEFT", deleteChapterButton, "BOTTOMLEFT")
+    pasteChapterButton:SetPoint("BOTTOMRIGHT", deleteChapterButton, "BOTTOMRIGHT", 0, -22)
+    pasteChapterButton:SetText(L["PASTE_CHAPTER"])
+    pasteChapterButton:SetScript("OnClick", function(self, button, down)
+        local journey = Journeyman.Editor:GetSelectedJourney()
+        if journey and Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data then
+            local chapter = Journeyman.Utils:Clone(Journeyman.Editor.clipBoard.data)
+            tinsert(journey.chapters, chapter)
+            Journeyman.Editor:SetSelectedChapterIndex(#journey.chapters)
+            Journeyman.Editor:Refresh()
+        end
+    end)
+    self.pasteChapterButton = pasteChapterButton
+
     local stepSelector = self:CreateSelector("Steps", content)
     stepSelector:SetPoint("TOPLEFT", importJourneyButton, "BOTTOMLEFT", 0, -15)
     stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
@@ -329,7 +356,7 @@ function Editor:Initialize()
     self.deleteStepButton = deleteStepButton
 
     local propertiesGroup = self:CreatePropertiesGroup("FRAME", "Properties", content)
-    propertiesGroup:SetPoint("TOPLEFT", newChapterButton, "BOTTOMLEFT", 0, -15 - 22)
+    propertiesGroup:SetPoint("TOPLEFT", copyChapterButton, "BOTTOMLEFT", 0, -15)
     propertiesGroup:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT")
     self.propertiesGroup = propertiesGroup
 
@@ -352,6 +379,8 @@ function Editor:Initialize()
             self.exportJourneyButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
             self.newChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
             self.deleteChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
+            self.copyChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
+            self.pasteChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0 and Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data)
             self.newStepButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
             self.deleteStepButton:SetEnabled(self:GetSelectedStepIndex() > 0)
         end, geterrorhandler())
