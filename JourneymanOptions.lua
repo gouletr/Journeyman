@@ -96,7 +96,8 @@ function Journeyman:GetGeneralOptionsTable()
                         if chapter then
                             InterfaceOptionsFrame_OpenToCategory(Journeyman.Editor.frame)
                             Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
-                            Journeyman.Editor:SetSelectedChapterIndex(#journey.chapters)
+                            Journeyman.Editor:SetSelectedChapterIndex(1)
+                            Journeyman.Editor:SetSelectedStepIndex(-1)
                             Journeyman.Editor:Refresh()
                             Journeyman.db.char.journey = journey.guid
                             Journeyman:Reset(true)

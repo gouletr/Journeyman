@@ -5,6 +5,10 @@ local L = addon.Locale
 local Editor = {}
 Journeyman.Editor = Editor
 
+local AceGUI = LibStub("AceGUI-3.0")
+
+local tinsert = table.insert
+
 function Editor:Initialize()
     local frame = CreateFrame("FRAME", "Editor", UIParent)
     frame.name = "Editor"
@@ -106,6 +110,81 @@ function Editor:Initialize()
     end)
     self.deleteJourneyButton = deleteJourneyButton
 
+    local importJourneyButton = CreateFrame("BUTTON", "ImportJourney", content, "UIPanelButtonTemplate")
+    importJourneyButton:SetPoint("TOPLEFT", newJourneyButton, "BOTTOMLEFT")
+    importJourneyButton:SetPoint("BOTTOMRIGHT", newJourneyButton, "BOTTOMRIGHT", 0, -22)
+    importJourneyButton:SetText(L["IMPORT_JOURNEY"])
+    importJourneyButton:SetScript("OnClick", function(self, button, down)
+        local window = AceGUI:Create("Frame")
+        window:SetTitle(L["IMPORT_JOURNEY"])
+        window:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+        window:SetLayout("Fill")
+
+        local editBox = AceGUI:Create("MultiLineEditBox")
+        editBox:SetCallback("OnTextChanged", function(widget, event, text)
+            local journey, status
+            local trimmed = strtrim(text)
+            if trimmed then
+                local bom = strsub(trimmed, 1, Journeyman.BYTE_ORDER_MARK:len())
+                if bom and bom == Journeyman.BYTE_ORDER_MARK then
+                    local serialized = strsub(trimmed, Journeyman.BYTE_ORDER_MARK:len() + 1)
+                    if serialized and serialized:len() > 0 then
+                        journey, status = Journeyman:ImportJourney(serialized)
+                    end
+                end
+            end
+
+            if journey then
+                tinsert(Journeyman.journeys, journey)
+                window:Hide()
+                Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+                Journeyman.Editor:SetSelectedChapterIndex(1)
+                Journeyman.Editor:SetSelectedStepIndex(-1)
+                Journeyman.Editor:Refresh()
+            else
+                if status == nil then
+                    status = L["INVALID_JOURNEY"]
+                end
+                window:SetStatusText(status)
+                widget:SetText(trimmed)
+            end
+        end)
+        editBox:DisableButton(true)
+        editBox:SetFocus()
+        editBox.label:SetText(L["PASTE_TEXT_BELOW"])
+        window:AddChild(editBox)
+    end)
+    self.importJourneyButton = importJourneyButton
+
+    local exportJourneyButton = CreateFrame("BUTTON", "ExportJourney", content, "UIPanelButtonTemplate")
+    exportJourneyButton:SetPoint("TOPLEFT", deleteJourneyButton, "BOTTOMLEFT")
+    exportJourneyButton:SetPoint("BOTTOMRIGHT", deleteJourneyButton, "BOTTOMRIGHT", 0, -22)
+    exportJourneyButton:SetText(L["EXPORT_JOURNEY"])
+    exportJourneyButton:SetScript("OnClick", function(self, button, down)
+        local window = AceGUI:Create("Frame")
+        window:SetTitle(L["EXPORT_JOURNEY"])
+        window:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+        window:SetLayout("Fill")
+
+        local editBox = AceGUI:Create("MultiLineEditBox")
+        editBox:DisableButton(true)
+        editBox:SetFocus()
+        editBox.label:SetText(L["COPY_TEXT_BELOW"])
+        window:AddChild(editBox)
+
+        local journey = Journeyman.Editor:GetSelectedJourney()
+        if journey then
+            local serialized, status = Journeyman:ExportJourney(journey)
+            if serialized then
+                editBox:SetText(Journeyman.BYTE_ORDER_MARK .. serialized)
+                editBox:HighlightText()
+            else
+                window:SetStatusText(status)
+            end
+        end
+    end)
+    self.exportJourneyButton = exportJourneyButton
+
     local newChapterButton = CreateFrame("BUTTON", "NewChapter", content, "UIPanelButtonTemplate")
     newChapterButton:SetPoint("TOPLEFT", chapterSelector, "BOTTOMLEFT")
     newChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOM", 0, -22)
@@ -148,7 +227,7 @@ function Editor:Initialize()
     self.deleteChapterButton = deleteChapterButton
 
     local stepSelector = self:CreateSelector("Steps", content)
-    stepSelector:SetPoint("TOPLEFT", newJourneyButton, "BOTTOMLEFT", 0, -15)
+    stepSelector:SetPoint("TOPLEFT", importJourneyButton, "BOTTOMLEFT", 0, -15)
     stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
     stepSelector:SetTitle(L["SELECT_STEP"])
     stepSelector.list.GetValues = function(self)
@@ -250,7 +329,7 @@ function Editor:Initialize()
     self.deleteStepButton = deleteStepButton
 
     local propertiesGroup = self:CreatePropertiesGroup("FRAME", "Properties", content)
-    propertiesGroup:SetPoint("TOPLEFT", newChapterButton, "BOTTOMLEFT", 0, -15)
+    propertiesGroup:SetPoint("TOPLEFT", newChapterButton, "BOTTOMLEFT", 0, -15 - 22)
     propertiesGroup:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT")
     self.propertiesGroup = propertiesGroup
 
@@ -269,11 +348,12 @@ function Editor:Initialize()
             self.chapterSelector:Refresh()
             self.stepSelector:Refresh()
             self.propertiesGroup:Refresh()
-            self.deleteJourneyButton:SetEnabled(self:GetSelectedJourneyIndex() ~= -1)
-            self.newChapterButton:SetEnabled(self:GetSelectedJourneyIndex() ~= -1)
-            self.deleteChapterButton:SetEnabled(self:GetSelectedChapterIndex() ~= -1)
-            self.newStepButton:SetEnabled(self:GetSelectedChapterIndex() ~= -1)
-            self.deleteStepButton:SetEnabled(self:GetSelectedStepIndex() ~= -1)
+            self.deleteJourneyButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
+            self.exportJourneyButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
+            self.newChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
+            self.deleteChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
+            self.newStepButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
+            self.deleteStepButton:SetEnabled(self:GetSelectedStepIndex() > 0)
         end, geterrorhandler())
     end
 end

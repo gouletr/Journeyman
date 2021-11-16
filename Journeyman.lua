@@ -5,6 +5,7 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+Journeyman.BYTE_ORDER_MARK = "!JM1"
 Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Journeyman.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"

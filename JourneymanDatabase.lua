@@ -170,15 +170,17 @@ function Journeyman:ExportJourney(deserializedJourney)
     end
 
     local result, serializedJourney = self:Serialize(journey)
-    if result then
-        return serializedJourney
+    if not result then
+        return nil, serializedJourney
     end
+
+    return serializedJourney
 end
 
 function Journeyman:ImportJourney(serializedJourney)
     local result, deserializedJourney = self:Deserialize(serializedJourney)
-    if not result or deserializedJourney == nil then
-        return nil
+    if not result then
+        return nil, deserializedJourney
     end
 
     local journey = { chapters = {} }
@@ -319,20 +321,17 @@ end
 function Journeyman:Serialize(...)
     local serialized = LibAceSerializer:Serialize(...)
     if serialized == nil then
-        self:Error("Failed to serialize.")
-        return false
+        return false, "Failed to serialize."
     end
 
     local compressed = LibDeflate:CompressDeflate(serialized)
     if compressed == nil then
-        self:Error("Failed to compress.")
-        return false
+        return false, "Failed to compress."
     end
 
     local encoded = LibDeflate:EncodeForPrint(compressed)
     if encoded == nil then
-        self:Error("Failed to encode.")
-        return false
+        return false, "Failed to encode."
     end
 
     return true, encoded
@@ -341,20 +340,17 @@ end
 function Journeyman:Deserialize(str)
     local decoded = LibDeflate:DecodeForPrint(str)
     if decoded == nil then
-        self:Error("Failed to decode string.")
-        return false
+        return false, "Failed to decode string."
     end
 
     local decompressed, extraBytes = LibDeflate:DecompressDeflate(decoded)
     if decompressed == nil or extraBytes > 0 then
-        self:Error("Failed to decompress ("..extraBytes.." extra bytes).")
-        return false
+        return false, "Failed to decompress ("..extraBytes.." extra bytes)."
     end
 
     local result, deserialized = LibAceSerializer:Deserialize(decompressed)
     if result == false then
-        self:Error("Failed to deserialize.")
-        return false
+        return false, "Failed to deserialize."
     end
 
     return result, deserialized
