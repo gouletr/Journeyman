@@ -30,6 +30,7 @@ end
 
 function Journeyman:OnInitialize()
     self:InitializeDatabase()
+    self.Editor:Initialize()
     self:InitializeOptions()
     self.State:Initialize()
     self:InitializeHooks()
@@ -43,6 +44,7 @@ function Journeyman:OnEnable()
 end
 
 function Journeyman:OnDisable()
+    self.Editor:Shutdown()
     self.Window:Shutdown()
     self:ShutdownEvents()
     self.State:Shutdown()
