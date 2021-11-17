@@ -2,7 +2,7 @@
 ## Title: Journeyman
 ## Author: Robert Goulet
 ## Notes: Provides step by step instructions for leveling and glory.
-## Version: 0.3.0
+## Version: 0.4.0
 ## Dependencies: Questie
 ## OptionalDeps: TomTom
 ## SavedVariables: JourneymanDatabase
