@@ -191,11 +191,10 @@ function State:UpdateImmediate()
     self.stepShownCount = 0
     for i = 1, #self.steps do
         local step = self.steps[i]
-        if Journeyman:IsStepTypeQuest(step) then
-            -- Quest steps isComplete can regress (e.g. when abandoning or failing), always reset it
+        -- Quest steps isComplete can regress (e.g. when abandoning or failing), always reset it
+        if step.isComplete == nil or Journeyman:IsStepTypeQuest(step) then
             step.isComplete = IsStepComplete(step)
-        else
-            -- Other steps isComplete cannot regress, set it if not already set
+        else -- Other steps isComplete cannot regress, set it if not already set
             step.isComplete = step.isComplete or IsStepComplete(step)
         end
         step.isShown = IsStepShown(step)
