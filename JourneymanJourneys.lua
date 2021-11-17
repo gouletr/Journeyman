@@ -276,6 +276,6 @@ function Journey:OnTakeFlightPath(taxiNodeId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, taxiNodeId)
+        AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, taxiNodeId, true)
     end
 end
