@@ -187,6 +187,13 @@ function Journeyman:ImportJourney(serializedJourney)
 
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
+        -- Make sure guids are unique
+        for i = 1, #Journeyman.journeys do
+            if journey.guid == Journeyman.journeys[i].guid then
+                journey.guid = Journeyman.Utils:CreateGUID()
+                break
+            end
+        end
     else
         journey.guid = Journeyman.Utils:CreateGUID()
     end
