@@ -16,7 +16,6 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
         Journeyman.worldLoaded = false
-        Journeyman:OnDisable()
         self:SerializeDatabase()
     end)
 
