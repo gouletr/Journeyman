@@ -196,15 +196,15 @@ function Window:Initialize()
         InterfaceOptionsFrame_OpenToCategory(Journeyman.generalPanel)
     end)
     self.journeySelectionButton = journeySelectionButton
-
-    -- Install update ticker
-    self.ticker = C_Timer.NewTicker(Journeyman.db.profile.advanced.updateFrequency, function()
-        if self.needUpdate then self:UpdateImmediate() end
-    end)
 end
 
 function Window:Shutdown()
-    self.ticker:Cancel()
+end
+
+function Window:CheckForUpdate()
+    if self.needUpdate then
+        self:UpdateImmediate()
+    end
 end
 
 function Window:Update(immediate)

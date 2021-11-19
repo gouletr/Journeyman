@@ -76,11 +76,6 @@ local function IsStepComplete(step)
 end
 
 local function IsStepShown(step)
-    -- Optimization: early exit if shown step count is reached
-    if Journeyman.db.profile.window.stepsShown > 0 and State.stepShownCount >= Journeyman.db.profile.window.stepsShown then
-        return false
-    end
-
     -- Check if step is completed, or if we show completed steps
     local showStep = not step.isComplete or Journeyman.db.profile.window.showCompletedSteps
 
@@ -102,32 +97,38 @@ local function FindStep(type, data)
         for i = 1, #State.steps do
             local step = State.steps[i]
             if step.type == type and step.data == data then
-                return step
+                -- If step type is not unique, check if it has complete override
+                if step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_FLY_TO then
+                    if not step.isCompleteOverride then
+                        return step
+                    end
+                else
+                    return step
+                end
             end
         end
     end
 end
 
 function State:Initialize()
-    self.ticker = C_Timer.NewTicker(Journeyman.db.profile.advanced.updateFrequency, function()
-        if self.needUpdate then self:UpdateImmediate() end
-    end)
 end
 
 function State:Shutdown()
-    self.ticker:Cancel()
 end
 
-function State:Reset(immediate, postUpdateCallback)
-    self.steps = nil
-    self:Update(immediate, postUpdateCallback)
-end
-
-function State:Update(immediate, postUpdateCallback)
-    self.needUpdate = true
-    if self.postUpdateCallback == nil and postUpdateCallback then
-        self.postUpdateCallback = postUpdateCallback
+function State:CheckForUpdate()
+    if self.needUpdate then
+        self:UpdateImmediate()
     end
+end
+
+function State:Reset(immediate)
+    self.steps = nil
+    self:Update(immediate)
+end
+
+function State:Update(immediate)
+    self.needUpdate = true
     if immediate then
         self:UpdateImmediate()
     end
@@ -163,6 +164,9 @@ function State:UpdateImmediate()
                     if doable then
                         self.steps[index] = Journeyman.Utils:Clone(step)
                         self.steps[index].index = index
+                        self.steps[index].isCompleteOverride = false
+                        self.steps[index].isComplete = false
+                        self.steps[index].isShown = true
                         index = index + 1
                     end
                 end
@@ -188,18 +192,29 @@ function State:UpdateImmediate()
     end
 
     -- Update steps state
-    self.stepShownCount = 0
-    for i = 1, #self.steps do
-        local step = self.steps[i]
-        -- Quest steps isComplete can regress (e.g. when abandoning or failing), always reset it
-        if step.isComplete == nil or Journeyman:IsStepTypeQuest(step) then
-            step.isComplete = IsStepComplete(step)
-        else -- Other steps isComplete cannot regress, set it if not already set
-            step.isComplete = step.isComplete or IsStepComplete(step)
-        end
-        step.isShown = IsStepShown(step)
-        if not step.isComplete and step.isShown then
-            self.stepShownCount = self.stepShownCount + 1
+    local stepShownCount = 0
+    if self.steps then
+        for i = 1, #self.steps do
+            local step = self.steps[i]
+
+            -- Check if step is completed
+            if step.isCompleteOverride then
+                step.isComplete = true
+            else
+                step.isComplete = IsStepComplete(step)
+            end
+
+            -- Check if step is shown
+            if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
+                step.isShown = false
+            else
+                step.isShown = IsStepShown(step)
+            end
+
+            -- Count shown steps
+            if not step.isComplete and step.isShown then
+                stepShownCount = stepShownCount + 1
+            end
         end
     end
     self.needUpdate = false
@@ -209,153 +224,95 @@ function State:UpdateImmediate()
         Journeyman:Debug("State update took %.2fms", elapsed)
     end
 
-    -- Run post update callback
-    if self.postUpdateCallback and type(self.postUpdateCallback) == "function" then
-        self.postUpdateCallback()
-        self.postUpdateCallback = nil
-    end
-
-    -- Things to update only if window is shown
-    if not self.needUpdate and Journeyman.db.char.window.show then
-        -- Update window
+    -- Update window immediate
+    if Journeyman.db.char.window.show then
         Journeyman.Window:UpdateImmediate()
-
-        -- Update waypoint arrow
-        if Journeyman.waypointNeedUpdate then
-            if Journeyman.db.profile.autoSetWaypoint and not UnitOnTaxi("player") then
-                Journeyman:SetWaypoint(self:GetCurrentStep(), false, true)
-            end
-            Journeyman.waypointNeedUpdate = false
-        end
-
-        -- Update targeting macro
-        if Journeyman.macroNeedUpdate then
-            Journeyman:SetMacro()
-        end
     end
 end
 
 function State:OnQuestAccepted(questId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_ACCEPT_QUEST, questId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_ACCEPT_QUEST, questId)
 end
 
 function State:OnQuestCompleted(questId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_COMPLETE_QUEST, questId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_COMPLETE_QUEST, questId)
 end
 
 function State:OnQuestTurnedIn(questId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_TURNIN_QUEST, questId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_TURNIN_QUEST, questId)
 end
 
 function State:OnQuestAbandoned(questId)
-    self:Update()
+    -- Reset isCompleteOverride for all steps related to this quest
+    if self.steps then
+        for i = 1, #self.steps do
+            local step = self.steps[i]
+            if step and Journeyman:IsStepTypeQuest(step) and step.data == questId then
+                step.isCompleteOverride = false
+            end
+        end
+    end
+
+    -- Update everything on next update
+    Journeyman:UpdateWaypoint()
+    Journeyman:UpdateMacro()
+    Journeyman:Update()
 end
 
 function State:OnLevelUp(level)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_REACH_LEVEL, level)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_REACH_LEVEL, level)
 end
 
 function State:OnHearthstoneBound(areaId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, areaId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, areaId)
 end
 
 function State:OnHearthstoneUsed(areaId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_USE_HEARTHSTONE, areaId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_USE_HEARTHSTONE, areaId)
 end
 
 function State:OnLearnFlightPath(taxiNodeId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, taxiNodeId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, taxiNodeId)
 end
 
 function State:OnTakeFlightPath(taxiNodeId)
-    self:Update(false, function()
-        local step = FindStep(Journeyman.STEP_TYPE_FLY_TO, taxiNodeId)
-        if step then
-            step.isComplete = true
-            step.isShown = IsStepShown(step)
-            self:OnStepComplete()
-        end
-    end)
+    self:OnStepCompleted(Journeyman.STEP_TYPE_FLY_TO, taxiNodeId)
 end
 
-function State:OnStepComplete()
-    Journeyman:UpdateMacro()
-    Journeyman:UpdateWaypoint()
+function State:OnStepCompleted(type, data)
+    local step = FindStep(type, data)
+    if step == nil then return end
 
-    -- Check if chapter is complete
-    local currentStep = self:GetCurrentStep()
-    if currentStep == nil and #self.steps > 0 then
-        local isChapterComplete = true
+    -- Mark step as completed
+    step.isCompleteOverride = true
+    step.isComplete = true
+    step.isShown = false
+
+    if self:IsChapterComplete() then
+        -- Advance chapter and reset state
+        local journey = Journeyman.Journey:GetActiveJourney()
+        if journey then
+            Journeyman.Journey:AdvanceChapter(journey)
+            self:Reset()
+        end
+    else
+        -- Update everything on next update
+        Journeyman:UpdateWaypoint()
+        Journeyman:UpdateMacro()
+        Journeyman:Update()
+    end
+end
+
+function State:IsChapterComplete()
+    if self.steps and #self.steps > 0 then
         for i = 1, #self.steps do
-            local step = self.steps[i]
-            if not step.isComplete then
-                isChapterComplete = false
-                break
+            if not self.steps[i].isComplete then
+                return false
             end
         end
-        if isChapterComplete then
-            self:OnChapterComplete()
-        else
-            self:Update()
-        end
+        return true
     end
-end
-
-function State:OnChapterComplete()
-    local journey = Journeyman.Journey:GetActiveJourney()
-    if journey then
-        Journeyman.Journey:AdvanceChapter(journey)
-        self:Reset()
-    end
+    return false
 end
 
 function State:GetCurrentStep()

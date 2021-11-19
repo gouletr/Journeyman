@@ -42,6 +42,27 @@ end
 
 function Journeyman:OnEnable()
     self:Reset()
+
+    -- Install update ticker
+    local updateFrequency = min(max(Journeyman.db.profile.advanced.updateFrequency, 0.1), 5)
+    self.updateTicker = C_Timer.NewTicker(updateFrequency, function()
+        -- Check for state and window update
+        self.State:CheckForUpdate()
+        self.Window:CheckForUpdate()
+
+        -- Check for waypoint update
+        if self.waypointNeedUpdate then
+            if self.db.profile.autoSetWaypoint and not UnitOnTaxi("player") then
+                self:SetWaypoint(self.State:GetCurrentStep(), false, true)
+            end
+            self.waypointNeedUpdate = false
+        end
+
+        -- Check for macro update
+        if self.macroNeedUpdate then
+            self:SetMacro()
+        end
+    end)
 end
 
 function Journeyman:OnDisable()

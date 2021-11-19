@@ -19,12 +19,6 @@ function Journeyman:InitializeEvents()
         self:SerializeDatabase()
     end)
 
-    self:RegisterEvent("PLAYER_REGEN_ENABLED", function(event)
-        if Journeyman.macroNeedUpdate then
-            Journeyman:SetMacro()
-        end
-    end)
-
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId)
         self:OnQuestAccepted(questId)
     end)
