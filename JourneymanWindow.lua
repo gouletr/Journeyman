@@ -455,8 +455,14 @@ function Window:GetNextLine()
             self:SetWidth(Window.scrollChild:GetWidth() - (Journeyman.db.profile.window.fontSize * depth))
             self:SetHeight((Journeyman.db.profile.window.fontSize * self:GetNumLines()) + Journeyman.db.profile.window.lineSpacing)
             self:SetScript("OnClick", function(self, button)
-                if button == "LeftButton" and IsControlKeyDown() then
-                    Journeyman:SetWaypoint(step, true, true)
+                if button == "LeftButton" then
+                    if not IsModifierKeyDown() then
+                        if Journeyman:IsStepTypeQuest(step) then
+                            Window:ShowQuestLog(step.data)
+                        end
+                    elseif IsControlKeyDown() then
+                        Journeyman:SetWaypoint(step, true, true)
+                    end
                 end
             end)
             self:Show()
@@ -535,4 +541,45 @@ function Window:GetColoredItemText(step, itemId)
         end
     end
     return "item:" .. itemId
+end
+
+function Window:ShowQuestLog(questId)
+    if Journeyman.State:IsQuestInQuestLog(questId) then
+        local questLogIndex
+        if C_QuestLog.GetLogIndexForQuestID then
+            questLogIndex = C_QuestLog.GetLogIndexForQuestID(questId)
+        else
+            questLogIndex = GetQuestLogIndexByID(questId)
+        end
+
+        if questLogIndex then
+            if C_QuestLog.SetSelectedQuest then
+                C_QuestLog.SetSelectedQuest(questLogIndex)
+            else
+                SelectQuestLogEntry(questLogIndex)
+            end
+
+            -- Scroll to the quest in the quest log
+            local scrollSteps = QuestLogListScrollFrame.ScrollBar:GetValueStep()
+            QuestLogListScrollFrame.ScrollBar:SetValue(questLogIndex * scrollSteps - scrollSteps * 3)
+        end
+
+        -- Priority order first check if addon exist otherwise default to original
+        local questFrame = QuestLogExFrame or ClassicQuestLog or QuestLogFrame
+        if questFrame then
+            if not questFrame:IsShown() then
+                if not InCombatLockdown() then
+                    ShowUIPanel(questFrame)
+                    if QuestLogEx then
+                        QuestLogEx:Maximize()
+                    end
+                end
+            end
+        end
+
+        QuestLog_UpdateQuestDetails()
+        QuestLog_Update()
+    else
+        
+    end
 end
