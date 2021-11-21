@@ -94,6 +94,11 @@ function Journeyman:UpdateMacro()
     self.macroNeedUpdate = true
 end
 
+Journeyman._Print = Journeyman.Print
+Journeyman.Print = function(self, fmt, ...)
+    Journeyman._Print(self, string.format(fmt, ...))
+end
+
 function Journeyman:Debug(fmt, ...)
     if self.db.profile.advanced.debug then
         self:Print("[DEBUG] " .. string.format(fmt, ...))

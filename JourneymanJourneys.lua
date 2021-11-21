@@ -189,7 +189,7 @@ local function AddStep(chapter, type, data, force)
         if chapter and (force or not Journey:ContainsStep(chapter, type, data)) then
             local step = Journey:CreateStep(chapter, type, data)
             if step then
-                Journeyman:Debug("Added step '%s' to chapter '%s'", Journeyman:GetStepText(step, true, true), chapter.title)
+                Journeyman:Print("Step %s added.", Journeyman:GetStepText(step, true, true))
             end
         end
     end
