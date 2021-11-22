@@ -420,6 +420,27 @@ function DataSourceQuestie:IsQuestNPCDrop(questId)
     return false
 end
 
+function DataSourceQuestie:GetAllInnkeeperZones()
+    local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
+    if npcs == nil then return nil end
+
+    local zones = {}
+    for i = 1, #npcs do
+        local npcId = npcs[i]
+        if npcId then
+            local npc = QuestieDB:GetNPC(npcId)
+            if npc and npc.spawns then
+                for zone, _ in pairs(npc.spawns) do
+                    if zone then
+                        zones[zone] = true
+                    end
+                end
+            end
+        end
+    end
+    return zones
+end
+
 function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
     if npcs == nil then return nil end

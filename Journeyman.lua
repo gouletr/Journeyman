@@ -210,14 +210,23 @@ function Journeyman:GetMapName()
     end
 end
 
-function Journeyman:GetAreaIdFromLocalizedName(name)
-    if self.areaNameToAreaId == nil then
-        self.areaNameToAreaId = {}
-        for k, v in pairs(L.areaTable) do
-            self.areaNameToAreaId[v.AreaName_lang] = k
+function Journeyman:GetAreaIdFromBindLocationLocalizedName(name)
+    if self.bindLocationNameToAreaId == nil then
+        self.bindLocationNameToAreaId = {}
+        local innkeeperZones = self.DataSource:GetAllInnkeeperZones()
+        if innkeeperZones then
+            for k, v in pairs(L.areaTable) do
+                if innkeeperZones[k] or innkeeperZones[v.ParentAreaID] then
+                    if self.bindLocationNameToAreaId[v.AreaName_lang] == nil then
+                        self.bindLocationNameToAreaId[v.AreaName_lang] = k
+                    else
+                        --Journeyman:Debug("bindLocationNameToAreaId table already contains key pair ('%s', %d), when trying to add ('%s', %d)", v.AreaName_lang, self.bindLocationNameToAreaId[v.AreaName_lang], v.AreaName_lang, k)
+                    end
+                end
+            end
         end
     end
-    return self.areaNameToAreaId[name]
+    return self.bindLocationNameToAreaId[name]
 end
 
 function Journeyman:GetAreaName(areaId)

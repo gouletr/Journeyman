@@ -50,11 +50,11 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
-        local areaId = Journeyman:GetAreaIdFromLocalizedName(location)
+        local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(location)
         if areaId then
             self.bindAreaId = areaId
         else
-            Journeyman:Error("Could not find areaId for location name '%s'.", location)
+            Journeyman:Error("Could not find areaId for bind location name '%s'.", location)
         end
     end)
 
@@ -67,11 +67,11 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellID)
         if spellID == Journeyman.SPELL_HEARTHSTONE or spellID == Journeyman.SPELL_ASTRAL_RECALL then
-            local areaId = Journeyman:GetAreaIdFromLocalizedName(GetBindLocation())
+            local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(GetBindLocation())
             if areaId then
                 self:OnHearthstoneUsed(areaId)
             else
-                Journeyman:Error("Could not find areaId for location name '%s'.", location)
+                Journeyman:Error("Could not find areaId for bind location name '%s'.", location)
             end
         end
     end)
