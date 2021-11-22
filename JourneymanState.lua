@@ -306,8 +306,11 @@ end
 function State:IsChapterComplete()
     if self.steps and #self.steps > 0 then
         for i = 1, #self.steps do
-            if not self.steps[i].isComplete then
-                return false
+            local step = self.steps[i]
+            if step then
+                if not step.isComplete and step.isShown then
+                    return false
+                end
             end
         end
         return true
@@ -319,8 +322,10 @@ function State:GetCurrentStep()
     if self.steps then
         for i = 1, #self.steps do
             local step = self.steps[i]
-            if not step.isComplete and step.isShown then
-                return step
+            if step then
+                if not step.isComplete and step.isShown then
+                    return step
+                end
             end
         end
     end
