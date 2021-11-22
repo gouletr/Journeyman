@@ -255,7 +255,13 @@ function Journeyman:GetTaxiNodeIdFromLocalizedName(name)
     if self.taxiNodeNameToTaxiNodeId == nil then
         self.taxiNodeNameToTaxiNodeId = {}
         for k, v in pairs(L.taxiNodes) do
-            self.taxiNodeNameToTaxiNodeId[v.Name_lang] = k
+            if self:IsTaxiNodeAvailable(k) then
+                if self.taxiNodeNameToTaxiNodeId[v.Name_lang] == nil then
+                    self.taxiNodeNameToTaxiNodeId[v.Name_lang] = k
+                else
+                    --Journeyman:Debug("taxiNodeNameToTaxiNodeId table already contains key pair ('%s', %d), when trying to add ('%s', %d)", v.Name_lang, self.taxiNodeNameToTaxiNodeId[v.Name_lang], v.Name_lang, k)
+                end
+            end
         end
     end
     return self.taxiNodeNameToTaxiNodeId[name]
