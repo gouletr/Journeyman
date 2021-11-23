@@ -97,6 +97,9 @@ function Journeyman:InitializeEvents()
             Journeyman:UpdateWaypoint()
             Journeyman:UpdateMacro()
             Journeyman:Update()
+            if not UnitOnTaxi("player") then
+                Journeyman.flyingTo = nil
+            end
         end
     end)
 end

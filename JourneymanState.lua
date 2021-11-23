@@ -52,6 +52,12 @@ local function IsStepComplete(step)
                 return true
             end
         elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+            -- Check if we are currently flying to that taxiNodeId
+            if Journeyman.flyingTo == step.data and UnitOnTaxi("player") then
+                return true
+            end
+
+            -- Check if we are in same map as taxiNodeId
             local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(step.data)
             if taxiNodeWorldCoords then
                 local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], C_Map.GetBestMapForUnit("player"), false)
