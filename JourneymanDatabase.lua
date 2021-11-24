@@ -16,6 +16,7 @@ local databaseDefaults = {
             showCompletedSteps = false,
             showSkippedSteps = true,
             stepsShown = 5,
+            autoScroll = true,
             backgroundColor = {
                 r = 0,
                 g = 0,
@@ -29,6 +30,7 @@ local databaseDefaults = {
             y = 0,
             fontSize = 12,
             lineSpacing = 2,
+            indentSize = 16,
             strata = "MEDIUM",
             level = 0
         },

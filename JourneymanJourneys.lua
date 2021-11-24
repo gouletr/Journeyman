@@ -190,6 +190,7 @@ local function AddStep(chapter, type, data, force)
             local step = Journey:CreateStep(chapter, type, data)
             if step then
                 Journeyman:Print("Step %s added.", Journeyman:GetStepText(step, true, true))
+                Journeyman.State:Reset()
             end
         end
     end

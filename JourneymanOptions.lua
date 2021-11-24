@@ -4,7 +4,7 @@ local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local function Percent(value)
-    local windowWidth = 600
+    local windowWidth = 600 - 20
     local widthMultiplier = 170
     return (value * windowWidth) / widthMultiplier
 end
@@ -222,16 +222,16 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
-            showQuestLevel = {
+            autoScroll = {
                 order = 26,
                 type = "toggle",
-                name = L["SHOW_QUEST_LEVEL"],
-                desc = L["SHOW_QUEST_LEVEL_DESC"],
+                name = L["AUTO_SCROLL"],
+                desc = L["AUTO_SCROLL_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showQuestLevel end,
+                get = function(info) return self.db.profile.window.autoScroll end,
                 set = function(info, value)
-                    if self.db.profile.window.showQuestLevel ~= value then
-                        self.db.profile.window.showQuestLevel = value
+                    if self.db.profile.window.autoScroll ~= value then
+                        self.db.profile.window.autoScroll = value
                         self.Window:Update(true)
                     end
                 end
@@ -264,8 +264,28 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
-            stepsShown = {
+            showQuestLevel = {
                 order = 29,
+                type = "toggle",
+                name = L["SHOW_QUEST_LEVEL"],
+                desc = L["SHOW_QUEST_LEVEL_DESC"],
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.showQuestLevel end,
+                set = function(info, value)
+                    if self.db.profile.window.showQuestLevel ~= value then
+                        self.db.profile.window.showQuestLevel = value
+                        self.Window:Update(true)
+                    end
+                end
+            },
+            reserved4 = {
+                order = 30,
+                type = "description",
+                name = "",
+                width = Percent(0.5)
+            },
+            stepsShown = {
+                order = 31,
                 type = "range",
                 name = L["STEPS_SHOWN"],
                 desc = L["STEPS_SHOWN_DESC"],
@@ -283,13 +303,13 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             reserved2 = {
-                order = 30,
+                order = 32,
                 type = "description",
                 name = "",
                 width = Percent(0.004)
             },
             backgroundColor = {
-                order = 31,
+                order = 33,
                 type = "color",
                 name = L["WINDOW_BG_COLOR"],
                 desc = L["WINDOW_BG_COLOR_DESC"],
@@ -308,7 +328,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             width = {
-                order = 32,
+                order = 34,
                 type = "range",
                 name = L["WINDOW_WIDTH"],
                 desc = L["WINDOW_WIDTH_DESC"],
@@ -327,7 +347,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             height = {
-                order = 33,
+                order = 35,
                 type = "range",
                 name = L["WINDOW_HEIGHT"],
                 desc = L["WINDOW_HEIGHT_DESC"],
@@ -346,7 +366,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             fontSize = {
-                order = 34,
+                order = 36,
                 type = "range",
                 name = L["FONT_SIZE"],
                 desc = L["FONT_SIZE_DESC"],
@@ -363,7 +383,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             lineSpacing = {
-                order = 35,
+                order = 37,
                 type = "range",
                 name = L["LINE_SPACING"],
                 desc = L["LINE_SPACING_DESC"],
@@ -379,8 +399,31 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
+            indentSize = {
+                order = 38,
+                type = "range",
+                name = L["INDENT_SIZE"],
+                desc = L["INDENT_SIZE_DESC"],
+                min = 0,
+                max = 50,
+                step = 1,
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.indentSize end,
+                set = function(info, value)
+                    if self.db.profile.window.indentSize ~= value then
+                        self.db.profile.window.indentSize = value
+                        self.Window:Update(true)
+                    end
+                end
+            },
+            reserved3 = {
+                order = 39,
+                type = "description",
+                name = "",
+                width = Percent(0.5)
+            },
             windowStrata = {
-                order = 36,
+                order = 40,
                 type = "select",
                 name = L["WINDOW_STRATA"],
                 desc = L["WINDOW_STRATA_DESC"],
@@ -405,12 +448,12 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             windowLevel = {
-                order = 37,
+                order = 41,
                 type = "range",
                 name = L["WINDOW_LEVEL"],
                 desc = L["WINDOW_LEVEL_DESC"],
                 min = 0,
-                max = 10000,
+                max = 9999,
                 step = 1,
                 bigStep = 100,
                 width = Percent(0.5),

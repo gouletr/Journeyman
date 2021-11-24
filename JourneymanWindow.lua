@@ -7,6 +7,9 @@ Journeyman.Window = Window
 local TomTom = TomTom
 
 local tinsert = table.insert
+local function round(num)
+  return num + (2^52 + 2^51) - (2^52 + 2^51)
+end
 
 local HEADER_HEIGHT = 24
 local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
@@ -19,6 +22,7 @@ local QUEST_COLOR_GREY = "FFC0C0C0"
 
 function Window:Initialize()
     self.lines = {}
+    self.verticalScrollRange = 0
 
     -- Create main frame
     local frame = CreateFrame("FRAME", nil, UIParent)
@@ -202,7 +206,10 @@ function Window:Shutdown()
 end
 
 function Window:CheckForUpdate()
-    if self.needUpdate then
+    local verticalScrollRange = round(self.scrollFrame:GetVerticalScrollRange())
+    local verticalScrollRangeChanged = self.verticalScrollRange ~= verticalScrollRange
+    if self.needUpdate or verticalScrollRangeChanged then
+        self.verticalScrollRange = verticalScrollRange
         self:UpdateImmediate()
     end
 end
@@ -231,6 +238,7 @@ function Window:UpdateImmediate()
     self:UpdateScrollFrame()
     self:UpdateJourneySelection()
     self:UpdateSteps()
+    self:UpdateVerticalScroll()
 
     self.frame:SetShown(Journeyman.db.char.window.show)
 
@@ -327,6 +335,21 @@ function Window:UpdateJourneySelection()
     self.journeySelectionButton:SetShown(shown)
 end
 
+function Window:UpdateVerticalScroll()
+    if Journeyman.db.profile.window.autoScroll then
+        if Journeyman.db.profile.window.showCompletedSteps and self.stepsHeight then
+            local scrollFrameRange = max(self.stepsHeight - self.scrollFrame:GetHeight(), 0)
+            if self.currentStepPosition and self.currentStepPosition < scrollFrameRange then
+                self.scrollFrame:SetVerticalScroll(self.currentStepPosition)
+            else
+                self.scrollFrame:SetVerticalScroll(scrollFrameRange)
+            end
+        else
+            self.scrollFrame:SetVerticalScroll(0)
+        end
+    end
+end
+
 function Window:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
@@ -345,7 +368,7 @@ function Window:UpdateSteps()
                 if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                     local lastStep = steps[#steps]
                     if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                        tinsert(steps, { hasChildren = true, isComplete = step.isComplete, location = step.location, children = { step } })
+                        tinsert(steps, { hasChildren = true, isComplete = step.isComplete, isShown = true, location = step.location, children = { step } })
                     else
                         tinsert(lastStep.children, step)
                         lastStep.isComplete = lastStep.isComplete and step.isComplete
@@ -368,7 +391,8 @@ function Window:UpdateSteps()
 
     -- Display steps recursively
     self.lineIndex = 1
-    self.waypointSet = false
+    self.stepsHeight = 0
+    self.currentStepPosition = nil
     for i = 1, #steps do
         self:DisplayStep(steps[i], 0)
     end
@@ -438,7 +462,7 @@ function Window:GetNextLine()
         line:EnableHyperlinks(true)
         line.index = self.lineIndex
         line.SetStepText = function(self, step, depth, fmt, ...)
-            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Journeyman.db.profile.window.fontSize * depth, 0)
+            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Journeyman.db.profile.window.indentSize * depth, 0)
             if self.index == 1 then
                 self:SetPoint("TOP", Window.scrollChild, "TOP", 0, -Journeyman.db.profile.window.fontSize * (self.index - 1))
             else
@@ -452,8 +476,13 @@ function Window:GetNextLine()
             end
 
             self:SetFontSize(Journeyman.db.profile.window.fontSize)
-            self:SetWidth(Window.scrollChild:GetWidth() - (Journeyman.db.profile.window.fontSize * depth))
-            self:SetHeight((Journeyman.db.profile.window.fontSize * self:GetNumLines()) + Journeyman.db.profile.window.lineSpacing)
+            self:SetWidth(Window.scrollChild:GetWidth() - (Journeyman.db.profile.window.indentSize * depth))
+            self:SetHeight(Journeyman.db.profile.window.fontSize + Journeyman.db.profile.window.lineSpacing)
+
+            -- Recalculate height a second time, now GetNumLines will return updated value
+            local lineHeight = (Journeyman.db.profile.window.fontSize * self:GetNumLines()) + Journeyman.db.profile.window.lineSpacing
+            self:SetHeight(lineHeight)
+
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" then
                     if not IsModifierKeyDown() then
@@ -466,6 +495,12 @@ function Window:GetNextLine()
                 end
             end)
             self:Show()
+
+            if Window.currentStepPosition == nil and (not step.isComplete and step.isShown) then
+                Window.currentStepPosition = Window.stepsHeight
+            end
+
+            Window.stepsHeight = Window.stepsHeight + lineHeight
         end
 
         self.lines[#self.lines + 1] = line

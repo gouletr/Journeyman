@@ -113,41 +113,41 @@ function Journeyman:OnPlayerLeavingWorld()
 end
 
 function Journeyman:OnQuestAccepted(questId)
-    self.State:OnQuestAccepted(questId)
     self.Journey:OnQuestAccepted(questId)
+    self.State:OnQuestAccepted(questId)
 end
 
 function Journeyman:OnQuestCompleted(questId)
-    self.State:OnQuestCompleted(questId)
     self.Journey:OnQuestCompleted(questId)
+    self.State:OnQuestCompleted(questId)
 end
 
 function Journeyman:OnQuestTurnedIn(questId)
-    self.State:OnQuestTurnedIn(questId)
     self.Journey:OnQuestTurnedIn(questId)
+    self.State:OnQuestTurnedIn(questId)
 end
 
 function Journeyman:OnQuestAbandoned(questId)
-    self.State:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
-end
-
-function Journeyman:OnLearnFlightPath(areaId)
-    self.State:OnLearnFlightPath(areaId)
-    self.Journey:OnLearnFlightPath(areaId)
-end
-
-function Journeyman:OnHearthstoneBound(areaId)
-    self.State:OnHearthstoneBound(areaId)
-    self.Journey:OnHearthstoneBound(areaId)
-end
-
-function Journeyman:OnHearthstoneUsed(areaId)
-    self.State:OnHearthstoneUsed(areaId)
-    self.Journey:OnHearthstoneUsed(areaId)
+    self.State:OnQuestAbandoned(questId)
 end
 
 function Journeyman:OnLevelUp(level)
-    self.State:OnLevelUp(level)
     self.Journey:OnLevelUp(level)
+    self.State:OnLevelUp(level)
+end
+
+function Journeyman:OnHearthstoneBound(areaId)
+    self.Journey:OnHearthstoneBound(areaId)
+    self.State:OnHearthstoneBound(areaId)
+end
+
+function Journeyman:OnHearthstoneUsed(areaId)
+    self.Journey:OnHearthstoneUsed(areaId)
+    self.State:OnHearthstoneUsed(areaId)
+end
+
+function Journeyman:OnLearnFlightPath(areaId)
+    self.Journey:OnLearnFlightPath(areaId)
+    self.State:OnLearnFlightPath(areaId)
 end
