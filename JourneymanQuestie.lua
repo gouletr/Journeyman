@@ -11,6 +11,7 @@ local QuestiePlayer = QuestieLoader and QuestieLoader:ImportModule("QuestiePlaye
 local QuestieLib = QuestieLoader and QuestieLoader:ImportModule("QuestieLib")
 local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 --local QuestieL10n = QuestieLoader and QuestieLoader:ImportModule("l10n")
+local QuestieLink = QuestieLoader and QuestieLoader:ImportModule("QuestieLink")
 
 local tinsert = table.insert
 
@@ -544,4 +545,12 @@ function DataSourceQuestie:GetNearestFlightMasterLocation()
         local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
         return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId })
     end
+end
+
+function DataSourceQuestie:ShowQuestTooltip(questId)
+    local questLink = QuestieLink:GetQuestHyperLink(questId)
+    ShowUIPanel(ItemRefTooltip)
+    ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+    ItemRefTooltip:SetHyperlink(questLink)
+    ItemRefTooltip:Show()
 end

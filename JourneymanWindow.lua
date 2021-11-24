@@ -485,9 +485,13 @@ function Window:GetNextLine()
 
             self:SetScript("OnClick", function(self, button)
                 if button == "LeftButton" then
-                    if not IsModifierKeyDown() then
+                    if not IsModifiedClick() then
                         if Journeyman:IsStepTypeQuest(step) then
-                            Window:ShowQuestLog(step.data)
+                            Window:ShowQuest(step.data)
+                        end
+                    elseif IsModifiedClick("CHATLINK") and ChatEdit_GetActiveWindow() then
+                        if Journeyman:IsStepTypeQuest(step) then
+                            Window:LinkQuest(step.data)
                         end
                     elseif IsControlKeyDown() then
                         Journeyman:SetWaypoint(step, true, true)
@@ -578,7 +582,7 @@ function Window:GetColoredItemText(step, itemId)
     return "item:" .. itemId
 end
 
-function Window:ShowQuestLog(questId)
+function Window:ShowQuest(questId)
     if Journeyman.State:IsQuestInQuestLog(questId) then
         local questLogIndex
         if C_QuestLog.GetLogIndexForQuestID then
@@ -615,6 +619,12 @@ function Window:ShowQuestLog(questId)
         QuestLog_UpdateQuestDetails()
         QuestLog_Update()
     else
-        
+        Journeyman.DataSource:ShowQuestTooltip(questId)
     end
+end
+
+function Window:LinkQuest(questId)
+    local questName = Journeyman.DataSource:GetQuestName(questId, Journeyman.db.profile.window.showQuestLevel)
+    local questLink = string.format("[%s (%d)]", questName, questId)
+    ChatEdit_InsertLink(questLink)
 end

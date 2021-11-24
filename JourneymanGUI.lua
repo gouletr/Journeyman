@@ -50,12 +50,16 @@ function GUI:CreateLabel(frameType, name, parent, template, id)
         self:SetHyperlinksEnabled(value)
         if value then
             self:SetScript("OnHyperlinkClick", function(self, link, text, button)
-                ShowUIPanel(ItemRefTooltip)
-                if not ItemRefTooltip:IsVisible() then
+                if not IsModifiedClick() then
+                    ShowUIPanel(ItemRefTooltip)
                     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+                    ItemRefTooltip:SetHyperlink(link)
+                    ItemRefTooltip:Show()
+                elseif IsModifiedClick("CHATLINK") and ChatEdit_GetActiveWindow() then
+                    ChatEdit_InsertLink(text)
+                elseif IsModifiedClick("DRESSUP") then
+                    DressUpItemLink(link)
                 end
-                ItemRefTooltip:SetHyperlink(link)
-                ItemRefTooltip:Show()
             end)
         end
     end

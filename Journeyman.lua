@@ -507,15 +507,10 @@ function Journeyman:ReplaceAllItemStringToHyperlinks(input, callback)
     if input and type(input) == "string" then
         local result = input
         local itemString, itemId
-        while true do
-            itemString, itemId = string.match(result, "[^H](item:(%d+))")
-            if itemString and itemId then
-                local itemLink = Journeyman:GetItemLink(tonumber(itemId), callback)
-                if itemLink and itemLink ~= itemString then
-                    result = string.gsub(result, itemString, itemLink)
-                else
-                    break
-                end
+        for itemString, itemId in input:gmatch("(item:(%d+))") do
+            local itemLink = Journeyman:GetItemLink(tonumber(itemId), callback)
+            if itemLink and itemLink ~= itemString then
+                result = result:gsub(itemString, itemLink)
             else
                 break
             end
