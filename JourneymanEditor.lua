@@ -235,6 +235,7 @@ function Editor:Initialize()
             type = "Chapter",
             data = Journeyman.Editor:GetSelectedChapter()
         }
+        Journeyman.Editor:Refresh()
     end)
     self.copyChapterButton = copyChapterButton
 
@@ -380,7 +381,7 @@ function Editor:Initialize()
             self.newChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
             self.deleteChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
             self.copyChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
-            self.pasteChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0 and Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data)
+            self.pasteChapterButton:SetEnabled(Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data)
             self.newStepButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
             self.deleteStepButton:SetEnabled(self:GetSelectedStepIndex() > 0)
         end, geterrorhandler())
