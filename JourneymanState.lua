@@ -28,14 +28,31 @@ local function IsStepComplete(step)
         local questInfo = State.currentQuestLog[step.data]
         if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
             -- Check if quest is in quest log
-            return questInfo ~= nil
+            if questInfo ~= nil then
+                return true
+            end
         elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             -- Check if quest is in quest log and complete
-            return questInfo ~= nil and questInfo.isComplete
+            if questInfo ~= nil and questInfo.isComplete then
+                return true
+            end
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             -- Check if quest is turned-in (redundancy)
-            return C_QuestLog.IsQuestFlaggedCompleted(step.data)
+            if C_QuestLog.IsQuestFlaggedCompleted(step.data) then
+                return true
+            end
         end
+
+        -- Check if quest is repeatable
+        if Journeyman.DataSource:IsQuestRepeatable(step.data) then
+            -- If next step is complete, consider this step complete
+            local nextStep = State.steps[step.index + 1]
+            if nextStep and IsStepComplete(nextStep) then
+                return true
+            end
+        end
+
+        return false
     else
         if step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             return UnitLevel("player") >= step.data

@@ -421,6 +421,10 @@ function DataSourceQuestie:IsQuestNPCDrop(questId)
     return false
 end
 
+function DataSourceQuestie:IsQuestRepeatable(questId)
+    return QuestieDB:IsRepeatable(questId)
+end
+
 function DataSourceQuestie:GetAllInnkeeperZones()
     local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
     if npcs == nil then return nil end
