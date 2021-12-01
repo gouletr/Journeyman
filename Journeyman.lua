@@ -87,6 +87,8 @@ end
 
 function Journeyman:Update(immediate)
     if self.db.char.window.show then
+        self:UpdateWaypoint()
+        self:UpdateMacro()
         self.State:Update(immediate)
     end
 end

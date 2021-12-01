@@ -115,9 +115,6 @@ function Journeyman:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.profile.autoSetWaypoint ~= value then
                         self.db.profile.autoSetWaypoint = value
-                        if value then
-                            Journeyman:UpdateWaypoint()
-                        end
                         Journeyman:Update()
                     end
                 end

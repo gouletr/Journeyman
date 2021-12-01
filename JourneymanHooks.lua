@@ -16,8 +16,10 @@ end
 function Journeyman:OnTakeTaxiNode(slot)
     local taxiNodeId = GetTaxiNodeId(slot)
     if taxiNodeId then
-        self.flyingTo = taxiNodeId
-        self.State:OnTakeFlightPath(taxiNodeId)
         self.Journey:OnTakeFlightPath(taxiNodeId)
+        if self.db.char.window.show then
+            self.flyingTo = taxiNodeId
+            self.State:OnTakeFlightPath(taxiNodeId)
+        end
     end
 end

@@ -93,13 +93,11 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("PLAYER_CONTROL_GAINED", function(event)
-        if not InCombatLockdown() then
-            Journeyman:UpdateWaypoint()
-            Journeyman:UpdateMacro()
-            Journeyman:Update()
+        if not InCombatLockdown() and Journeyman.db.char.window.show then
             if not UnitOnTaxi("player") then
                 Journeyman.flyingTo = nil
             end
+            Journeyman:Update()
         end
     end)
 end
@@ -114,40 +112,56 @@ end
 
 function Journeyman:OnQuestAccepted(questId)
     self.Journey:OnQuestAccepted(questId)
-    self.State:OnQuestAccepted(questId)
+    if self.db.char.window.show then
+        self.State:OnQuestAccepted(questId)
+    end
 end
 
 function Journeyman:OnQuestCompleted(questId)
     self.Journey:OnQuestCompleted(questId)
-    self.State:OnQuestCompleted(questId)
+    if self.db.char.window.show then
+        self.State:OnQuestCompleted(questId)
+    end
 end
 
 function Journeyman:OnQuestTurnedIn(questId)
     self.Journey:OnQuestTurnedIn(questId)
-    self.State:OnQuestTurnedIn(questId)
+    if self.db.char.window.show then
+        self.State:OnQuestTurnedIn(questId)
+    end
 end
 
 function Journeyman:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
-    self.State:OnQuestAbandoned(questId)
+    if self.db.char.window.show then
+        self.State:OnQuestAbandoned(questId)
+    end
 end
 
 function Journeyman:OnLevelUp(level)
     self.Journey:OnLevelUp(level)
-    self.State:OnLevelUp(level)
+    if self.db.char.window.show then
+        self.State:OnLevelUp(level)
+    end
 end
 
 function Journeyman:OnHearthstoneBound(areaId)
     self.Journey:OnHearthstoneBound(areaId)
-    self.State:OnHearthstoneBound(areaId)
+    if self.db.char.window.show then
+        self.State:OnHearthstoneBound(areaId)
+    end
 end
 
 function Journeyman:OnHearthstoneUsed(areaId)
     self.Journey:OnHearthstoneUsed(areaId)
-    self.State:OnHearthstoneUsed(areaId)
+    if self.db.char.window.show then
+        self.State:OnHearthstoneUsed(areaId)
+    end
 end
 
 function Journeyman:OnLearnFlightPath(areaId)
     self.Journey:OnLearnFlightPath(areaId)
-    self.State:OnLearnFlightPath(areaId)
+    if self.db.char.window.show then
+        self.State:OnLearnFlightPath(areaId)
+    end
 end

@@ -258,10 +258,6 @@ function State:OnQuestAbandoned(questId)
             end
         end
     end
-
-    -- Update everything on next update
-    Journeyman:UpdateWaypoint()
-    Journeyman:UpdateMacro()
     Journeyman:Update()
 end
 
@@ -299,12 +295,9 @@ function State:OnStepCompleted(type, data)
         local journey = Journeyman.Journey:GetActiveJourney()
         if journey then
             Journeyman.Journey:AdvanceChapter(journey)
-            self:Reset()
+            Journeyman:Reset()
         end
     else
-        -- Update everything on next update
-        Journeyman:UpdateWaypoint()
-        Journeyman:UpdateMacro()
         Journeyman:Update()
     end
 end
