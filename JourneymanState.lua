@@ -347,11 +347,11 @@ function State:GetCurrentStep()
     end
 end
 
-function State:GetStepLocation(step, neededObjectivesOnly)
+function State:GetStepLocation(step)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
         return Journeyman.DataSource:GetNearestQuestStarter(step.data)
     elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-        return Journeyman.DataSource:GetNearestQuestObjective(step.data, neededObjectivesOnly)
+        return Journeyman.DataSource:GetNearestQuestObjective(step.data, step.objectiveIndex)
     elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
         return Journeyman.DataSource:GetNearestQuestFinisher(step.data)
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then

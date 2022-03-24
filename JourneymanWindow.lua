@@ -368,7 +368,7 @@ function Window:UpdateSteps()
                 if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                     local lastStep = steps[#steps]
                     if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                        tinsert(steps, { hasChildren = true, isComplete = step.isComplete, isShown = true, location = step.location, children = { step } })
+                        tinsert(steps, { isComplete = step.isComplete, isShown = step.isShown, location = step.location, hasChildren = true, children = { step } })
                     else
                         tinsert(lastStep.children, step)
                         lastStep.isComplete = lastStep.isComplete and step.isComplete
@@ -429,6 +429,18 @@ function Window:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, L["STEP_ACCEPT_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_COMPLETE_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
+            if not step.isComplete then
+                local objectives = C_QuestLog.GetQuestObjectives(step.data)
+                if objectives then
+                    for i = 1, #objectives do
+                        local objective = objectives[i]
+                        if not objective.finished then
+                            local objectiveStep = { type = step.type, data = step.data, isComplete = objective.finished == true, isShown = step.isShown, objectiveIndex = i }
+                            self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, objective.finished == true))
+                        end
+                    end
+                end
+            end
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TURNIN_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
@@ -494,7 +506,7 @@ function Window:GetNextLine()
                             Window:LinkQuest(step.data)
                         end
                     elseif IsControlKeyDown() then
-                        Journeyman:SetWaypoint(step, true, true)
+                        Journeyman:SetWaypoint(step, true)
                     end
                 end
             end)

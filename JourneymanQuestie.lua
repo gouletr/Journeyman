@@ -167,58 +167,26 @@ local function GetNearestItem(items, player, zoneFilter)
     end
 end
 
-local function GetNearestQuestLocation(entities, questLogObjectives, zoneFilter)
-    local bestDistance = 999999999
-    local bestX, bestY, bestMapId, bestName, bestId, bestType
-    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
-    local player = { x = playerX, y = playerY, mapId = playerMapId }
-
-    for i = 1, #entities do
-        local entity = entities[i]
-
-        local needed = true
-        if questLogObjectives then
-            local questLogObjective = questLogObjectives[i]
-            if questLogObjective and questLogObjective.finished == true then
-                needed = false
-            end
-        end
-
-        if needed then
-            local nearest
-            if entity.NPC then
-                nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
-            elseif entity.GameObject then
-                nearest = GetNearestObject(entity.GameObject, player, zoneFilter)
-            elseif entity.Item then
-                nearest = GetNearestItem(entity.Item, player, zoneFilter)
-            elseif entity.Type == "monster" then
-                nearest = GetNearestNPC({ entity.Id }, player, zoneFilter)
-            elseif entity.Type == "object" then
-                nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
-            elseif entity.Type == "item" then
-                nearest = GetNearestItem({ entity.Id }, player, zoneFilter)
-            elseif entity.Type == "event" and entity.Coordinates then
-                nearest = GetNearestSpawn(entity.Coordinates, player, zoneFilter)
-                nearest.name = entity.Text
-                nearest.type = "Event"
-            end
-
-            if nearest and nearest.distance < bestDistance then
-                bestDistance = nearest.distance
-                bestX = nearest.x
-                bestY = nearest.y
-                bestMapId = nearest.mapId
-                bestName = nearest.name
-                bestId = nearest.id
-                bestType = nearest.type
-            end
-        end
+local function GetNearestQuestLocation(entity, player, zoneFilter)
+    local nearest
+    if entity.NPC then
+        nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
+    elseif entity.GameObject then
+        nearest = GetNearestObject(entity.GameObject, player, zoneFilter)
+    elseif entity.Item then
+        nearest = GetNearestItem(entity.Item, player, zoneFilter)
+    elseif entity.Type == "monster" then
+        nearest = GetNearestNPC({ entity.Id }, player, zoneFilter)
+    elseif entity.Type == "object" then
+        nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
+    elseif entity.Type == "item" then
+        nearest = GetNearestItem({ entity.Id }, player, zoneFilter)
+    elseif entity.Type == "event" and entity.Coordinates then
+        nearest = GetNearestSpawn(entity.Coordinates, player, zoneFilter)
+        nearest.name = entity.Text
+        nearest.type = "Event"
     end
-
-    if bestX and bestY and bestMapId then
-        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, id = bestId, type = bestType }
-    end
+    return nearest
 end
 
 function DataSourceQuestie:IsInitialized()
@@ -351,25 +319,53 @@ end
 function DataSourceQuestie:GetNearestQuestStarter(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Starts then
-        return GetNearestQuestLocation({ quest.Starts })
+        local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+        return GetNearestQuestLocation(quest.Starts, { x = playerX, y = playerY, mapId = playerMapId })
     end
 end
 
-function DataSourceQuestie:GetNearestQuestObjective(questId, neededObjectivesOnly)
+function DataSourceQuestie:GetNearestQuestObjective(questId, objectiveIndex)
     local quest = QuestieDB:GetQuest(questId)
-    if quest and quest.ObjectiveData then
-        local questLogObjectives
-        if neededObjectivesOnly then
-            questLogObjectives = C_QuestLog.GetQuestObjectives(questId)
+    if quest == nil or quest.ObjectiveData == nil then return nil end
+
+    local objectives = C_QuestLog.GetQuestObjectives(questId)
+    if objectives == nil then return nil end
+
+    if #objectives ~= #quest.ObjectiveData then
+        Journeyman:Error("Quest objectives count does not match (%d ~= %d)", #objectives, #quest.ObjectiveData)
+        return nil
+    end
+
+    local bestDistance = 999999999
+    local bestX, bestY, bestMapId, bestName, bestId, bestType
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    local player = { x = playerX, y = playerY, mapId = playerMapId }
+
+    for i = 1, #objectives do
+        if objectives[i].finished == false and (objectiveIndex == nil or objectiveIndex == i) then
+            local nearest = GetNearestQuestLocation(quest.ObjectiveData[i], player)
+            if nearest and nearest.distance < bestDistance then
+                bestDistance = nearest.distance
+                bestX = nearest.x
+                bestY = nearest.y
+                bestMapId = nearest.mapId
+                bestName = nearest.name
+                bestId = nearest.id
+                bestType = nearest.type
+            end
         end
-        return GetNearestQuestLocation(quest.ObjectiveData, questLogObjectives)
+    end
+
+    if bestX and bestY and bestMapId then
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, id = bestId, type = bestType }
     end
 end
 
 function DataSourceQuestie:GetNearestQuestFinisher(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Finisher then
-        return GetNearestQuestLocation({ quest.Finisher })
+        local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+        return GetNearestQuestLocation(quest.Finisher, { x = playerX, y = playerY, mapId = playerMapId })
     end
 end
 

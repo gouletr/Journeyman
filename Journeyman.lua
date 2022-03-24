@@ -57,7 +57,7 @@ function Journeyman:OnEnable()
             -- Check for waypoint update
             if self.waypointNeedUpdate then
                 if self.db.profile.autoSetWaypoint and not UnitOnTaxi("player") then
-                    self:SetWaypoint(self.State:GetCurrentStep(), false, true)
+                    self:SetWaypoint(self.State:GetCurrentStep(), false)
                 end
                 self.waypointNeedUpdate = false
             end
@@ -405,7 +405,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
     end
 end
 
-function Journeyman:SetWaypoint(step, force, neededObjectivesOnly)
+function Journeyman:SetWaypoint(step, force)
     if TomTom then
         if self.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(self.db.char.waypoint)
@@ -417,7 +417,7 @@ function Journeyman:SetWaypoint(step, force, neededObjectivesOnly)
             if step.hasChildren then
                 location = step.location
             else
-                location = self.State:GetStepLocation(step, neededObjectivesOnly)
+                location = self.State:GetStepLocation(step)
             end
 
             if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
