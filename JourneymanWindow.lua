@@ -360,7 +360,7 @@ function Window:UpdateSteps()
             if step.isShown then
                 -- Optimization: Update step location only if we're going to show it
                 -- Also, don't need location for step type complete quest, because its meaningless here
-                -- Thought we always need to update fly to steps location, because they change
+                -- Thought we always need to update flyto steps location, because they change
                 if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and (step.location == nil or step.type == Journeyman.STEP_TYPE_FLY_TO) then
                     step.location = Journeyman.State:GetStepLocation(step)
                 end
@@ -409,9 +409,9 @@ function Window:DisplayStep(step, depth)
         if step.location then
             local prefix
             if step.location.type == "NPC" then
-                prefix = L["STEP_GO_TALK_TO"]
+                prefix = L["STEP_PREFIX_GO_TALK_TO"]
             elseif step.location.type == "Object" or step.location.type == "Item" then
-                prefix = L["STEP_GO_TO"]
+                prefix = L["STEP_PREFIX_GO_TO"]
             end
             if prefix then
                 self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredHighlightText(step.location.name, step.isComplete))
@@ -425,42 +425,70 @@ function Window:DisplayStep(step, depth)
         end
     else
         -- Display step
-        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_ACCEPT_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_COMPLETE_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-            if not step.isComplete then
-                local objectives = C_QuestLog.GetQuestObjectives(step.data)
+        local data = Journeyman:GetStepData(step)
+        if data then
+            if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACCEPT_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_COMPLETE_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
+                local objectives = C_QuestLog.GetQuestObjectives(data.questId)
                 if objectives then
-                    for i = 1, #objectives do
-                        local objective = objectives[i]
-                        if not objective.finished then
-                            local objectiveStep = { type = step.type, data = step.data, isComplete = objective.finished == true, isShown = step.isShown, objectiveIndex = i }
-                            self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, objective.finished == true))
+                    if data.objectives then
+                        for _, i in ipairs(data.objectives) do
+                            local objective = objectives[i]
+                            if objective then
+                                local isComplete = objective.finished == true or step.isComplete
+                                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
+                                    local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, objectiveIndex = i }
+                                    self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, isComplete))
+                                end
+                            end
+                        end
+                    else
+                        for i = 1, #objectives do
+                            local objective = objectives[i]
+                            if objective then
+                                local isComplete = objective.finished == true or step.isComplete
+                                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
+                                    local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, objectiveIndex = i }
+                                    self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, isComplete))
+                                end
+                            end
                         end
                     end
                 end
+            elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TURNIN_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+                if data.mapId and data.x and data.y then
+                    local desc = data.desc
+                    if desc == nil then
+                        desc = data.x..", "..data.y
+                    end
+                    local mapName = Journeyman:GetMapNameById(data.mapId)
+                    if mapName then
+                        self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO"], self:GetColoredHighlightText(desc, step.isComplete), self:GetColoredHighlightText(mapName, step.isComplete))
+                    end
+                end
+            elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(data.level, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(data.areaId, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(data.areaId, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(data.taxiNodeId, step.isComplete))
+            elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_FLY_TO"], self:GetColoredTaxiNodeText(data.taxiNodeId, step.isComplete))
+            else
+                Journeyman:Error("Step type %s not implemented.", step.type)
             end
-        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_TURNIN_QUEST"], self:GetColoredQuestText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_REACH_LEVEL"], self:GetColoredHighlightText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_FLY_TO"], self:GetColoredTaxiNodeText(step.data, step.isComplete))
-        else
-            Journeyman:Error("Step type %s not implemented.", step.type)
-        end
 
-        -- Display step note
-        if step.note and string.len(step.note) > 0 then
-            local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
-            self:GetNextLine():SetStepText(step, depth + 1, L["STEP_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
+            -- Display step note
+            if step.note and string.len(step.note) > 0 then
+                local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
+                self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
+            end
         end
     end
 end
@@ -499,11 +527,17 @@ function Window:GetNextLine()
                 if button == "LeftButton" then
                     if not IsModifiedClick() then
                         if Journeyman:IsStepTypeQuest(step) then
-                            Window:ShowQuest(step.data)
+                            local data = Journeyman:GetStepData(step)
+                            if data then
+                                Window:ShowQuest(data.questId)
+                            end
                         end
                     elseif IsModifiedClick("CHATLINK") and ChatEdit_GetActiveWindow() then
                         if Journeyman:IsStepTypeQuest(step) then
-                            Window:LinkQuest(step.data)
+                            local data = Journeyman:GetStepData(step)
+                            if data then
+                                Window:LinkQuest(data.questId)
+                            end
                         end
                     elseif IsControlKeyDown() then
                         Journeyman:SetWaypoint(step, true)

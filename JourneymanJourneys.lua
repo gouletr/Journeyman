@@ -200,7 +200,7 @@ function Journey:OnQuestAccepted(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_ACCEPT_QUEST, questId)
+        AddStep(chapter, Journeyman.STEP_TYPE_ACCEPT_QUEST, tostring(questId))
     end
 end
 
@@ -208,7 +208,7 @@ function Journey:OnQuestCompleted(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_COMPLETE_QUEST, questId)
+        AddStep(chapter, Journeyman.STEP_TYPE_COMPLETE_QUEST, tostring(questId))
     end
 end
 
@@ -216,7 +216,7 @@ function Journey:OnQuestTurnedIn(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_TURNIN_QUEST, questId)
+        AddStep(chapter, Journeyman.STEP_TYPE_TURNIN_QUEST, tostring(questId))
     end
 end
 
@@ -245,7 +245,7 @@ function Journey:OnLevelUp(level)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_REACH_LEVEL, level)
+        AddStep(chapter, Journeyman.STEP_TYPE_REACH_LEVEL, tostring(level))
     end
 end
 
@@ -253,7 +253,7 @@ function Journey:OnHearthstoneBound(areaId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_BIND_HEARTHSTONE, areaId, true)
+        AddStep(chapter, Journeyman.STEP_TYPE_BIND_HEARTHSTONE, tostring(areaId), true)
     end
 end
 
@@ -261,7 +261,7 @@ function Journey:OnHearthstoneUsed(areaId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_USE_HEARTHSTONE, areaId, true)
+        AddStep(chapter, Journeyman.STEP_TYPE_USE_HEARTHSTONE, tostring(areaId), true)
     end
 end
 
@@ -269,7 +269,7 @@ function Journey:OnLearnFlightPath(taxiNodeId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, taxiNodeId)
+        AddStep(chapter, Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, tostring(taxiNodeId))
     end
 end
 
@@ -277,6 +277,6 @@ function Journey:OnTakeFlightPath(taxiNodeId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, taxiNodeId, true)
+        AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, tostring(taxiNodeId), true)
     end
 end

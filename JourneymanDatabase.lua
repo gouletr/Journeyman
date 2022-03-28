@@ -154,9 +154,11 @@ function Journeyman:ExportJourney(deserializedJourney)
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
+                        step.data = tostring(deserializedStep.data)
+                    elseif deserializedStep.data and type(deserializedStep.data) == "string" then
                         step.data = deserializedStep.data
                     else
-                        step.data = 0
+                        step.data = ""
                     end
 
                     if deserializedStep.note and type(deserializedStep.note) == "string" then
@@ -231,9 +233,11 @@ function Journeyman:ImportJourney(serializedJourney)
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
+                        step.data = tostring(deserializedStep.data)
+                    elseif deserializedStep.data and type(deserializedStep.data) == "string" then
                         step.data = deserializedStep.data
                     else
-                        step.data = 0
+                        step.data = ""
                     end
 
                     if deserializedStep.note and type(deserializedStep.note) == "string" then
@@ -264,6 +268,8 @@ function Journeyman:ExportState(deserializedState)
         end
 
         if deserializedStep.data and type(deserializedStep.data) == "number" then
+            step.data = tostring(deserializedStep.data)
+        elseif deserializedStep.data and type(deserializedStep.data) == "string" then
             step.data = deserializedStep.data
         end
 
@@ -306,6 +312,8 @@ function Journeyman:ImportState(serializedState)
         end
 
         if deserializedStep.data and type(deserializedStep.data) == "number" then
+            step.data = tostring(deserializedStep.data)
+        elseif deserializedStep.data and type(deserializedStep.data) == "string" then
             step.data = deserializedStep.data
         end
 

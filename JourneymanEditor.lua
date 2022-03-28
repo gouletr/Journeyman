@@ -324,7 +324,7 @@ function Editor:Initialize()
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
         local chapter = Journeyman.Editor:GetSelectedChapter()
-        if chapter and Journeyman.Journey:CreateStep(chapter, Journeyman.STEP_TYPE_UNDEFINED, 0, Journeyman.Editor:GetSelectedStepIndex()) then
+        if chapter and Journeyman.Journey:CreateStep(chapter, Journeyman.STEP_TYPE_UNDEFINED, "", Journeyman.Editor:GetSelectedStepIndex()) then
             Journeyman.Editor:Refresh()
             Journeyman:Reset(true)
         end
@@ -512,6 +512,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Journeyman.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
             [Journeyman.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
             [Journeyman.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
+            [Journeyman.STEP_TYPE_GO_TO] = L["DROPDOWN_GO_TO"],
             [Journeyman.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
             [Journeyman.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
             [Journeyman.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
@@ -525,6 +526,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Journeyman.STEP_TYPE_ACCEPT_QUEST,
             Journeyman.STEP_TYPE_COMPLETE_QUEST,
             Journeyman.STEP_TYPE_TURNIN_QUEST,
+            Journeyman.STEP_TYPE_GO_TO,
             Journeyman.STEP_TYPE_REACH_LEVEL,
             Journeyman.STEP_TYPE_BIND_HEARTHSTONE,
             Journeyman.STEP_TYPE_USE_HEARTHSTONE,
@@ -547,14 +549,10 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepData:SetPoint("TOPLEFT", stepType, "BOTTOMLEFT")
     stepData:SetPoint("BOTTOMRIGHT", stepType, "BOTTOMRIGHT", 0, -40)
     stepData:SetTitle(L["STEP_DATA_LABEL"])
-    stepData:SetNumeric(true)
     stepData.OnEnterPressed = function(self)
         local step = Journeyman.Editor:GetSelectedStep()
         if step then
-            step.data = self:GetNumber()
-            if step.data == nil then
-                step.data = 0
-            end
+            step.data = self:GetText()
         end
         Journeyman.Editor:Refresh()
         Journeyman:Reset(true)

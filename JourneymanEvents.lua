@@ -2,6 +2,8 @@ local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local HBD = LibStub("HereBeDragons-2.0")
+
 function Journeyman:InitializeEvents()
     self.questTurnedIn = {}
 
@@ -100,6 +102,39 @@ function Journeyman:InitializeEvents()
             Journeyman:Update()
         end
     end)
+
+    -- High frequency ticker for goto steps
+    C_Timer.NewTicker(0.25, function()
+        if not Journeyman.db.char.window.show then
+            return
+        end
+
+        local now = GetTimePreciseSec()
+        local step = self.State:GetCurrentStep()
+        if step then
+            if step.type == Journeyman.STEP_TYPE_GO_TO then
+                local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+                if self.lastLocation == nil then
+                    self.lastLocation = { x = playerX, y = playerY, mapId = playerMapId }
+                    return
+                end
+
+                local data = Journeyman:GetStepData(step)
+                if playerX ~= self.lastLocation.x or playerY ~= self.lastLocation.y or playerMapId ~= self.lastLocation.mapId then
+                    local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, data.mapId, data.x / 100.0, data.y / 100.0)
+                    if distance and distance <= 15 then
+                        self:OnLocationReached(data)
+                    end
+                    self.lastLocation = { x = playerX, y = playerY, mapId = playerMapId }
+                end
+            end
+        end
+
+        local elapsed = (GetTimePreciseSec() - now) * 1000
+        if elapsed > 1 then
+            Journeyman:Debug("Goto ticker took %.2fms", elapsed)
+        end
+    end)
 end
 
 function Journeyman:ShutdownEvents()
@@ -124,6 +159,12 @@ function Journeyman:OnQuestCompleted(questId)
     end
 end
 
+function Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
+    if self.db.char.window.show then
+        self.State:OnQuestObjectiveCompleted(questId, objectiveIndex)
+    end
+end
+
 function Journeyman:OnQuestTurnedIn(questId)
     self.Journey:OnQuestTurnedIn(questId)
     if self.db.char.window.show then
@@ -135,6 +176,12 @@ function Journeyman:OnQuestAbandoned(questId)
     self.Journey:OnQuestAbandoned(questId)
     if self.db.char.window.show then
         self.State:OnQuestAbandoned(questId)
+    end
+end
+
+function Journeyman:OnLocationReached(location)
+    if self.db.char.window.show then
+        self.State:OnLocationReached(location)
     end
 end
 

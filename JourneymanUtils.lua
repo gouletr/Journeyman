@@ -4,6 +4,25 @@ local L = addon.Locale
 local Utils = {}
 Journeyman.Utils = Utils
 
+local tinsert = table.insert
+
+function Utils:Contains(t, value)
+    for i, v in ipairs(t) do
+        if v == value then
+            return true
+        end
+    end
+    return false
+end
+
+function Utils:Split(s, separator)
+    local t = {}
+    for v in string.gmatch(s, "([^"..separator.."]+)") do
+        tinsert(t, v)
+    end
+    return t
+end
+
 function Utils:Clone(t)
     local c
     if type(t) == "table" then

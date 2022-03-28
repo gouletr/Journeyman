@@ -10,6 +10,7 @@ Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Journeyman.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
 Journeyman.STEP_TYPE_TURNIN_QUEST = "TURNIN"
+Journeyman.STEP_TYPE_GO_TO = "GOTO"
 Journeyman.STEP_TYPE_REACH_LEVEL = "LEVEL"
 Journeyman.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
@@ -170,6 +171,7 @@ function Journeyman:GetQuestLog()
     for i = 1, entriesCount do
         local info = self:GetQuestLogInfo(i)
         if info and not info.isHeader then
+            info.objectives = C_QuestLog.GetQuestObjectives(info.questId)
             questLog[info.questId] = info
         end
     end
@@ -204,11 +206,19 @@ function Journeyman:GetItemLink(itemId, callback)
     end
 end
 
-function Journeyman:GetMapName()
-    local uiMapId = C_Map.GetBestMapForUnit("player")
-    local mapInfo = uiMapId and C_Map.GetMapInfo(uiMapId) or nil
+function Journeyman:GetMapName(showId)
+    local mapId = C_Map.GetBestMapForUnit("player")
+    return self:GetMapNameById(mapId, showId)
+end
+
+function Journeyman:GetMapNameById(mapId, showId)
+    local mapInfo = mapId and C_Map.GetMapInfo(mapId) or nil
     if mapInfo then
-        return mapInfo.name
+        local mapName = mapInfo.name
+        if showId then
+            mapName = mapName.." ("..mapId..")"
+        end
+        return mapName
     end
 end
 
@@ -231,11 +241,15 @@ function Journeyman:GetAreaIdFromBindLocationLocalizedName(name)
     return self.bindLocationNameToAreaId[name]
 end
 
-function Journeyman:GetAreaName(areaId)
+function Journeyman:GetAreaName(areaId, showId)
     if areaId and type(areaId) == "number" then
         local info = L.areaTable[areaId]
         if info then
-            return info.AreaName_lang
+            local areaName = info.AreaName_lang
+            if showId then
+                areaName = areaName.." ("..areaId..")"
+            end
+            return areaName
         end
     end
 end
@@ -283,11 +297,15 @@ function Journeyman:IsTaxiNodeAvailable(taxiNodeId)
     return true
 end
 
-function Journeyman:GetTaxiNodeName(taxiNodeId)
+function Journeyman:GetTaxiNodeName(taxiNodeId, showId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
         if info then
-            return info.Name_lang
+            local taxiNodeName = info.Name_lang
+            if showId then
+                taxiNodeName = taxiNodeName.." ("..taxiNodeId..")"
+            end
+            return taxiNodeName
         end
     end
 end
@@ -320,98 +338,152 @@ function Journeyman:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
-function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
-    if self:IsStepTypeQuest(step) then
-        local questName = self.DataSource:GetQuestName(step.data, showQuestLevel)
-        if questName == nil then
-            if step.data == nil then
-                questName = string.format("<%s>", L["NO_VALUE"])
-            elseif type(step.data) ~= "number" then
-                questName = string.format("<%s>", L["NOT_A_NUMBER"])
-            else
-                questName = string.format("quest:%d", step.data)
-            end
-        end
-        if showId then
-            questName = string.format("%s (%d)", questName, step.data)
-        end
-        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-            return string.format(L["STEP_ACCEPT_QUEST"], questName)
-        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-            return string.format(L["STEP_COMPLETE_QUEST"], questName)
-        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-            return string.format(L["STEP_TURNIN_QUEST"], questName)
-        else
-            Journeyman:Error("Step type %s not implemented.", step.type)
-        end
-    else
-        if step.type == Journeyman.STEP_TYPE_UNDEFINED then
-            return string.format("<%s>", L["UNDEFINED"])
-        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            local level = step.data
-            if level == nil then
-                level = string.format("<%s>", L["NO_VALUE"])
-            elseif type(level) ~= "number" then
-                level = string.format("<%s>", L["NOT_A_NUMBER"])
-            end
-            return string.format(L["STEP_REACH_LEVEL"], level)
-        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-            local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)
-            if itemLink == nil then
-                itemLink = string.format("<%s>", L["NO_VALUE"])
-            elseif type(itemLink) ~= "string" then
-                itemLink = string.format("<%s>", L["NOT_A_STRING"])
-            end
-            local areaName = self:GetAreaName(step.data)
-            if areaName == nil then
-                if step.data == nil then
-                    areaName = string.format("<%s>", L["NO_VALUE"])
-                elseif type(step.data) ~= "number" then
-                    areaName = string.format("<%s>", L["NOT_A_NUMBER"])
-                else
-                    areaName = string.format("area:%d", step.data)
+function Journeyman:GetStepData(step)
+    if step.type == Journeyman.STEP_TYPE_UNDEFINED then
+        return nil
+    end
+
+    local data
+    if step.data and type(step.data) == "string" and step.data:len() > 0 then
+        if self:IsStepTypeQuest(step) then
+            local values = self.Utils:Split(step.data, ",")
+            local questId = tonumber(values[1])
+            if questId then
+                data = { questId = questId }
+                if #values > 1 then
+                    local objectives = {}
+                    for i=2, #values do
+                        local objectiveIndex = tonumber(values[i])
+                        if objectiveIndex then
+                            tinsert(objectives, objectiveIndex)
+                        end
+                    end
+                    if #objectives > 0 then
+                        data.objectives = objectives
+                    end
                 end
             end
-            if showId then
-                areaName = string.format("%s (%s)", areaName, step.data)
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+            local values = self.Utils:Split(step.data, ",")
+            local mapId = tonumber(values[1])
+            local x = tonumber(values[2])
+            local y = tonumber(values[3])
+            local desc = values[4]
+            if mapId and x and y then
+                data = { mapId = mapId, x = x, y = y, desc = desc }
             end
-            if step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-                return string.format(L["STEP_BIND_HEARTHSTONE"], itemLink, areaName)
-            else
-                return string.format(L["STEP_USE_HEARTHSTONE"], itemLink, areaName)
+        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+            local level = tonumber(step.data)
+            if level then
+                data = { level = level }
+            end
+        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+            local areaId = tonumber(step.data)
+            if areaId then
+                data = { areaId = areaId }
             end
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
-            local taxiNodeName = self:GetTaxiNodeName(step.data)
-            if taxiNodeName == nil then
-                if step.data == nil then
-                    taxiNodeName = string.format("<%s>", L["NO_VALUE"])
-                elseif type(step.data) ~= "number" then
-                    taxiNodeName = string.format("<%s>", L["NOT_A_NUMBER"])
-                else
-                    taxiNodeName = string.format("taxiNode:%d", step.data)
-                end
-            end
-            if showId then
-                taxiNodeName = string.format("%s (%s)", taxiNodeName, step.data)
-            end
-            if step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-                return string.format(L["STEP_LEARN_FLIGHT_PATH"], taxiNodeName)
-            else
-                return string.format(L["STEP_FLY_TO"], taxiNodeName)
+            local taxiNodeId = tonumber(step.data)
+            if taxiNodeId then
+                data = { taxiNodeId = taxiNodeId }
             end
         else
             Journeyman:Error("Step type %s not implemented.", step.type)
         end
     end
+    return data
+end
+
+function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
+    if step.type == Journeyman.STEP_TYPE_UNDEFINED then
+        return string.format("<%s>", L["UNDEFINED"])
+    end
+
+    local data = self:GetStepData(step)
+    if self:IsStepTypeQuest(step) then
+        local questId = data and data.questId or 0
+        local questName = self.DataSource:GetQuestName(questId, showQuestLevel, showId)
+        if questName == nil then
+            questName = string.format("quest:%d", questId)
+        end
+
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+            return string.format(L["STEP_TEXT_ACCEPT_QUEST"], questName)
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+            return string.format(L["STEP_TEXT_COMPLETE_QUEST"], questName)
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+            return string.format(L["STEP_TEXT_TURNIN_QUEST"], questName)
+        else
+            Journeyman:Error("Step type %s not implemented.", step.type)
+        end
+
+    elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+        local mapId = data and data.mapId or 0
+        local mapName = Journeyman:GetMapNameById(mapId, showId)
+        if mapName == nil then
+            mapName = string.format("map:%d", mapId)
+        end
+
+        local desc = data and data.desc or nil
+        if desc == nil then
+            local x = data and data.x or 0
+            local y = data and data.y or 0
+            desc = x..", "..y
+        end
+
+        return string.format(L["STEP_TEXT_GO_TO"], desc, mapName)
+
+    elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+        local level = data and data.level or 0
+        return string.format(L["STEP_TEXT_REACH_LEVEL"], level)
+
+    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+        local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)
+        if itemLink == nil then
+            itemLink = string.format("<%s>", L["NO_VALUE"])
+        elseif type(itemLink) ~= "string" then
+            itemLink = string.format("<%s>", L["NOT_A_STRING"])
+        end
+
+        local areaId = data and data.areaId or 0
+        local areaName = self:GetAreaName(areaId, showId)
+        if areaName == nil then
+            areaName = string.format("area:%d", areaId)
+        end
+
+        if step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+            return string.format(L["STEP_TEXT_BIND_HEARTHSTONE"], itemLink, areaName)
+        else
+            return string.format(L["STEP_TEXT_USE_HEARTHSTONE"], itemLink, areaName)
+        end
+
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
+        local taxiNodeId = data and data.taxiNodeId or 0
+        local taxiNodeName = self:GetTaxiNodeName(taxiNodeId, showId)
+        if taxiNodeName == nil then
+            taxiNodeName = string.format("taxi:%d", taxiNodeId)
+        end
+
+        if step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+            return string.format(L["STEP_TEXT_LEARN_FLIGHT_PATH"], taxiNodeName)
+        else
+            return string.format(L["STEP_TEXT_FLY_TO"], taxiNodeName)
+        end
+
+    else
+        Journeyman:Error("Step type %s not implemented.", step.type)
+    end
 end
 
 function Journeyman:SetWaypoint(step, force)
     if TomTom then
+        -- Remove last waypoint
         if self.db.char.waypoint and TomTom.RemoveWaypoint then
             TomTom:RemoveWaypoint(self.db.char.waypoint)
             self.db.char.waypoint = nil
         end
 
+        -- Add new waypoint
         if step and TomTom.AddWaypoint then
             local location
             if step.hasChildren then
@@ -421,7 +493,12 @@ function Journeyman:SetWaypoint(step, force)
             end
 
             if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
-                self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0, { title = location.name, crazy = true })
+                self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0,
+                {
+                    title = location.name,
+                    persistent = false,
+                    crazy = true
+                })
             end
         end
     end
@@ -461,38 +538,31 @@ function Journeyman:SetMacro()
     end
 
     -- Update macro body
-    local body = ""
-    local currentStep = self.State:GetCurrentStep()
-    if currentStep and currentStep.type == self.STEP_TYPE_COMPLETE_QUEST then
+    local body = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
+    local step = self.State:GetCurrentStep()
+    if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
         -- Get quest objectives
-        local objectives = self.DataSource:GetQuestObjectives(currentStep.data)
-        if objectives then
-            -- Get NPC objective names
-            local names = {}
-            for i, objective in ipairs(objectives or {}) do
-                if objective and objective.type == "NPC" and not objective.isComplete then
-                    tinsert(names, objective.name)
+        local data = self:GetStepData(step)
+        if data then
+            local objectives = self.DataSource:GetQuestObjectives(data.questId)
+            if objectives then
+                -- Get NPC objective names
+                local names = {}
+                for i, objective in ipairs(objectives or {}) do
+                    if objective and objective.type == "NPC" and not objective.isComplete then
+                        tinsert(names, objective.name)
+                    end
                 end
-            end
 
-            -- Append NPC names to macro
-            for i, name in ipairs(names) do
-                local append = string.format("/tar [noexists][dead][help] %s\n", name)
-                if string.len(body) + string.len(append) <= 255 then
-                    body = body .. append
+                -- Append NPC names to macro
+                for i, name in ipairs(names) do
+                    local target = string.format("/tar [noexists][dead][help] %s\n", name)
+                    if string.len(body) + string.len(target) <= 255 then
+                        body = target..body
+                    else
+                        break
+                    end
                 end
-            end
-
-            -- Clear target
-            append = "/cleartarget [noexists][dead][help]\n"
-            if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
-                body = body .. append
-            end
-
-            -- Target marker
-            append = "/tm [exists] 8\n"
-            if string.len(body) > 0 and string.len(body) + string.len(append) <= 255 then
-                body = body .. append
             end
         end
     end

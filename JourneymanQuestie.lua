@@ -218,13 +218,16 @@ function DataSourceQuestie:IsQuestAvailable(questId)
     return QuestieDB:GetQuest(questId) ~= nil
 end
 
-function DataSourceQuestie:GetQuestName(questId, showLevel)
+function DataSourceQuestie:GetQuestName(questId, showLevel, showId)
     if questId == nil or type(questId) ~= "number" then return nil end
     local name = QuestieDB.QueryQuestSingle(questId, "name");
     if name then
         local level, _ = QuestieLib:GetTbcLevel(questId)
         if showLevel then
             name = QuestieLib:GetQuestString(questId, name, level, true)
+        end
+        if showId then
+            name = name.." ("..questId..")"
         end
         return name
     end
