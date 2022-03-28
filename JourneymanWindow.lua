@@ -431,32 +431,7 @@ function Window:DisplayStep(step, depth)
                 self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACCEPT_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
             elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
                 self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_COMPLETE_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
-                local objectives = C_QuestLog.GetQuestObjectives(data.questId)
-                if objectives then
-                    if data.objectives then
-                        for _, i in ipairs(data.objectives) do
-                            local objective = objectives[i]
-                            if objective then
-                                local isComplete = objective.finished == true or step.isComplete
-                                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
-                                    local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, objectiveIndex = i }
-                                    self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, isComplete))
-                                end
-                            end
-                        end
-                    else
-                        for i = 1, #objectives do
-                            local objective = objectives[i]
-                            if objective then
-                                local isComplete = objective.finished == true or step.isComplete
-                                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
-                                    local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, objectiveIndex = i }
-                                    self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, isComplete))
-                                end
-                            end
-                        end
-                    end
-                end
+                self:DisplayStepObjectives(step, depth, data)
             elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
                 self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TURNIN_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
             elseif step.type == Journeyman.STEP_TYPE_GO_TO then
@@ -490,6 +465,35 @@ function Window:DisplayStep(step, depth)
                 self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
             end
         end
+    end
+end
+
+function Window:DisplayStepObjectives(step, depth, data)
+    local objectives = C_QuestLog.GetQuestObjectives(data.questId)
+    if objectives then
+        if data.objectives then
+            for _, objectiveIndex in ipairs(data.objectives) do
+                local objective = objectives[objectiveIndex]
+                if objective then
+                    self:DisplayStepObjective(step, depth, objective, objectiveIndex)
+                end
+            end
+        else
+            for objectiveIndex = 1, #objectives do
+                local objective = objectives[objectiveIndex]
+                if objective then
+                    self:DisplayStepObjective(step, depth, objective, objectiveIndex)
+                end
+            end
+        end
+    end
+end
+
+function Window:DisplayStepObjective(step, depth, objective, objectiveIndex)
+    local isComplete = objective.finished == true or step.isComplete
+    if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
+        local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, objectiveIndex = objectiveIndex }
+        self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objective.text, isComplete))
     end
 end
 

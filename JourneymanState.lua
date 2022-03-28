@@ -10,11 +10,12 @@ local function IsStepQuestObjectivesComplete(step, data)
     if data == nil then
         data = Journeyman:GetStepData(step)
     end
+
     if data and data.questId and data.objectives then
-        local questInfo = State.lastQuestLog[data.questId]
-        if questInfo and questInfo.objectives then
+        local objectives = C_QuestLog.GetQuestObjectives(data.questId)
+        if objectives then
             for _, i in ipairs(data.objectives) do
-                local objective = questInfo.objectives[i]
+                local objective = objectives[i]
                 if objective == nil or not objective.finished then
                     return false
                 end
