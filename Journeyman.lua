@@ -4,6 +4,7 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+local HBD = LibStub("HereBeDragons-2.0")
 
 Journeyman.BYTE_ORDER_MARK = "!JM1"
 Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
@@ -22,6 +23,11 @@ Journeyman.SPELL_ASTRAL_RECALL = 556
 Journeyman.ICON_HUNTERS_MARK = 132212
 
 local tinsert = table.insert
+
+local function Equals(a, b, epsilon)
+    local diff = math.abs(a - b)
+    return diff <= epsilon
+end
 
 -- Some taxi nodes were never implemented in game, or are innacessible, or don't need to be considered (e.g. battlegrounds)
 local taxiNodeIdsToSkip = {1, 3, 9, 15, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
@@ -67,6 +73,45 @@ function Journeyman:OnEnable()
             if self.macroNeedUpdate then
                 self:SetMacro()
             end
+        end
+    end)
+
+    -- High frequency ticker for goto steps
+    C_Timer.NewTicker(0.25, function()
+        if not Journeyman.db.char.window.show or Journeyman.State.steps == nil then
+            return
+        end
+
+        local now = GetTimePreciseSec()
+
+        local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+        if self.lastPlayerLocation == nil then
+            self.lastPlayerLocation = { mapId = playerMapId, x = playerX, y = playerY }
+            return
+        end
+
+        if playerMapId == self.lastPlayerLocation.mapId and Equals(playerX, self.lastPlayerLocation.x, 0.0001) and Equals(playerY, self.lastPlayerLocation.y, 0.0001) then
+            return
+        end
+
+        for i = 1, #Journeyman.State.steps do
+            local step = Journeyman.State.steps[i]
+            if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete then
+                local data = Journeyman:GetStepData(step)
+                if data and data.mapId == playerMapId then
+                    local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, data.mapId, data.x / 100.0, data.y / 100.0)
+                    if distance and distance <= 15 then
+                        self:OnLocationReached(data)
+                    end
+                end
+            end
+        end
+
+        self.lastPlayerLocation = { mapId = playerMapId, x = playerX, y = playerY }
+
+        local elapsed = (GetTimePreciseSec() - now) * 1000
+        if elapsed > 1 then
+            Journeyman:Debug("Goto ticker took %.2fms", elapsed)
         end
     end)
 end
