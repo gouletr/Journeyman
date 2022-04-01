@@ -84,7 +84,15 @@ function Journeyman:OnEnable()
 
         local now = GetTimePreciseSec()
 
+        if UnitOnTaxi("player") then
+            return
+        end
+
         local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+        if playerX == nil or playerY == nil or playerMapId == nil then
+            return
+        end
+
         if self.lastPlayerLocation == nil then
             self.lastPlayerLocation = { mapId = playerMapId, x = playerX, y = playerY }
             return
