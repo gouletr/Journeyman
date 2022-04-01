@@ -158,6 +158,18 @@ local function GetNearestItem(items, player, zoneFilter)
                         bestType = "Object Drop"
                     end
                 end
+                if item.itemDrops then
+                    local nearest = GetNearestItem(item.itemDrops, player, zoneFilter)
+                    if nearest and nearest.distance < bestDistance then
+                        bestDistance = nearest.distance
+                        bestX = nearest.x
+                        bestY = nearest.y
+                        bestMapId = nearest.mapId
+                        bestName = nearest.name
+                        bestId = nearest.id
+                        bestType = "Item Drop"
+                    end
+                end
             end
         end
     end
