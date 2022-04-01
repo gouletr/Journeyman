@@ -36,7 +36,8 @@ function GUI:CreateLabel(frameType, name, parent, template, id)
     fontString:SetFontObject(GameFontNormal)
     frame.fontString = fontString
 
-    frame.SetText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
+    frame.SetText = function(self, text) self.fontString:SetText(text) end
+    frame.SetFormattedText = function(self, fmt, ...) self.fontString:SetFormattedText(fmt, ...) end
     frame.SetFontSize = function(self, size) self.fontString:SetFont(GameFontNormal:GetFont(), size) end
     frame.SetTextColor = function(self, r, g, b, a) self.fontString:SetTextColor(r, g, b, a) end
     frame.SetJustifyH = function(self, value) self.fontString:SetJustifyH(value) end
@@ -105,7 +106,7 @@ function GUI:CreateEditBox(frameType, name, parent, template, id)
     end)
     frame.editBox = editBox
 
-    frame.SetText = function(self, fmt, ...) self.editBox:SetText(string.format(fmt, ...)) end
+    frame.SetText = function(self, value) self.editBox:SetText(value) end
     frame.SetFontSize = function(self, size) self.editBox:SetFont(ChatFontNormal:GetFont(), size) end
     frame.SetTextColor = function(self, r, g, b, a) self.editBox:SetTextColor(r, g, b, a) end
     frame.SetJustifyH = function(self, value) self.editBox:SetJustifyH(value) end

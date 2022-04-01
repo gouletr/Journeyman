@@ -49,6 +49,39 @@ function Journeyman:InitializeEvents()
         C_Timer.After(2, function() self:OnLevelUp(level) end)
     end)
 
+    self:RegisterEvent("PLAYER_XP_UPDATE", function(event, unit)
+        if not Journeyman.db.char.window.show or Journeyman.State.steps == nil then
+            return
+        end
+
+        local now = GetTimePreciseSec()
+
+        local playerLevel = UnitLevel("player")
+        local playerXP = UnitXP("player")
+        for i = 1, #Journeyman.State.steps do
+            local step = Journeyman.State.steps[i]
+            if step and step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
+                local data = Journeyman:GetStepData(step)
+                if data and data.level then
+                    if playerLevel == data.level and data.xp then
+                        if playerXP >= data.xp then
+                            self:OnLevelXPReached(step)
+                        else
+                            Journeyman.State:Update()
+                        end
+                    elseif playerLevel == data.level - 1 then
+                        Journeyman.State:Update()
+                    end
+                end
+            end
+        end
+
+        local elapsed = (GetTimePreciseSec() - now) * 1000
+        if elapsed > 1 then
+            Journeyman:Debug("XP update took %.2fms", elapsed)
+        end
+    end)
+
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
         local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(location)
         if areaId then
@@ -154,6 +187,12 @@ function Journeyman:OnLevelUp(level)
     self.Journey:OnLevelUp(level)
     if self.db.char.window.show then
         self.State:OnLevelUp(level)
+    end
+end
+
+function Journeyman:OnLevelXPReached(step)
+    if self.db.char.window.show then
+        self.State:OnLevelXPReached(step)
     end
 end
 

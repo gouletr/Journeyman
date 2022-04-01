@@ -30,7 +30,7 @@ function Editor:Initialize()
     title:SetJustifyH("LEFT")
     title:SetJustifyV("TOP")
     title:SetFontSize(16)
-    title:SetText("%s v%s - %s", addonName, addonVersion, frame.name)
+    title:SetFormattedText("%s v%s - %s", addonName, addonVersion, frame.name)
     self.title = title
 
     local journeySelector = self:CreateSelector("Journeys", content)
@@ -411,7 +411,7 @@ function Editor:CreateSelector(name, parent)
     list:SetPoint("BOTTOMRIGHT", -5, 5)
     frame.list = list
 
-    frame.SetTitle = function(self, fmt, ...) title:SetText(fmt, ...) end
+    frame.SetTitle = function(self, value) title:SetText(value) end
     frame.Refresh = function(self) list:Refresh() end
 
     return frame
@@ -677,8 +677,8 @@ function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     end
     frame.editBox = editBox
 
-    frame.SetTitle = function(self, title, ...) self.label:SetText(title, ...) end
-    frame.SetText = function(self, value, ...) self.editBox:SetText(value, ...) end
+    frame.SetTitle = function(self, value) self.label:SetText(value) end
+    frame.SetText = function(self, value) self.editBox:SetText(value) end
     frame.GetText = function(self) return self.editBox:GetText() end
     frame.GetNumber = function(self) return self.editBox:GetNumber() end
     frame.SetNumeric = function(self, value) self.editBox:SetNumeric(value) end
@@ -707,7 +707,7 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, template, id
     frame.dropDownMenu = dropDownMenu
 
     frame.Initialize = function(self) self.dropDownMenu:Initialize() end
-    frame.SetTitle = function(self, title, ...) self.label:SetText(title, ...) end
+    frame.SetTitle = function(self, value) self.label:SetText(value) end
     frame.SetValue = function(self, value) self.dropDownMenu:SetValue(value) end
     frame.SetWidth = function(self, value) self.dropDownMenu:SetWidth(value) end
     frame.SetEnabled = function(self, value) self.dropDownMenu:SetEnabled(value) end

@@ -227,6 +227,8 @@ function Window:UpdateImmediate()
 
     self.needUpdate = false
     self.playerLevel = UnitLevel("player")
+    self.playerXP = UnitXP("player")
+    self.playerMaxXP = UnitXPMax("player")
     self.playerGreenRange = GetQuestGreenRange("player")
 
     self:UpdateFrame()
@@ -446,7 +448,25 @@ function Window:DisplayStep(step, depth)
                     end
                 end
             elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(data.level, step.isComplete))
+                -- Step text
+                local text = string.format(L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(data.level, step.isComplete))
+                if data.xp then
+                    text = text..string.format(" +%s xp", data.xp)
+                end
+                self:GetNextLine():SetStepText(step, depth, "%s", text) -- string contains % sign
+                -- Step objective text
+                local gainXP = nil
+                if self.playerLevel == data.level and data.xp then
+                    gainXP = max(data.xp - self.playerXP, 0)
+                elseif self.playerLevel == data.level - 1 then
+                    gainXP = max(self.playerMaxXP - self.playerXP, 0)
+                    if data.xp then
+                        gainXP = gainXP + data.xp
+                    end
+                end
+                if gainXP and gainXP > 0 then
+                    self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
+                end
             elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
                 self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(data.areaId, step.isComplete))
             elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
@@ -514,9 +534,9 @@ function Window:GetNextLine()
             end
 
             if step.isComplete then
-                self:SetText("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, string.format(fmt, ...))
+                self:SetFormattedText("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, string.format(fmt, ...))
             else
-                self:SetText(fmt, ...)
+                self:SetFormattedText(fmt, ...)
             end
 
             self:SetFontSize(Journeyman.db.profile.window.fontSize)

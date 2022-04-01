@@ -418,9 +418,14 @@ function Journeyman:GetStepData(step)
                 data = { mapId = mapId, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            local level = tonumber(step.data)
+            local values = self.Utils:Split(step.data, ",")
+            local level = tonumber(values[1])
+            local xp = tonumber(values[2])
             if level then
                 data = { level = level }
+                if xp then
+                    data.xp = xp
+                end
             end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
             local areaId = tonumber(step.data)
@@ -480,7 +485,11 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
         local level = data and data.level or 0
-        return string.format(L["STEP_TEXT_REACH_LEVEL"], level)
+        local text = string.format(L["STEP_TEXT_REACH_LEVEL"], level)
+        if data and data.xp then
+            text = text..string.format(" +%s xp", data.xp)
+        end
+        return text
 
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)

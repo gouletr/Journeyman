@@ -88,7 +88,13 @@ local function IsStepComplete(step)
                 end
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            return UnitLevel("player") >= data.level
+            local playerLevel = UnitLevel("player")
+            if data.xp then
+                local playerXP = UnitXP("player")
+                return playerLevel > data.level or (playerLevel == data.level and playerXP >= data.xp)
+            else
+                return playerLevel >= data.level
+            end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
             -- Check if current bind location match
             if GetBindLocation() == Journeyman:GetAreaName(data.areaId) then
@@ -162,18 +168,27 @@ local function CompareStepData(type, lhs, rhs)
                 elseif lhs.objectiveIndex then
                     return Journeyman.Utils:Contains(rhs.objectives, lhs.objectiveIndex)
                 else
-                    Journeyman:Error("Expected objective index.")
+                    -- If no objectiveIndex, it means quest complete event triggered early
+                    return true
                 end
             else
                 return true
             end
         end
+        return false
     elseif type == Journeyman.STEP_TYPE_TURNIN_QUEST then
         return lhs.questId == rhs.questId
     elseif type == Journeyman.STEP_TYPE_GO_TO then
         return lhs.mapId == rhs.mapId and lhs.x == rhs.x and lhs.y == rhs.y
     elseif type == Journeyman.STEP_TYPE_REACH_LEVEL then
-        return lhs.level == rhs.level
+        if lhs.level == rhs.level then
+            if lhs.xp and rhs.xp then
+                return lhs.xp == rhs.xp
+            else
+                return true
+            end
+        end
+        return false
     elseif type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return lhs.areaId == rhs.areaId
     elseif type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or type == Journeyman.STEP_TYPE_FLY_TO then
@@ -244,9 +259,9 @@ function State:UpdateImmediate()
                 local step = chapter.steps[i]
                 if step.type and step.type ~= Journeyman.STEP_TYPE_UNDEFINED and step.data then
                     -- Check if step is ever doable
-                    local doable = true
                     local data = Journeyman:GetStepData(step)
                     if data then
+                        local doable = true
                         if Journeyman:IsStepTypeQuest(step) then
                             doable = doable and Journeyman.DataSource:IsQuestAvailable(data.questId)
                             doable = doable and Journeyman.DataSource:GetQuestHasRequiredRace(data.questId)
@@ -398,6 +413,10 @@ function State:OnLevelUp(level)
     if step then
         self:OnStepCompleted(step)
     end
+end
+
+function State:OnLevelXPReached(step)
+    self:OnStepCompleted(step)
 end
 
 function State:OnHearthstoneBound(areaId)
