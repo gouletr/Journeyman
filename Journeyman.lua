@@ -105,11 +105,10 @@ function Journeyman:OnEnable()
         for i = 1, #Journeyman.State.steps do
             local step = Journeyman.State.steps[i]
             if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete then
-                local data = Journeyman:GetStepData(step)
-                if data and data.mapId == playerMapId then
-                    local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, data.mapId, data.x / 100.0, data.y / 100.0)
+                if step.data.mapId == playerMapId then
+                    local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
                     if distance and distance <= 15 then
-                        self:OnLocationReached(data)
+                        self:OnLocationReached(step.data)
                     end
                 end
             end
@@ -419,11 +418,12 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_GO_TO then
             local values = self.Utils:Split(step.data, ",")
             local mapId = tonumber(values[1])
+            local mapName = Journeyman:GetMapNameById(mapId)
             local x = tonumber(values[2])
             local y = tonumber(values[3])
-            local desc = values[4]
-            if mapId and x and y then
-                data = { mapId = mapId, x = x, y = y, desc = desc }
+            local desc = values[4] and values[4] or x..","..y
+            if mapId and mapName and x and y and desc then
+                data = { mapId = mapId, mapName = mapName, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             local values = self.Utils:Split(step.data, ",")
@@ -486,7 +486,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         if desc == nil then
             local x = data and data.x or 0
             local y = data and data.y or 0
-            desc = x..", "..y
+            desc = x..","..y
         end
 
         return string.format(L["STEP_TEXT_GO_TO"], desc, mapName)
@@ -604,18 +604,20 @@ function Journeyman:SetMacro()
     local step = self.State:GetCurrentStep()
     if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
         -- Get quest objectives
-        local data = self:GetStepData(step)
-        if data then
-            local objectives = self.DataSource:GetQuestObjectives(data.questId)
-            if objectives then
-                -- Get NPC objective names
-                local names = {}
-                for i, objective in ipairs(objectives or {}) do
-                    if objective and objective.type == "NPC" and not objective.isComplete then
-                        tinsert(names, objective.name)
-                    end
+        local objectives = self.DataSource:GetQuestObjectives(step.data.questId)
+        if objectives then
+            -- Get NPC objective names
+            local names = {}
+            for i, objective in ipairs(objectives or {}) do
+                if objective and objective.type == "NPC" and not objective.isComplete then
+                    tinsert(names, objective.name)
                 end
+            end
 
+            if #names == 0 then
+                -- Wipe macro body, nothing to do
+                body = ""
+            else
                 -- Append NPC names to macro
                 for i, name in ipairs(names) do
                     local target = string.format("/tar [noexists][dead][help] %s\n", name)

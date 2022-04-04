@@ -226,10 +226,6 @@ function Window:UpdateImmediate()
     local now = GetTimePreciseSec()
 
     self.needUpdate = false
-    self.playerLevel = UnitLevel("player")
-    self.playerXP = UnitXP("player")
-    self.playerMaxXP = UnitXPMax("player")
-    self.playerGreenRange = GetQuestGreenRange("player")
 
     self:UpdateFrame()
     self:UpdateLockButton()
@@ -427,72 +423,60 @@ function Window:DisplayStep(step, depth)
         end
     else
         -- Display step
-        local data = Journeyman:GetStepData(step)
-        if data then
-            if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACCEPT_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
-            elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_COMPLETE_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
-                self:DisplayStepObjectives(step, depth, data)
-            elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TURNIN_QUEST"], self:GetColoredQuestText(data.questId, step.isComplete))
-            elseif step.type == Journeyman.STEP_TYPE_GO_TO then
-                if data.mapId and data.x and data.y then
-                    local desc = data.desc
-                    if desc == nil then
-                        desc = data.x..", "..data.y
-                    end
-                    local mapName = Journeyman:GetMapNameById(data.mapId)
-                    if mapName then
-                        self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO"], self:GetColoredHighlightText(desc, step.isComplete), self:GetColoredHighlightText(mapName, step.isComplete))
-                    end
-                end
-            elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-                -- Step text
-                local text = string.format(L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(data.level, step.isComplete))
-                if data.xp then
-                    text = text..string.format(" +%s xp", data.xp)
-                end
-                self:GetNextLine():SetStepText(step, depth, "%s", text) -- string contains % sign
-                -- Step objective text
-                local gainXP = nil
-                if self.playerLevel == data.level and data.xp then
-                    gainXP = max(data.xp - self.playerXP, 0)
-                elseif self.playerLevel == data.level - 1 then
-                    gainXP = max(self.playerMaxXP - self.playerXP, 0)
-                    if data.xp then
-                        gainXP = gainXP + data.xp
-                    end
-                end
-                if gainXP and gainXP > 0 then
-                    self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
-                end
-            elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(data.areaId, step.isComplete))
-            elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(data.areaId, step.isComplete))
-            elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(data.taxiNodeId, step.isComplete))
-            elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-                self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_FLY_TO"], self:GetColoredTaxiNodeText(data.taxiNodeId, step.isComplete))
-            else
-                Journeyman:Error("Step type %s not implemented.", step.type)
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACCEPT_QUEST"], self:GetColoredQuestText(step.data.questId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_COMPLETE_QUEST"], self:GetColoredQuestText(step.data.questId, step.isComplete))
+            self:DisplayStepObjectives(step, depth)
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TURNIN_QUEST"], self:GetColoredQuestText(step.data.questId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO"], self:GetColoredHighlightText(step.data.desc, step.isComplete), self:GetColoredHighlightText(step.data.mapName, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+            -- Step text
+            local text = string.format(L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(step.data.level, step.isComplete))
+            if step.data.xp then
+                text = text..string.format(" +%s xp", step.data.xp)
             end
+            self:GetNextLine():SetStepText(step, depth, "%s", text) -- string contains % sign
+            -- Step objective text
+            local gainXP = nil
+            if Journeyman.State.playerLevel == step.data.level and step.data.xp then
+                gainXP = max(step.data.xp - Journeyman.State.playerXP, 0)
+            elseif Journeyman.State.playerLevel == step.data.level - 1 then
+                gainXP = max(Journeyman.State.playerMaxXP - Journeyman.State.playerXP, 0)
+                if step.data.xp then
+                    gainXP = gainXP + step.data.xp
+                end
+            end
+            if gainXP and gainXP > 0 then
+                self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
+            end
+        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_FLY_TO"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
+        else
+            Journeyman:Error("Step type %s not implemented.", step.type)
+        end
 
-            -- Display step note
-            if step.note and string.len(step.note) > 0 then
-                local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
-                self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
-            end
+        -- Display step note
+        if step.note and string.len(step.note) > 0 then
+            local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
+            self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
         end
     end
 end
 
-function Window:DisplayStepObjectives(step, depth, data)
-    local objectives = C_QuestLog.GetQuestObjectives(data.questId)
+function Window:DisplayStepObjectives(step, depth)
+    local objectives = C_QuestLog.GetQuestObjectives(step.data.questId)
     if objectives then
-        if data.objectives then
-            for _, objectiveIndex in ipairs(data.objectives) do
+        if step.data.objectives then
+            for _, objectiveIndex in ipairs(step.data.objectives) do
                 local objective = objectives[objectiveIndex]
                 if objective then
                     self:DisplayStepObjective(step, depth, objective, objectiveIndex)
@@ -551,17 +535,11 @@ function Window:GetNextLine()
                 if button == "LeftButton" then
                     if not IsModifiedClick() then
                         if Journeyman:IsStepTypeQuest(step) then
-                            local data = Journeyman:GetStepData(step)
-                            if data then
-                                Window:ShowQuest(data.questId)
-                            end
+                            Window:ShowQuest(step.data.questId)
                         end
                     elseif IsModifiedClick("CHATLINK") and ChatEdit_GetActiveWindow() then
                         if Journeyman:IsStepTypeQuest(step) then
-                            local data = Journeyman:GetStepData(step)
-                            if data then
-                                Window:LinkQuest(data.questId)
-                            end
+                            Window:LinkQuest(step.data.questId)
                         end
                     elseif IsControlKeyDown() then
                         Journeyman:SetWaypoint(step, true)
@@ -623,14 +601,14 @@ function Window:GetColoredQuestText(questId, isComplete)
         local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
         if questLevel ~= nil then
             local colorHex
-            local levelDiff = questLevel - self.playerLevel
+            local levelDiff = questLevel - Journeyman.State.playerLevel
             if levelDiff >= 5 then
                 colorHex = QUEST_COLOR_RED
             elseif levelDiff >= 3 then
                 colorHex = QUEST_COLOR_ORANGE
             elseif levelDiff >= -2 then
                 colorHex = QUEST_COLOR_YELLOW
-            elseif -levelDiff <= self.playerGreenRange then
+            elseif -levelDiff <= Journeyman.State.playerGreenRange then
                 colorHex = QUEST_COLOR_GREEN
             else
                 colorHex = QUEST_COLOR_GREY

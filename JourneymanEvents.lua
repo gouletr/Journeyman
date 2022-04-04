@@ -61,17 +61,14 @@ function Journeyman:InitializeEvents()
         for i = 1, #Journeyman.State.steps do
             local step = Journeyman.State.steps[i]
             if step and step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
-                local data = Journeyman:GetStepData(step)
-                if data and data.level then
-                    if playerLevel == data.level and data.xp then
-                        if playerXP >= data.xp then
-                            self:OnLevelXPReached(step)
-                        else
-                            Journeyman.State:Update()
-                        end
-                    elseif playerLevel == data.level - 1 then
+                if playerLevel == step.data.level and step.data.xp then
+                    if playerXP >= step.data.xp then
+                        self:OnLevelXPReached(step)
+                    else
                         Journeyman.State:Update()
                     end
+                elseif playerLevel == step.data.level - 1 then
+                    Journeyman.State:Update()
                 end
             end
         end
