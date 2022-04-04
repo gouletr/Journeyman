@@ -6,6 +6,7 @@ local Editor = {}
 Journeyman.Editor = Editor
 
 local AceGUI = LibStub("AceGUI-3.0")
+local HBD = LibStub("HereBeDragons-2.0")
 
 local tinsert = table.insert
 
@@ -538,6 +539,19 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         local step = Journeyman.Editor:GetSelectedStep()
         if step then
             step.type = value
+            if Journeyman.Utils:IsNilOrEmpty(step.data) then
+                if step.type == Journeyman.STEP_TYPE_GO_TO then
+                    local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+                    if playerMapId and playerX and playerY then
+                        local subZoneText = GetSubZoneText()
+                        if subZoneText then
+                            step.data = string.format("%d,%.2f,%.2f,%s", playerMapId, playerX * 100.0, playerY * 100.0, subZoneText)
+                        else
+                            step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
+                        end
+                    end
+                end
+            end
         end
         Journeyman.Editor:Refresh()
         Journeyman:Reset(true)

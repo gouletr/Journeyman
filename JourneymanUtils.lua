@@ -6,6 +6,13 @@ Journeyman.Utils = Utils
 
 local tinsert = table.insert
 
+function Utils:IsNilOrEmpty(value)
+    if value == nil or (type(value) == "string" and value:len() == 0) then
+        return true
+    end
+    return false
+end
+
 function Utils:Contains(t, value)
     for i, v in ipairs(t) do
         if v == value then
