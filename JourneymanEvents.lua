@@ -44,6 +44,10 @@ function Journeyman:InitializeEvents()
         end
     end)
 
+    self:RegisterEvent("BAG_UPDATE_DELAYED", function(event)
+        Journeyman.State:Update()
+    end)
+
     self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
         -- Delay level up so that it happens after quests turn-in
         C_Timer.After(2, function() self:OnLevelUp(level) end)

@@ -12,10 +12,19 @@ local function IsStepQuestObjectivesComplete(step)
         return false
     end
 
-    for _, objectiveIndex in ipairs(step.data.objectives) do
-        local objective = objectives[objectiveIndex]
-        if objective and not objective.finished then
-            return false
+    if step.data.objectives then
+        for _, objectiveIndex in ipairs(step.data.objectives) do
+            local objective = objectives[objectiveIndex]
+            if objective and not objective.finished then
+                return false
+            end
+        end
+    else
+        for objectiveIndex = 1, #objectives do
+            local objective = objectives[objectiveIndex]
+            if objective and not objective.finished then
+                return false
+            end
         end
     end
 
@@ -48,7 +57,7 @@ local function IsStepComplete(step)
                 return true
             end
         elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-            if step.data.objectives and IsStepQuestObjectivesComplete(step) then -- Check if quest specify objectives, and they are all complete
+            if IsStepQuestObjectivesComplete(step) then -- Check if quest specify objectives, and they are all complete
                 return true
             elseif questInfo ~= nil and questInfo.isComplete then -- Check if quest is in quest log and complete
                 return true
@@ -365,7 +374,7 @@ end
 function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
     local step = FindStep(Journeyman.STEP_TYPE_COMPLETE_QUEST, { questId = questId, objectiveIndex = objectiveIndex })
     if step then
-        if step.data.objectives and IsStepQuestObjectivesComplete(step) then
+        if IsStepQuestObjectivesComplete(step) then
             self:OnStepCompleted(step)
         else
             Journeyman:Update()
