@@ -104,6 +104,11 @@ local function IsStepComplete(step)
             if cooldownLeft > 0 and GetBindLocation() == Journeyman:GetAreaName(step.data.areaId) then
                 return true
             end
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+            -- Check if taxiNodeId has been unlocked
+            if Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] then
+                return true
+            end
         elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
             -- Check if we are currently flying to that taxiNodeId
             if Journeyman.flyingTo == step.data.taxiNodeId and State.playerOnTaxi then
@@ -111,11 +116,13 @@ local function IsStepComplete(step)
             end
 
             -- Check if we are in same map as taxiNodeId
-            local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(step.data.taxiNodeId)
-            if taxiNodeWorldCoords then
-                local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], State.playerLocation.mapId, false)
-                if x and y then -- If we have coordinates, it means we are in same zone
-                    return true
+            if State.playerLocation then
+                local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(step.data.taxiNodeId)
+                if taxiNodeWorldCoords then
+                    local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], State.playerLocation.mapId, false)
+                    if x and y then -- If we have coordinates, it means we are in same zone
+                        return true
+                    end
                 end
             end
         end

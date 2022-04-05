@@ -319,6 +319,13 @@ function Journeyman:GetAreaParentId(areaId)
     end
 end
 
+function Journeyman:GetTaxiNodeId(slot)
+    local name = TaxiNodeName(slot)
+    if name then
+        return Journeyman:GetTaxiNodeIdFromLocalizedName(name)
+    end
+end
+
 function Journeyman:GetTaxiNodeIdFromLocalizedName(name)
     if self.taxiNodeNameToTaxiNodeId == nil then
         self.taxiNodeNameToTaxiNodeId = {}

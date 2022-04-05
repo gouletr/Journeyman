@@ -47,7 +47,8 @@ local databaseDefaults = {
         },
         journey = "",
         chapter = 1,
-        updateJourney = false
+        updateJourney = false,
+        taxiNodeIds = {}
     }
 }
 

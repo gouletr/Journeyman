@@ -110,6 +110,12 @@ function Journeyman:InitializeEvents()
         end
     end)
 
+    self:RegisterEvent("TAXIMAP_OPENED", function(event, uiMapSystem)
+        if uiMapSystem == Enum.UIMapSystem.Taxi then
+            self:OnTaxiMapOpened()
+        end
+    end)
+
     self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
         if message == ERR_NEWTAXIPATH then
             local location = Journeyman.DataSource:GetNearestFlightMasterLocation()
@@ -211,9 +217,20 @@ function Journeyman:OnHearthstoneUsed(areaId)
     end
 end
 
-function Journeyman:OnLearnFlightPath(areaId)
-    self.Journey:OnLearnFlightPath(areaId)
+function Journeyman:OnTaxiMapOpened()
+    local taxiNodeCount = NumTaxiNodes()
+    for i = 1, taxiNodeCount do
+        local taxiNodeId = self:GetTaxiNodeId(i)
+        if taxiNodeId then
+            self.db.char.taxiNodeIds[taxiNodeId] = true
+        end
+    end
+end
+
+function Journeyman:OnLearnFlightPath(taxiNodeId)
+    self.db.char.taxiNodeIds[taxiNodeId] = true
+    self.Journey:OnLearnFlightPath(taxiNodeId)
     if self.db.char.window.show then
-        self.State:OnLearnFlightPath(areaId)
+        self.State:OnLearnFlightPath(taxiNodeId)
     end
 end
