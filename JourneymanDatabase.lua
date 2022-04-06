@@ -53,7 +53,30 @@ local databaseDefaults = {
 }
 
 function Journeyman:InitializeDatabase()
+    -- Create database
     self.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
+
+    -- Initialize known taxi node ids per race
+    if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+        if Journeyman.player.raceName == "Human" then
+            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif Journeyman.player.raceName == "Orc" or Journeyman.player.raceName == "Troll" then
+            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif Journeyman.player.raceName == "Dwarf" or Journeyman.player.raceName == "Gnome" then
+            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif Journeyman.player.raceName == "NightElf" then
+            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif Journeyman.player.raceName == "Scourge" then
+            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif Journeyman.player.raceName == "Tauren" then
+            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        end
+    else
+        Journeyman:Error("Unsupported version of WoW. (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
+    end
+
+    -- Deserialize database
     self:DeserializeDatabase()
 end
 

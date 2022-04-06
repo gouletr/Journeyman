@@ -40,6 +40,22 @@ function Journeyman:OnInitialize()
     self.waypointNeedUpdate = false
     self.macroNeedUpdate = false
 
+    self.player = {}
+
+    local factionName, factionNameLocal = UnitFactionGroup("player")
+    self.player.factionName = factionName
+    self.player.factionNameLocal = factionNameLocal
+
+    local raceNameLocal, raceName, raceId = UnitRace("player")
+    self.player.raceName = raceName
+    self.player.raceNameLocal = raceNameLocal
+    self.player.raceId = raceId
+
+    local classNameLocal, className, classId = UnitClass("player")
+    self.player.className = className
+    self.player.classNameLocal = classNameLocal
+    self.player.classId = classId
+
     self:InitializeDatabase()
     self.Editor:Initialize()
     self:InitializeOptions()
@@ -347,9 +363,8 @@ function Journeyman:IsTaxiNodeAvailable(taxiNodeId)
         return false
     end
 
-    local playerFaction = UnitFactionGroup("player")
     local taxiNodeFaction = Journeyman:GetTaxiNodeFaction(taxiNodeId)
-    if playerFaction ~= taxiNodeFaction and taxiNodeFaction ~= "Neutral" then
+    if self.player.factionName ~= taxiNodeFaction and taxiNodeFaction ~= "Neutral" then
         return false
     end
 
