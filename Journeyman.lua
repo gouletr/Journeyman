@@ -560,31 +560,56 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 end
 
 function Journeyman:SetWaypoint(step, force)
-    if TomTom then
-        -- Remove last waypoint
-        if self.db.char.waypoint and TomTom.RemoveWaypoint then
-            TomTom:RemoveWaypoint(self.db.char.waypoint)
-            self.db.char.waypoint = nil
-        end
+    if step == nil or TomTom == nil or TomTom.AddWaypoint == nil or TomTom.RemoveWaypoint == nil then
+        return
+    end
 
-        -- Add new waypoint
-        if step and TomTom.AddWaypoint then
-            local location
-            if step.hasChildren then
-                location = step.location
-            else
-                location = self.State:GetStepLocation(step)
-            end
+    -- Remove last waypoint
+    if self.db.char.waypoint then
+        TomTom:RemoveWaypoint(self.db.char.waypoint)
+        self.db.char.waypoint = nil
+    end
 
-            if location and (force or location.distance >= self.db.profile.autoSetWaypointMin) then
-                self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0,
-                {
-                    title = location.name,
-                    persistent = false,
-                    crazy = true
-                })
-            end
+    -- Add new waypoint
+    local location = nil
+    if step.hasChildren then
+        location = step.location
+    else
+        location = self.State:GetStepLocation(step)
+    end
+
+    if location == nil then
+        return
+    end
+
+    -- Waypoint settings based on step information
+    local minDistance = 0
+    local clearDistance = 0
+    local arrivalDistance = 5
+    if step.type == self.STEP_TYPE_COMPLETE_QUEST then
+        if location.type == "NPC" or location.type == "NPC Drop" then
+            minDistance = 30
+            clearDistance = 15
+            arrivalDistance = 30
+        elseif location.type == "Object Drop" then
+            minDistance = 10
+            clearDistance = 10
+            arrivalDistance = 15
         end
+    end
+
+    -- Add waypoint if greater or equal to minimum distance
+    if force or location.distance >= minDistance then
+        self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0,
+        {
+            title = location.name,
+            persistent = false,
+            minimap = true,
+            world = true,
+            crazy = true,
+            cleardistance = clearDistance,
+            arrivaldistance = arrivalDistance
+        })
     end
 end
 
