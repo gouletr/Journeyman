@@ -12,6 +12,8 @@ local QuestieLib = QuestieLoader and QuestieLoader:ImportModule("QuestieLib")
 local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 --local QuestieL10n = QuestieLoader and QuestieLoader:ImportModule("l10n")
 local QuestieLink = QuestieLoader and QuestieLoader:ImportModule("QuestieLink")
+local QuestieReputation = QuestieLoader and QuestieLoader:ImportModule("QuestieReputation")
+local QuestieProfessions = QuestieLoader and QuestieLoader:ImportModule("QuestieProfessions")
 
 local tinsert = table.insert
 
@@ -312,23 +314,49 @@ end
 
 function DataSourceQuestie:GetQuestHasRequiredRace(questId)
     local requiredRaces = QuestieDB.QueryQuestSingle(questId, "requiredRaces")
-    if requiredRaces then
-        return QuestiePlayer:HasRequiredRace(requiredRaces) == true
-    end
-    return false
+    return QuestiePlayer:HasRequiredRace(requiredRaces) == true
 end
 
 function DataSourceQuestie:GetQuestHasRequiredClass(questId)
     local requiredClasses = QuestieDB.QueryQuestSingle(questId, "requiredClasses")
-    if requiredClasses then
-        return QuestiePlayer:HasRequiredClass(requiredClasses) == true
+    return QuestiePlayer:HasRequiredClass(requiredClasses) == true
+end
+
+function DataSourceQuestie:GetQuestHasProfessionAndSkillLevel(questId)
+    local requiredSkill = QuestieDB.QueryQuestSingle(questId, "requiredSkill")
+    return QuestieProfessions:HasProfessionAndSkillLevel(requiredSkill) == true
+end
+
+function DataSourceQuestie:GetQuestHasReputation(questId)
+    local requiredMinRep = QuestieDB.QueryQuestSingle(questId, "requiredMinRep")
+    local requiredMaxRep = QuestieDB.QueryQuestSingle(questId, "requiredMaxRep")
+    return QuestieReputation:HasReputation(requiredMinRep, requiredMaxRep) == true
+end
+
+function DataSourceQuestie:GetQuestParentQuest(questId)
+    local parentQuest = QuestieDB.QueryQuestSingle(questId, "parentQuest")
+    if parentQuest and parentQuest ~= 0 then
+        return parentQuest
     end
-    return false
+end
+
+function DataSourceQuestie:GetQuestNextQuestInChain(questId)
+    local nextQuestInChain = QuestieDB.QueryQuestSingle(questId, "nextQuestInChain")
+    if nextQuestInChain and nextQuestInChain ~= 0 then
+        return nextQuestInChain
+    end
 end
 
 function DataSourceQuestie:GetQuestExclusiveTo(questId)
-    local quest = QuestieDB:GetQuest(questId)
-    if quest ~= nil then return quest.exclusiveTo end
+    return QuestieDB.QueryQuestSingle(questId, "exclusiveTo")
+end
+
+function DataSourceQuestie:GetQuestPreQuestSingle(questId)
+    return QuestieDB.QueryQuestSingle(questId, "preQuestSingle")
+end
+
+function DataSourceQuestie:GetQuestPreQuestGroup(questId)
+    return QuestieDB.QueryQuestSingle(questId, "preQuestGroup")
 end
 
 function DataSourceQuestie:GetNearestQuestStarter(questId)
@@ -466,6 +494,14 @@ function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     if parentAreaId then
         return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId }, parentAreaId)
     end
+end
+
+function DataSourceQuestie:GetNearestClassTrainerLocation()
+    local npcs = Questie.db.global.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"]
+    if npcs == nil then return nil end
+
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId })
 end
 
 function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)

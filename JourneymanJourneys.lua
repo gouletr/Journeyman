@@ -280,3 +280,11 @@ function Journey:OnTakeFlightPath(taxiNodeId)
         AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, tostring(taxiNodeId), true)
     end
 end
+
+function Journey:OnTrainerClosed()
+    if Journeyman.db.char.updateJourney then
+        local journey = self:GetActiveJourney()
+        local chapter = self:GetOrCreateLastChapter(journey)
+        AddStep(chapter, Journeyman.STEP_TYPE_TRAIN_CLASS, "", true)
+    end
+end

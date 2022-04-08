@@ -17,6 +17,7 @@ Journeyman.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
 Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
 Journeyman.STEP_TYPE_FLY_TO = "FLYTO"
+Journeyman.STEP_TYPE_TRAIN_CLASS = "TRAIN"
 Journeyman.ITEM_HEARTHSTONE = 6948
 Journeyman.SPELL_HEARTHSTONE = 8690
 Journeyman.SPELL_ASTRAL_RECALL = 556
@@ -56,6 +57,14 @@ function Journeyman:OnInitialize()
     self.player.classNameLocal = classNameLocal
     self.player.classId = classId
 
+    self.player.level = UnitLevel("player")
+    self.player.xp = UnitXP("player")
+    self.player.maxXP = UnitXPMax("player")
+    self.player.greenRange = GetQuestGreenRange("player")
+    self.player.onTaxi = UnitOnTaxi("player")
+    self.player.location = nil
+    self.player.lastLocation = nil
+
     self:InitializeDatabase()
     self.Editor:Initialize()
     self:InitializeOptions()
@@ -72,22 +81,31 @@ function Journeyman:OnEnable()
     -- Install update ticker
     local updateFrequency = min(max(Journeyman.db.profile.advanced.updateFrequency, 0.1), 5)
     self.updateTicker = C_Timer.NewTicker(updateFrequency, function()
+        -- Store some values
+        self.player.level = UnitLevel("player")
+        self.player.xp = UnitXP("player")
+        self.player.maxXP = UnitXPMax("player")
+        self.player.greenRange = GetQuestGreenRange("player")
+
         -- Check for state and window update
         self.State:CheckForUpdate()
         self.Window:CheckForUpdate()
 
+        -- Check for waypoint and macro update
         if not self.State.needUpdate then
+            local step = self.State:GetCurrentStep()
+
             -- Check for waypoint update
-            if self.waypointNeedUpdate then
-                if self.db.profile.autoSetWaypoint and not UnitOnTaxi("player") then
-                    self:SetWaypoint(self.State:GetCurrentStep(), false)
+            if self.waypointNeedUpdate and self.player.location and not self.player.onTaxi then
+                if self.db.profile.autoSetWaypoint then
+                    self:SetWaypoint(step, false)
                 end
                 self.waypointNeedUpdate = false
             end
 
             -- Check for macro update
             if self.macroNeedUpdate then
-                self:SetMacro()
+                self:SetMacro(step)
             end
         end
     end)
@@ -100,24 +118,39 @@ function Journeyman:OnEnable()
 
         local now = GetTimePreciseSec()
 
-        if UnitOnTaxi("player") then
+        -- Store player is on taxi
+        self.player.onTaxi = UnitOnTaxi("player")
+
+        -- If player is on taxi, do not track location
+        if self.player.onTaxi then
+            self.player.location = nil
+            self.player.lastLocation = nil
             return
         end
 
+        -- Get player location
         local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
-        if playerX == nil or playerY == nil or playerMapId == nil then
+        if playerMapId and playerX and playerY then
+            self.player.location = { mapId = playerMapId, x = playerX, y = playerY }
+        else
+            -- Could not get location, bail
+            self.player.location = nil
+            self.player.lastLocation = nil
             return
         end
 
-        if self.lastPlayerLocation == nil then
-            self.lastPlayerLocation = { mapId = playerMapId, x = playerX, y = playerY }
+        -- Check if we have last location, otherwise store and bail
+        if self.player.lastLocation == nil then
+            self.player.lastLocation = { mapId = playerMapId, x = playerX, y = playerY }
             return
         end
 
-        if playerMapId == self.lastPlayerLocation.mapId and Equals(playerX, self.lastPlayerLocation.x, 0.0001) and Equals(playerY, self.lastPlayerLocation.y, 0.0001) then
+        -- Check if location changed for at least second decimal point
+        if playerMapId == self.player.lastLocation.mapId and Equals(playerX, self.player.lastLocation.x, 0.0001) and Equals(playerY, self.player.lastLocation.y, 0.0001) then
             return
         end
 
+        -- Compare all incomplete goto step that matches the mapId
         for i = 1, #Journeyman.State.steps do
             local step = Journeyman.State.steps[i]
             if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete then
@@ -130,7 +163,8 @@ function Journeyman:OnEnable()
             end
         end
 
-        self.lastPlayerLocation = { mapId = playerMapId, x = playerX, y = playerY }
+        -- Store last location
+        self.player.lastLocation = { mapId = playerMapId, x = playerX, y = playerY }
 
         local elapsed = (GetTimePreciseSec() - now) * 1000
         if elapsed > 1 then
@@ -412,13 +446,17 @@ function Journeyman:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
+function Journeyman:IsStepUnique(step)
+    return self:IsStepTypeQuest(step) or step.type == Journeyman.STEP_TYPE_REACH_LEVEL
+end
+
 function Journeyman:GetStepData(step)
     if step.type == Journeyman.STEP_TYPE_UNDEFINED then
         return nil
     end
 
     local data
-    if step.data and type(step.data) == "string" and step.data:len() > 0 then
+    if step.data and type(step.data) == "string" then
         if self:IsStepTypeQuest(step) then
             local values = self.Utils:Split(step.data, ",")
             local questId = tonumber(values[1])
@@ -443,8 +481,11 @@ function Journeyman:GetStepData(step)
             local mapName = Journeyman:GetMapNameById(mapId)
             local x = tonumber(values[2])
             local y = tonumber(values[3])
-            local desc = values[4] and values[4] or x..","..y
-            if mapId and mapName and x and y and desc then
+            local desc = values[4]
+            if mapId and mapName and x and y then
+                if desc == nil or desc:len() == 0 then
+                     desc = x..","..y
+                end
                 data = { mapId = mapId, mapName = mapName, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
@@ -467,6 +508,8 @@ function Journeyman:GetStepData(step)
             if taxiNodeId then
                 data = { taxiNodeId = taxiNodeId }
             end
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+            data = {}
         else
             Journeyman:Error("Step type %s not implemented.", step.type)
         end
@@ -554,6 +597,9 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
             return string.format(L["STEP_TEXT_FLY_TO"], taxiNodeName)
         end
 
+    elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+        return string.format(L["STEP_TEXT_TRAIN_CLASS"])
+
     else
         Journeyman:Error("Step type %s not implemented.", step.type)
     end
@@ -588,13 +634,9 @@ function Journeyman:SetWaypoint(step, force)
     local arrivalDistance = 5
     if step.type == self.STEP_TYPE_COMPLETE_QUEST then
         if location.type == "NPC" or location.type == "NPC Drop" then
-            minDistance = 30
+            minDistance = 15
             clearDistance = 15
             arrivalDistance = 30
-        elseif location.type == "Object Drop" then
-            minDistance = 10
-            clearDistance = 10
-            arrivalDistance = 15
         end
     end
 
@@ -613,7 +655,7 @@ function Journeyman:SetWaypoint(step, force)
     end
 end
 
-function Journeyman:SetMacro()
+function Journeyman:SetMacro(step)
     if InCombatLockdown() then
         return
     end
@@ -648,7 +690,6 @@ function Journeyman:SetMacro()
 
     -- Update macro body
     local body = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
-    local step = self.State:GetCurrentStep()
     if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
         -- Get quest objectives
         local objectives = self.DataSource:GetQuestObjectives(step.data.questId)

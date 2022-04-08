@@ -441,10 +441,10 @@ function Window:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, "%s", text) -- string contains % sign
             -- Step objective text
             local gainXP = nil
-            if Journeyman.State.playerLevel == step.data.level and step.data.xp then
-                gainXP = max(step.data.xp - Journeyman.State.playerXP, 0)
-            elseif Journeyman.State.playerLevel == step.data.level - 1 then
-                gainXP = max(Journeyman.State.playerMaxXP - Journeyman.State.playerXP, 0)
+            if Journeyman.player.level == step.data.level and step.data.xp then
+                gainXP = max(step.data.xp - Journeyman.player.xp, 0)
+            elseif Journeyman.player.level == step.data.level - 1 then
+                gainXP = max(Journeyman.player.maxXP - Journeyman.player.xp, 0)
                 if step.data.xp then
                     gainXP = gainXP + step.data.xp
                 end
@@ -460,6 +460,8 @@ function Window:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_FLY_TO"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TRAIN_CLASS"])
         else
             Journeyman:Error("Step type %s not implemented.", step.type)
         end
@@ -601,14 +603,14 @@ function Window:GetColoredQuestText(questId, isComplete)
         local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
         if questLevel ~= nil then
             local colorHex
-            local levelDiff = questLevel - Journeyman.State.playerLevel
+            local levelDiff = questLevel - Journeyman.player.level
             if levelDiff >= 5 then
                 colorHex = QUEST_COLOR_RED
             elseif levelDiff >= 3 then
                 colorHex = QUEST_COLOR_ORANGE
             elseif levelDiff >= -2 then
                 colorHex = QUEST_COLOR_YELLOW
-            elseif -levelDiff <= Journeyman.State.playerGreenRange then
+            elseif -levelDiff <= Journeyman.player.greenRange then
                 colorHex = QUEST_COLOR_GREEN
             else
                 colorHex = QUEST_COLOR_GREY

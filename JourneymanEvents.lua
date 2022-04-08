@@ -140,6 +140,17 @@ function Journeyman:InitializeEvents()
             Journeyman:Update()
         end
     end)
+
+    self:RegisterEvent("TRAINER_SHOW", function(event)
+        self.trainerOpen = true
+    end)
+
+    self:RegisterEvent("TRAINER_CLOSED", function(event)
+        if self.trainerOpen then
+            self:OnTrainerClosed()
+            self.trainerOpen = nil
+        end
+    end)
 end
 
 function Journeyman:ShutdownEvents()
@@ -232,5 +243,12 @@ function Journeyman:OnLearnFlightPath(taxiNodeId)
     self.Journey:OnLearnFlightPath(taxiNodeId)
     if self.db.char.window.show then
         self.State:OnLearnFlightPath(taxiNodeId)
+    end
+end
+
+function Journeyman:OnTrainerClosed()
+    self.Journey:OnTrainerClosed()
+    if self.db.char.window.show then
+        self.State:OnTrainerClosed()
     end
 end

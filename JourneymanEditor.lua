@@ -519,6 +519,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Journeyman.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
             [Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
             [Journeyman.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
+            [Journeyman.STEP_TYPE_TRAIN_CLASS] = L["DROPDOWN_TRAIN_CLASS"],
         }
     end
     stepType.GetSorting = function(self)
@@ -533,6 +534,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Journeyman.STEP_TYPE_USE_HEARTHSTONE,
             Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
             Journeyman.STEP_TYPE_FLY_TO,
+            Journeyman.STEP_TYPE_TRAIN_CLASS,
         }
     end
     stepType.OnValueChanged = function(self, value)
@@ -544,7 +546,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
                     if playerMapId and playerX and playerY then
                         local subZoneText = GetSubZoneText()
-                        if subZoneText then
+                        if subZoneText and subZoneText:len() > 0 then
                             step.data = string.format("%d,%.2f,%.2f,%s", playerMapId, playerX * 100.0, playerY * 100.0, subZoneText)
                         else
                             step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
