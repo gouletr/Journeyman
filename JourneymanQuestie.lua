@@ -182,25 +182,107 @@ local function GetNearestItem(items, player, zoneFilter)
 end
 
 local function GetNearestQuestLocation(entity, player, zoneFilter)
-    local nearest
-    if entity.NPC then
-        nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
-    elseif entity.GameObject then
-        nearest = GetNearestObject(entity.GameObject, player, zoneFilter)
-    elseif entity.Item then
-        nearest = GetNearestItem(entity.Item, player, zoneFilter)
-    elseif entity.Type == "monster" then
-        nearest = GetNearestNPC({ entity.Id }, player, zoneFilter)
-    elseif entity.Type == "object" then
-        nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
-    elseif entity.Type == "item" then
-        nearest = GetNearestItem({ entity.Id }, player, zoneFilter)
-    elseif entity.Type == "event" and entity.Coordinates then
-        nearest = GetNearestSpawn(entity.Coordinates, player, zoneFilter)
-        nearest.name = entity.Text
-        nearest.type = "Event"
+    local bestDistance = 999999999
+    local bestX, bestY, bestMapId, bestName, bestId, bestType
+
+    -- Hack: when quests can be started from both npc and item, favor item
+    if entity.NPC and entity.Item then
+        entity.NPC = nil
     end
-    return nearest
+
+    if entity.NPC then
+        local nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.GameObject then
+        local nearest = GetNearestObject(entity.GameObject, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.Item then
+        local nearest = GetNearestItem(entity.Item, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.Type == "monster" then
+        local nearest = GetNearestNPC({ entity.Id }, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.Type == "object" then
+        local nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.Type == "item" then
+        local nearest = GetNearestItem({ entity.Id }, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
+    if entity.Type == "event" and entity.Coordinates then
+        nearest = GetNearestSpawn(entity.Coordinates, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = entity.Text
+            bestType = "Event"
+        end
+    end
+
+    if bestX and bestY and bestMapId then
+        return { distance = bestDistance, x = bestX, y = bestY, mapId = bestMapId, name = bestName, id = bestId, type = bestType }
+    end
 end
 
 function DataSourceQuestie:IsInitialized()

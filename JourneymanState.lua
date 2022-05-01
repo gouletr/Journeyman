@@ -104,25 +104,38 @@ end
 
 local function IsStepDoable(step)
     if Journeyman:IsStepTypeQuest(step) then
-        local doable = IsQuestDoable(step.data.questId)
-        if doable and State.currentStep == nil then -- Additional checks if step is going to be current step
+        -- Check if quest is doable
+        if not IsQuestDoable(step.data.questId) then
+            return false
+        end
+
+        -- Additional checks for npc drop quests
+        if Journeyman.DataSource:IsQuestNPCDrop(step.data.questId) then
+            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+                return State:IsQuestInQuestLog(step.data.questId)
+            end
+        end
+
+        -- Additional checks if step is going to be current step
+        if State.currentStep == nil then
             -- Check if quest has parent quest and is in quest log
             local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(step.data.questId)
             if parentQuestId then
                 return State:IsQuestInQuestLog(parentQuestId)
             end
+
             -- Check if all pre quests are complete
             local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(step.data.questId)
             if preQuestGroup then
                 return IsPreQuestGroupFulfilled(preQuestGroup)
             end
+
             -- Check if single pre quest are complete
             local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(step.data.questId)
             if preQuestSingle then
                 return IsPreQuestSingleFulfilled(preQuestSingle)
             end
         end
-        return doable
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
