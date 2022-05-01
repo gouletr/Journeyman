@@ -299,7 +299,8 @@ function DataSourceQuestie:IsInitialized()
         QuestieDB.QueryNPCSingle ~= nil and type(QuestieDB.QueryNPCSingle) == "function" and
         QuestieDB.QueryQuestSingle ~= nil and type(QuestieDB.QueryQuestSingle) == "function" and
         QuestieDB.QueryObjectSingle ~= nil and type(QuestieDB.QueryObjectSingle) == "function" and
-        QuestieDB.QueryItemSingle ~= nil and type(QuestieDB.QueryItemSingle) == "function"
+        QuestieDB.QueryItemSingle ~= nil and type(QuestieDB.QueryItemSingle) == "function" and
+        Questie.started == true
 
     if initialized then
         self.initialized = true
