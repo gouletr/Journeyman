@@ -112,7 +112,7 @@ function Journeyman:OnEnable()
 
     -- High frequency ticker for goto steps
     C_Timer.NewTicker(0.25, function()
-        if not Journeyman.db.char.window.show or Journeyman.State.steps == nil then
+        if not Journeyman.db.char.window.show then
             return
         end
 
@@ -151,13 +151,15 @@ function Journeyman:OnEnable()
         end
 
         -- Compare all incomplete goto step that matches the mapId
-        for i = 1, #Journeyman.State.steps do
-            local step = Journeyman.State.steps[i]
-            if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete then
-                if step.data.mapId == playerMapId then
-                    local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
-                    if distance and distance <= 15 then
-                        self:OnLocationReached(step.data)
+        if Journeyman.State.steps then
+            for i = 1, #Journeyman.State.steps do
+                local step = Journeyman.State.steps[i]
+                if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete and step.isShown then
+                    if step.data.mapId == playerMapId then
+                        local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+                        if distance and distance <= 15 then
+                            self:OnLocationReached(step.data)
+                        end
                     end
                 end
             end
