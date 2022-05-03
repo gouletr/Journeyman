@@ -448,8 +448,8 @@ function Journeyman:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end
 
-function Journeyman:IsStepUnique(step)
-    return self:IsStepTypeQuest(step) or step.type == Journeyman.STEP_TYPE_REACH_LEVEL
+function Journeyman:IsStepTypeUnique(step)
+    return self:IsStepTypeQuest(step) or step.type == Journeyman.STEP_TYPE_REACH_LEVEL or step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH
 end
 
 function Journeyman:GetStepData(step)

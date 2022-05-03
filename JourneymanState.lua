@@ -209,7 +209,7 @@ local function IsStepComplete(step)
         -- Check if quest is repeatable
         if Journeyman.DataSource:IsQuestRepeatable(step.data.questId) then
             -- If next step is complete, consider this step complete
-            local nextStep = State.steps[step.index + 1]
+            local nextStep = State:GetNextDoableStep(step.index + 1)
             if nextStep and IsStepComplete(nextStep) then
                 return true
             end
@@ -243,9 +243,7 @@ local function IsStepComplete(step)
             end
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
             -- Check if taxiNodeId has been unlocked
-            if Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] then
-                return true
-            end
+            return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
         elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
             -- Check if we are currently flying to that taxiNodeId
             if Journeyman.flyingTo == step.data.taxiNodeId and Journeyman.player.onTaxi then
@@ -265,8 +263,8 @@ local function IsStepComplete(step)
         end
 
         -- For step types that cannot be uniquely identified, check if next step is complete
-        if not Journeyman:IsStepUnique(step) then
-            local nextStep = State.steps[step.index + 1]
+        if not Journeyman:IsStepTypeUnique(step) then
+            local nextStep = State:GetNextDoableStep(step.index + 1)
             if nextStep then
                 return IsStepComplete(nextStep)
             else
@@ -368,7 +366,10 @@ function State:Update(immediate)
 end
 
 function State:UpdateImmediate()
-    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then return end
+    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then
+        return
+    end
+
     local now = GetTimePreciseSec()
 
     -- Reset state
@@ -605,6 +606,18 @@ end
 
 function State:GetCurrentStep()
     return self.currentStep
+end
+
+function State:GetNextDoableStep(index)
+    if self.steps and index <= #self.steps then
+        for i = index, #self.steps do
+            local step = self.steps[i]
+            if IsStepDoable(step) then
+                return step
+            end
+        end
+    end
+    return nil
 end
 
 function State:GetStepLocation(step)
