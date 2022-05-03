@@ -19,6 +19,14 @@ function Journeyman:InitializeEvents()
         self:SerializeDatabase()
     end)
 
+    self:RegisterEvent("ZONE_CHANGED", function(event)
+        Journeyman.State:Update()
+    end)
+
+    self:RegisterEvent("ZONE_CHANGED_NEW_AREA", function(event)
+        Journeyman.State:Update()
+    end)
+
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId)
         self:OnQuestAccepted(questId)
     end)
