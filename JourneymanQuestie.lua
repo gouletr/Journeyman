@@ -524,23 +524,19 @@ function DataSourceQuestie:GetQuestChainStartQuest(questId)
     end
 end
 
-function DataSourceQuestie:IsQuestNPCDrop(questId)
-    if self.isQuestNPCDrop == nil then
-        self.isQuestNPCDrop = {}
-    elseif self.isQuestNPCDrop[questId] then
-        return self.isQuestNPCDrop[questId]
+function DataSourceQuestie:IsQuestStartedFromNPCDrop(questId)
+    if self.isQuestStartedFromNPCDrop == nil then
+        self.isQuestStartedFromNPCDrop = {}
     end
 
-    local quest = QuestieDB:GetQuest(questId)
-    if quest then
-        local starterLocation = self:GetNearestQuestStarter(questId)
-        if starterLocation then
-            local isNPCDrop = starterLocation.type == "NPC Drop"
-            self.isQuestNPCDrop[questId] = isNPCDrop
-            return isNPCDrop
-        end
+    local isQuestStartedFromNPCDrop = self.isQuestStartedFromNPCDrop[questId]
+    if isQuestStartedFromNPCDrop ~= nil then
+        return isQuestStartedFromNPCDrop
     end
-    return false
+
+    isQuestStartedFromNPCDrop = self:_IsQuestStartedFromNPCDrop(questId)
+    self.isQuestStartedFromNPCDrop[questId] = isQuestStartedFromNPCDrop
+    return isQuestStartedFromNPCDrop
 end
 
 function DataSourceQuestie:IsQuestRepeatable(questId)
@@ -687,4 +683,44 @@ function DataSourceQuestie:ShowQuestTooltip(questId)
     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
     ItemRefTooltip:SetHyperlink(questLink)
     ItemRefTooltip:Show()
+end
+
+function DataSourceQuestie:_IsQuestStartedFromNPCDrop(questId)
+    local quest = QuestieDB:GetQuest(questId)
+    if quest == nil then
+        return false
+    end
+
+    local location = self:GetNearestQuestStarter(questId)
+    if location and location.type == "NPC Drop" then
+        return true
+    end
+
+    -- Check parent quest
+    local parentQuestId = self:GetQuestParentQuest(questId)
+    if parentQuestId and self:IsQuestStartedFromNPCDrop(parentQuestId) then
+        return true
+    end
+
+    -- Check pre quest group
+    local preQuestGroup = self:GetQuestPreQuestGroup(questId)
+    if preQuestGroup and next(preQuestGroup) then
+        for _, preQuestId in pairs(preQuestGroup) do
+            if preQuestId and self:IsQuestStartedFromNPCDrop(preQuestId) then
+                return true
+            end
+        end
+    end
+
+    -- Check pre quest single
+    local preQuestSingle = self:GetQuestPreQuestSingle(questId)
+    if preQuestSingle and next(preQuestSingle) then
+        for _, preQuestId in pairs(preQuestSingle) do
+            if preQuestId and self:IsQuestStartedFromNPCDrop(preQuestId) then
+                return true
+            end
+        end
+    end
+
+    return false
 end

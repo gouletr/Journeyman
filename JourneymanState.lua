@@ -109,10 +109,10 @@ local function IsStepDoable(step)
             return false
         end
 
-        -- Additional checks for npc drop quests
-        if Journeyman.DataSource:IsQuestNPCDrop(step.data.questId) then
-            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                return State:IsQuestInQuestLog(step.data.questId)
+        -- Additional checks for quests started from NPC drops
+        if Journeyman.DataSource:IsQuestStartedFromNPCDrop(step.data.questId) then
+            if not State:IsQuestChainStarted(step.data.questId) then
+                return false
             end
         end
 
@@ -374,6 +374,7 @@ function State:UpdateImmediate()
 
     -- Reset state
     self.turnedInQuests = {}
+    self.startedQuestChains = {}
 
     -- Clone steps
     if self.steps == nil then
@@ -667,16 +668,17 @@ function State:IsQuestInQuestLog(questId)
 end
 
 function State:IsQuestInQuestLogAndComplete(questId)
-    if self.questLog == nil then
-        return false
+    if self.questLog then
+        local questInfo = self.questLog[questId]
+        if questInfo and questInfo.isComplete then
+            return true
+        end
     end
-
-    local questInfo = self.questLog[questId]
-    if questInfo and questInfo.isComplete then
-        return true
-    end
-
     return false
+end
+
+function State:IsQuestInQuestLogOrTurnedIn(questId)
+    return self:IsQuestInQuestLog(questId) or self:IsQuestTurnedIn(questId)
 end
 
 function State:IsQuestTurnedIn(questId)
@@ -684,18 +686,71 @@ function State:IsQuestTurnedIn(questId)
         self.turnedInQuests = {}
     end
 
-    local turnedIn = self.turnedInQuests[questId]
-    if turnedIn == nil then
-        turnedIn = C_QuestLog.IsQuestFlaggedCompleted(questId) == true
-        self.turnedInQuests[questId] = turnedIn
+    local isQuestTurnedIn = self.turnedInQuests[questId]
+    if isQuestTurnedIn ~= nil then
+        return isQuestTurnedIn
     end
-    return turnedIn
+
+    isQuestTurnedIn = self:_IsQuestTurnedIn(questId)
+    self.turnedInQuests[questId] = isQuestTurnedIn
+    return isQuestTurnedIn
+end
+
+function State:IsQuestChainStarted(questId)
+    if self.startedQuestChains == nil then
+        self.startedQuestChains = {}
+    end
+
+    local isQuestChainStarted = self.startedQuestChains[questId]
+    if isQuestChainStarted ~= nil then
+        return isQuestChainStarted
+    end
+
+    isQuestChainStarted = self:_IsQuestChainStarted(questId)
+    self.startedQuestChains[questId] = isQuestChainStarted
+    return isQuestChainStarted
 end
 
 function State:GetQuestLogInfo(questId)
-    if self.questLog == nil then
-        return nil
+    if self.questLog then
+        return self.questLog[questId]
+    end
+end
+
+function State:_IsQuestTurnedIn(questId)
+    return C_QuestLog.IsQuestFlaggedCompleted(questId) == true
+end
+
+function State:_IsQuestChainStarted(questId)
+    if self:IsQuestInQuestLogOrTurnedIn(questId) then
+        return true
     end
 
-    return self.questLog[questId]
+    -- Check parent quest
+    local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(questId)
+    if parentQuestId and self:IsQuestChainStarted(parentQuestId) then
+        return true
+    end
+
+    -- Check pre quest group
+    local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(questId)
+    if preQuestGroup and next(preQuestGroup) then
+        for _, preQuestId in pairs(preQuestGroup) do
+            if preQuestId and self:IsQuestChainStarted(preQuestId) then
+                return true
+            end
+        end
+    end
+
+    -- Check pre quest single
+    local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(questId)
+    if preQuestSingle and next(preQuestSingle) then
+        for _, preQuestId in pairs(preQuestSingle) do
+            if preQuestId and self:IsQuestChainStarted(preQuestId) then
+                return true
+            end
+        end
+    end
+
+    return false
 end
