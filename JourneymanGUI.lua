@@ -124,17 +124,27 @@ function GUI:CreateEditBox(frameType, name, parent, template, id)
     return frame
 end
 
-function GUI:CreateDropDownMenu(frameType, name, parent, template, id)
+function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
     local dropDownMenu = CreateFrame("Frame", "Dropdown", frame, "UIDropDownMenuTemplate")
     dropDownMenu:SetPoint("TOPLEFT", -17, 0)
     dropDownMenu:SetPoint("BOTTOMRIGHT")
     frame.dropDownMenu = dropDownMenu
+    frame.isBitFlag = isBitFlag
 
     local function _SetValue(self, arg1, arg2, checked)
-        local values = frame:GetValues()
-        UIDropDownMenu_SetText(dropDownMenu, values[arg1])
+        if frame.isBitFlag then
+            local value = frame:GetValue()
+            if value then
+                if bit.band(value, arg1) == 0 then
+                    arg1 = bit.bor(value, arg1)
+                else
+                    arg1 = bit.band(value, bit.bnot(arg1))
+                end
+            end
+        end
+        frame:SetValue(arg1)
         if frame.OnValueChanged then
            frame:OnValueChanged(arg1)
         end
@@ -149,22 +159,48 @@ function GUI:CreateDropDownMenu(frameType, name, parent, template, id)
             sorting = frame:GetSorting()
         end
 
+        local value = frame:GetValue()
         local values = frame:GetValues()
         if sorting then
             for i, v in ipairs(sorting) do
                 info.text, info.arg1 = values[v], v
+                if frame.isBitFlag then
+                    info.isNotRadio = true
+                    info.keepShownOnClick = true
+                    if value then
+                        info.checked = bit.band(value, v) == v
+                    end
+                else
+                    info.checked = value == v
+                end
                 UIDropDownMenu_AddButton(info)
             end
         else
             for k, v in pairs(values) do
                 info.text, info.arg1 = v, k
+                if frame.isBitFlag then
+                    info.isNotRadio = true
+                    info.keepShownOnClick = true
+                    if value then
+                        info.checked = bit.band(value, v) == v
+                    end
+                else
+                    info.checked = value == v
+                end
                 UIDropDownMenu_AddButton(info)
             end
         end
     end
 
     frame.Initialize = function(self) UIDropDownMenu_Initialize(self.dropDownMenu, _Initialize) end
-    frame.SetValue = function(self, value) local values = frame:GetValues() UIDropDownMenu_SetText(self.dropDownMenu, values[value]) end
+    frame.SetValue = function(self, value)
+        if frame.isBitFlag and Journeyman.Utils:CountBits(value) > 1 then
+            UIDropDownMenu_SetText(self.dropDownMenu, "Many")
+        else
+            local values = frame:GetValues()
+            UIDropDownMenu_SetText(self.dropDownMenu, values[value])
+        end
+    end
     frame.SetWidth = function(self, value) UIDropDownMenu_SetWidth(self.dropDownMenu, value - 17) end
     frame.SetEnabled = function(self, value) if value then UIDropDownMenu_EnableDropDown(self.dropDownMenu) else UIDropDownMenu_DisableDropDown(self.dropDownMenu) end end
 

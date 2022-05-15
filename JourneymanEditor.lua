@@ -507,6 +507,14 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepType:SetPoint("TOPLEFT", chapterIndex, "BOTTOMLEFT")
     stepType:SetPoint("BOTTOMRIGHT", chapterIndex, "BOTTOMRIGHT", 0, -40)
     stepType:SetTitle(L["STEP_TYPE_LABEL"])
+    stepType.GetValue = function(self)
+        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
+            local step = Journeyman.Editor:GetSelectedStep()
+            if step then
+                return step.type
+            end
+        end
+    end
     stepType.GetValues = function(self)
         return {
             [Journeyman.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
@@ -520,6 +528,10 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
             [Journeyman.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
             [Journeyman.STEP_TYPE_TRAIN_CLASS] = L["DROPDOWN_TRAIN_CLASS"],
+            [Journeyman.STEP_TYPE_LEARN_FIRST_AID] = L["DROPDOWN_LEARN_FIRST_AID"],
+            [Journeyman.STEP_TYPE_LEARN_COOKING] = L["DROPDOWN_LEARN_COOKING"],
+            [Journeyman.STEP_TYPE_LEARN_FISHING] = L["DROPDOWN_LEARN_FISHING"],
+            [Journeyman.STEP_TYPE_DIE_AND_RES] = L["DROPDOWN_DIE_AND_RES"],
         }
     end
     stepType.GetSorting = function(self)
@@ -528,13 +540,17 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Journeyman.STEP_TYPE_ACCEPT_QUEST,
             Journeyman.STEP_TYPE_COMPLETE_QUEST,
             Journeyman.STEP_TYPE_TURNIN_QUEST,
-            Journeyman.STEP_TYPE_GO_TO,
             Journeyman.STEP_TYPE_REACH_LEVEL,
+            Journeyman.STEP_TYPE_GO_TO,
+            Journeyman.STEP_TYPE_FLY_TO,
             Journeyman.STEP_TYPE_BIND_HEARTHSTONE,
             Journeyman.STEP_TYPE_USE_HEARTHSTONE,
-            Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
-            Journeyman.STEP_TYPE_FLY_TO,
             Journeyman.STEP_TYPE_TRAIN_CLASS,
+            Journeyman.STEP_TYPE_LEARN_FIRST_AID,
+            Journeyman.STEP_TYPE_LEARN_COOKING,
+            Journeyman.STEP_TYPE_LEARN_FISHING,
+            Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
+            Journeyman.STEP_TYPE_DIE_AND_RES,
         }
     end
     stepType.OnValueChanged = function(self, value)
@@ -591,9 +607,94 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     end
     frame.stepIndex = stepIndex
 
+    local stepRequiredRaces = self:CreateDropDownMenuProperty("FRAME", "StepRequiredRaces", scrollChild, true)
+    stepRequiredRaces:SetPoint("TOPLEFT", stepIndex, "BOTTOMLEFT")
+    stepRequiredRaces:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
+    stepRequiredRaces:SetTitle(L["STEP_REQUIRED_RACES_LABEL"])
+    stepRequiredRaces.GetValue = function(self)
+        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
+            local step = Journeyman.Editor:GetSelectedStep()
+            if step then
+                return step.requiredRaces
+            end
+        end
+    end
+    stepRequiredRaces.GetValues = function(self)
+        return Journeyman.raceNameLocal
+    end
+    stepRequiredRaces.GetSorting = function(self)
+        return {
+            Journeyman.RACE_HUMAN,
+            Journeyman.RACE_DWARF,
+            Journeyman.RACE_NIGHTELF,
+            Journeyman.RACE_GNOME,
+            Journeyman.RACE_ORC,
+            Journeyman.RACE_SCOURGE,
+            Journeyman.RACE_TAUREN,
+            Journeyman.RACE_TROLL,
+        }
+    end
+    stepRequiredRaces.OnValueChanged = function(self, value)
+        local step = Journeyman.Editor:GetSelectedStep()
+        if step then
+            if value > 0 then
+                step.requiredRaces = value
+            else
+                step.requiredRaces = nil
+            end
+        end
+        Journeyman.Editor:Refresh()
+        Journeyman:Reset(true)
+    end
+    stepRequiredRaces:Initialize()
+    frame.stepRequiredRaces = stepRequiredRaces
+
+    local stepRequiredClasses = self:CreateDropDownMenuProperty("FRAME", "StepRequiredClasses", scrollChild, true)
+    stepRequiredClasses:SetPoint("TOPLEFT", stepRequiredRaces, "BOTTOMLEFT")
+    stepRequiredClasses:SetPoint("BOTTOMRIGHT", stepRequiredRaces, "BOTTOMRIGHT", 0, -40)
+    stepRequiredClasses:SetTitle(L["STEP_REQUIRED_CLASSES_LABEL"])
+    stepRequiredClasses.GetValue = function(self)
+        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
+            local step = Journeyman.Editor:GetSelectedStep()
+            if step then
+                return step.requiredClasses
+            end
+        end
+    end
+    stepRequiredClasses.GetValues = function(self)
+        return Journeyman.classNameLocal
+    end
+    stepRequiredClasses.GetSorting = function(self)
+        return {
+            Journeyman.CLASS_DRUID,
+            Journeyman.CLASS_HUNTER,
+            Journeyman.CLASS_MAGE,
+            Journeyman.CLASS_PALADIN,
+            Journeyman.CLASS_PRIEST,
+            Journeyman.CLASS_ROGUE,
+            Journeyman.CLASS_SHAMAN,
+            Journeyman.CLASS_WARLOCK,
+            Journeyman.CLASS_WARRIOR,
+        }
+    end
+    stepRequiredClasses.OnValueChanged = function(self, value)
+        local step = Journeyman.Editor:GetSelectedStep()
+        if step then
+            if value > 0 then
+                step.requiredClasses = value
+            else
+                step.requiredClasses = nil
+            end
+        end
+        Journeyman.Editor:Refresh()
+        Journeyman:Reset(true)
+    end
+    stepRequiredClasses:Initialize()
+    frame.stepRequiredClasses = stepRequiredClasses
+
     local stepNote = self:CreateEditBoxProperty("FRAME", "StepNote", scrollChild)
-    stepNote:SetPoint("TOPLEFT", stepIndex, "BOTTOMLEFT")
-    stepNote:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
+    stepNote:SetPoint("TOPLEFT", stepRequiredClasses, "BOTTOMLEFT")
+    stepNote:SetPoint("BOTTOMRIGHT", stepRequiredClasses, "BOTTOMRIGHT", 0, -40)
     stepNote:SetTitle(L["STEP_NOTE_LABEL"])
     stepNote.OnEnterPressed = function(self)
         local step = Journeyman.Editor:GetSelectedStep()
@@ -638,6 +739,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         end
 
         self.stepType:SetWidth(self.scrollFrame:GetWidth())
+        self.stepRequiredRaces:SetWidth(self.scrollFrame:GetWidth())
+        self.stepRequiredClasses:SetWidth(self.scrollFrame:GetWidth())
         local step = Journeyman.Editor:GetSelectedStep()
         if step then
             self.stepType:SetValue(step.type)
@@ -650,6 +753,10 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.stepData:SetEnabled(true)
             self.stepIndex:SetText(Journeyman.Editor:GetSelectedStepIndex())
             self.stepIndex:SetEnabled(true)
+            self.stepRequiredRaces:SetValue(step.requiredRaces)
+            self.stepRequiredRaces:SetEnabled(true)
+            self.stepRequiredClasses:SetValue(step.requiredClasses)
+            self.stepRequiredClasses:SetEnabled(true)
             if step.note then
                 self.stepNote:SetText(step.note)
             else
@@ -663,6 +770,10 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.stepData:SetEnabled(false)
             self.stepIndex:SetText("")
             self.stepIndex:SetEnabled(false)
+            self.stepRequiredRaces:SetValue(0)
+            self.stepRequiredRaces:SetEnabled(false)
+            self.stepRequiredClasses:SetValue(0)
+            self.stepRequiredClasses:SetEnabled(false)
             self.stepNote:SetText("")
             self.stepNote:SetEnabled(false)
         end
@@ -703,7 +814,7 @@ function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     return frame
 end
 
-function Editor:CreateDropDownMenuProperty(frameType, name, parent, template, id)
+function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
     local label = Journeyman.GUI:CreateLabel("FRAME", "Label", frame)
@@ -714,9 +825,10 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, template, id
     label:SetFontSize(10)
     frame.label = label
 
-    local dropDownMenu = Journeyman.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame)
+    local dropDownMenu = Journeyman.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame, isBitFlag)
     dropDownMenu:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     dropDownMenu:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+    dropDownMenu.GetValue = function(self) return frame:GetValue() end
     dropDownMenu.GetValues = function(self) return frame:GetValues() end
     dropDownMenu.GetSorting = function(self) if frame.GetSorting then return frame:GetSorting() end end
     dropDownMenu.OnValueChanged = function(self, value) if frame.OnValueChanged then frame:OnValueChanged(value) end end

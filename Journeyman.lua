@@ -18,10 +18,58 @@ Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
 Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
 Journeyman.STEP_TYPE_FLY_TO = "FLYTO"
 Journeyman.STEP_TYPE_TRAIN_CLASS = "TRAIN"
+Journeyman.STEP_TYPE_TRAIN_SPELLS = "TRAINSPELL"
+Journeyman.STEP_TYPE_LEARN_FIRST_AID = "LEARNFIRSTAID"
+Journeyman.STEP_TYPE_LEARN_COOKING = "LEARNCOOKING"
+Journeyman.STEP_TYPE_LEARN_FISHING = "LEARNFISHING"
+Journeyman.STEP_TYPE_DIE_AND_RES = "DIE"
 Journeyman.ITEM_HEARTHSTONE = 6948
 Journeyman.SPELL_HEARTHSTONE = 8690
 Journeyman.SPELL_ASTRAL_RECALL = 556
+Journeyman.SPELL_FIRST_AID_APPRENTICE = 3273
+Journeyman.SPELL_COOKING_APPRENTICE = 2550
+Journeyman.SPELL_FISHING_APPRENTICE = 7620
 Journeyman.ICON_HUNTERS_MARK = 132212
+
+-- Store races info
+Journeyman.raceName = {}
+Journeyman.raceNameLocal = {}
+Journeyman.raceId = {}
+Journeyman.raceMask = {}
+for i = 1, 64 do
+    local raceInfo = C_CreatureInfo.GetRaceInfo(i)
+    if raceInfo then
+        local raceMask = bit.lshift(1, raceInfo.raceID - 1)
+        local raceName = raceInfo.clientFileString:upper()
+        local raceNameLocal = raceInfo.raceName
+        local raceId = raceInfo.raceID
+        Journeyman["RACE_"..raceName] = raceMask
+        Journeyman.raceName[raceMask] = raceName
+        Journeyman.raceNameLocal[raceMask] = raceNameLocal
+        Journeyman.raceId[raceMask] = raceId
+        Journeyman.raceMask[raceId] = raceMask
+    else
+        break
+    end
+end
+
+-- Store classes info
+Journeyman.className = {}
+Journeyman.classNameLocal = {}
+Journeyman.classId = {}
+Journeyman.classMask = {}
+local numClasses = GetNumClasses()
+for i = 1, numClasses do
+    local classNameLocal, className, classId = GetClassInfo(i)
+    if classNameLocal and className and classId then
+        local classMask = bit.lshift(1, classId - 1)
+        Journeyman["CLASS_"..className] = classMask
+        Journeyman.className[classMask] = className
+        Journeyman.classNameLocal[classMask] = classNameLocal
+        Journeyman.classId[classMask] = classId
+        Journeyman.classMask[classId] = classMask
+    end
+end
 
 local tinsert = table.insert
 
@@ -51,11 +99,13 @@ function Journeyman:OnInitialize()
     self.player.raceName = raceName
     self.player.raceNameLocal = raceNameLocal
     self.player.raceId = raceId
+    self.player.raceMask = bit.lshift(1, raceId - 1)
 
     local classNameLocal, className, classId = UnitClass("player")
     self.player.className = className
     self.player.classNameLocal = classNameLocal
     self.player.classId = classId
+    self.player.classMask = bit.lshift(1, classId - 1)
 
     self.player.level = UnitLevel("player")
     self.player.xp = UnitXP("player")
@@ -96,7 +146,7 @@ function Journeyman:OnEnable()
             local step = self.State:GetCurrentStep()
 
             -- Check for waypoint update
-            if self.waypointNeedUpdate and self.player.location and not self.player.onTaxi then
+            if self.waypointNeedUpdate and self.player.location then
                 if self.db.profile.autoSetWaypoint then
                     self:SetWaypoint(step, false)
                 end
@@ -120,13 +170,6 @@ function Journeyman:OnEnable()
 
         -- Store player is on taxi
         self.player.onTaxi = UnitOnTaxi("player")
-
-        -- If player is on taxi, do not track location
-        if self.player.onTaxi then
-            self.player.location = nil
-            self.player.lastLocation = nil
-            return
-        end
 
         -- Get player location
         local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
@@ -290,7 +333,7 @@ function Journeyman:GetItemName(itemId, callback)
                 local item = Item:CreateFromItemID(itemId)
                 item:ContinueOnItemLoad(callback)
             end
-            return "item:" .. itemId
+            return "item:"..itemId
         end
         return itemName
     end
@@ -304,10 +347,28 @@ function Journeyman:GetItemLink(itemId, callback)
                 local item = Item:CreateFromItemID(itemId)
                 item:ContinueOnItemLoad(callback)
             end
-            return "item:" .. itemId
+            return "item:"..itemId
         end
         return itemLink
     end
+end
+
+function Journeyman:GetSpellName(spellId, callback)
+    if spellId and type(spellId) == "number" then
+        local spellName = GetSpellInfo(spellId)
+        if spellName == nil then
+            if callback and type(callback) == "function" then
+                local spell = Spell:CreateFromSpellID(spellId)
+                spell:ContinueOnSpellLoad(callback)
+            end
+            return "spell:"..spellId
+        end
+        return spellName
+    end
+end
+
+function Journeyman:IsSpellKnown(spellId)
+    return IsPlayerSpell(spellId) or IsSpellKnown(spellId) or IsSpellKnown(spellId, true)
 end
 
 function Journeyman:GetMapName(showId)
@@ -449,7 +510,13 @@ function Journeyman:IsStepTypeQuest(step)
 end
 
 function Journeyman:IsStepTypeUnique(step)
-    return self:IsStepTypeQuest(step) or step.type == Journeyman.STEP_TYPE_REACH_LEVEL or step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH
+    return self:IsStepTypeQuest(step) or
+        step.type == Journeyman.STEP_TYPE_REACH_LEVEL or
+        step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or
+        step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS or
+        step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID or
+        step.type == Journeyman.STEP_TYPE_LEARN_COOKING or
+        step.type == Journeyman.STEP_TYPE_LEARN_FISHING
 end
 
 function Journeyman:GetStepData(step)
@@ -486,7 +553,7 @@ function Journeyman:GetStepData(step)
             local desc = values[4]
             if mapId and mapName and x and y then
                 if desc == nil or desc:len() == 0 then
-                     desc = x..","..y
+                     desc = x..", "..y
                 end
                 data = { mapId = mapId, mapName = mapName, x = x, y = y, desc = desc }
             end
@@ -511,6 +578,26 @@ function Journeyman:GetStepData(step)
                 data = { taxiNodeId = taxiNodeId }
             end
         elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+            data = {}
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+            local values = self.Utils:Split(step.data, ",")
+            local spells = {}
+            for i=1, #values do
+                local spellId = tonumber(values[i])
+                if spellId then
+                    tinsert(spells, spellId)
+                end
+            end
+            if #spells > 0 then
+                data.spells = spells
+            end
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+            data = {}
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+            data = {}
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+            data = {}
+        elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             data = {}
         else
             Journeyman:Error("Step type %s not implemented.", step.type)
@@ -553,7 +640,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         if desc == nil then
             local x = data and data.x or 0
             local y = data and data.y or 0
-            desc = x..","..y
+            desc = x..", "..y
         end
 
         return string.format(L["STEP_TEXT_GO_TO"], desc, mapName)
@@ -600,7 +687,32 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         end
 
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
-        return string.format(L["STEP_TEXT_TRAIN_CLASS"])
+        return L["STEP_TEXT_TRAIN_CLASS"]
+
+    elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+        local spells = ""
+        for i = 1, #data.spells do
+            local spellName = self:GetSpellName(data.spells[i], callback)
+            if spellName then
+                spells = spells..spellName
+                if i + 1 < #data.spells then
+                    spells = spells..", "
+                end
+            end
+        end
+        return string.format(L["STEP_TEXT_TRAIN_SPELLS"], spells)
+
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+        return L["STEP_TEXT_LEARN_FIRST_AID"]
+
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+        return L["STEP_TEXT_LEARN_COOKING"]
+
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+        return L["STEP_TEXT_LEARN_FISHING"]
+
+    elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+        return L["STEP_TEXT_DIE_AND_RES"]
 
     else
         Journeyman:Error("Step type %s not implemented.", step.type)

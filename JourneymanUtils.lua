@@ -86,6 +86,18 @@ function Utils:RemoveIf(t, f)
     end
 end
 
+function Utils:CountBits(value)
+    if value == nil then
+        return 0
+    end
+    local count = 0
+    while value > 0 do
+        value = bit.band(value, value - 1)
+        count = count + 1
+    end
+    return count
+end
+
 function dump(o)
    if type(o) == 'table' then
       local s = '{ '

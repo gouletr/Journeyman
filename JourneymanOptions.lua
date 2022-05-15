@@ -275,14 +275,28 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
-            reserved4 = {
+            hardcoreMode = {
                 order = 30,
+                type = "toggle",
+                name = L["HARDCORE_MODE"].."*",
+                desc = L["HARDCORE_MODE_DESC"].."\n"..L["SAVED_PER_CHARACTER"],
+                width = Percent(0.5),
+                get = function(info) return self.db.char.hardcoreMode end,
+                set = function(info, value)
+                    if self.db.char.hardcoreMode ~= value then
+                        self.db.char.hardcoreMode = value
+                        self.Window:Update(true)
+                    end
+                end
+            },
+            reserved4 = {
+                order = 31,
                 type = "description",
                 name = "",
                 width = Percent(0.5)
             },
             stepsShown = {
-                order = 31,
+                order = 32,
                 type = "range",
                 name = L["STEPS_SHOWN"],
                 desc = L["STEPS_SHOWN_DESC"],
@@ -300,13 +314,13 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             reserved2 = {
-                order = 32,
+                order = 33,
                 type = "description",
                 name = "",
                 width = Percent(0.004)
             },
             backgroundColor = {
-                order = 33,
+                order = 34,
                 type = "color",
                 name = L["WINDOW_BG_COLOR"],
                 desc = L["WINDOW_BG_COLOR_DESC"],
@@ -325,7 +339,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             width = {
-                order = 34,
+                order = 35,
                 type = "range",
                 name = L["WINDOW_WIDTH"],
                 desc = L["WINDOW_WIDTH_DESC"],
@@ -344,7 +358,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             height = {
-                order = 35,
+                order = 36,
                 type = "range",
                 name = L["WINDOW_HEIGHT"],
                 desc = L["WINDOW_HEIGHT_DESC"],
@@ -363,7 +377,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             fontSize = {
-                order = 36,
+                order = 37,
                 type = "range",
                 name = L["FONT_SIZE"],
                 desc = L["FONT_SIZE_DESC"],
@@ -380,7 +394,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             lineSpacing = {
-                order = 37,
+                order = 38,
                 type = "range",
                 name = L["LINE_SPACING"],
                 desc = L["LINE_SPACING_DESC"],
@@ -397,7 +411,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             indentSize = {
-                order = 38,
+                order = 39,
                 type = "range",
                 name = L["INDENT_SIZE"],
                 desc = L["INDENT_SIZE_DESC"],
@@ -414,13 +428,13 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             reserved3 = {
-                order = 39,
+                order = 40,
                 type = "description",
                 name = "",
                 width = Percent(0.5)
             },
             windowStrata = {
-                order = 40,
+                order = 41,
                 type = "select",
                 name = L["WINDOW_STRATA"],
                 desc = L["WINDOW_STRATA_DESC"],
@@ -445,7 +459,7 @@ function Journeyman:GetGeneralOptionsTable()
                 end
             },
             windowLevel = {
-                order = 41,
+                order = 42,
                 type = "range",
                 name = L["WINDOW_LEVEL"],
                 desc = L["WINDOW_LEVEL_DESC"],

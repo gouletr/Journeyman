@@ -159,6 +159,25 @@ function Journeyman:InitializeEvents()
             self.trainerOpen = nil
         end
     end)
+
+    self:RegisterEvent("LEARNED_SPELL_IN_TAB", function(event, spellId, skillInfoIndex, isGuildPerkSpell)
+        self:OnSpellLearned(spellId)
+    end)
+
+    self:RegisterEvent("SKILL_LINES_CHANGED", function(event)
+        Journeyman.State:Update()
+    end)
+
+    self:RegisterEvent("CONFIRM_XP_LOSS", function(event)
+        self.confirmXPLoss = true
+    end)
+
+    self:RegisterEvent("PLAYER_UNGHOST", function(event)
+        if self.confirmXPLoss then
+            self:OnSpiritResurrection()
+            self.confirmXPLoss = nil
+        end
+    end)
 end
 
 function Journeyman:ShutdownEvents()
@@ -258,5 +277,17 @@ function Journeyman:OnTrainerClosed()
     self.Journey:OnTrainerClosed()
     if self.db.char.window.show then
         self.State:OnTrainerClosed()
+    end
+end
+
+function Journeyman:OnSpellLearned(spellId)
+    if self.db.char.window.show then
+        self.State:OnSpellLearned(spellId)
+    end
+end
+
+function Journeyman:OnSpiritResurrection()
+    if self.db.char.window.show then
+        self.State:OnSpiritResurrection()
     end
 end

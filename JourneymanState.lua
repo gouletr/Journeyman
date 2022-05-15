@@ -6,288 +6,6 @@ Journeyman.State = State
 
 local HBD = LibStub("HereBeDragons-2.0")
 
-local function IsPreQuestGroupFulfilled(preQuestGroup)
-    if not preQuestGroup or not next(preQuestGroup) then
-        return true
-    end
-
-    -- If a quest is not complete and no exlusive quest is complete, the requirement is not fulfilled
-    for _, preQuestId in pairs(preQuestGroup) do
-        if not State:IsQuestTurnedIn(preQuestId) then
-            local preQuestExclusiveQuestGroup = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
-            if preQuestExclusiveQuestGroup == nil then
-                return false
-            end
-
-            local anyExlusiveFinished = false
-            for _, exclusiveQuestId in ipairs(preQuestExclusiveQuestGroup) do
-                if State:IsQuestTurnedIn(exclusiveQuestId) then
-                    anyExlusiveFinished = true
-                    break
-                end
-            end
-            if not anyExlusiveFinished then
-                return false
-            end
-        end
-    end
-    return true -- All preQuests are complete
-end
-
-local function IsPreQuestSingleFulfilled(preQuestSingle)
-    if not preQuestSingle or not next(preQuestSingle) then
-        return true
-    end
-
-    for _, preQuestId in pairs(preQuestSingle) do
-        -- If a quest is complete the requirement is fulfilled
-        if State:IsQuestTurnedIn(preQuestId) then
-            return true
-        else -- If one of the quests in the exclusive group is complete the requirement is fulfilled
-            local preQuestExclusiveQuestGroup = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
-            if preQuestExclusiveQuestGroup then
-                for _, exclusiveQuestId in ipairs(preQuestExclusiveQuestGroup) do
-                    if State:IsQuestTurnedIn(exclusiveQuestId) then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-    return false -- No preQuest is complete
-end
-
-local function IsQuestDoable(questId)
-    -- Check if quest exists
-    if not Journeyman.DataSource:IsQuestAvailable(questId) then
-        return false
-    end
-
-    -- Check if player has required race
-    if not Journeyman.DataSource:GetQuestHasRequiredRace(questId) then
-        return false
-    end
-
-    -- Check if player has required class
-    if not Journeyman.DataSource:GetQuestHasRequiredClass(questId) then
-        return false
-    end
-
-    -- Check if player has required profession and skill level
-    if not Journeyman.DataSource:GetQuestHasProfessionAndSkillLevel(questId) then
-        return false
-    end
-
-    -- Check if player has required reputation
-    if not Journeyman.DataSource:GetQuestHasReputation(questId) then
-        return false
-    end
-
-    -- Check if quest next quest in chain is complete or in quest log
-    local nextInChainQuestId = Journeyman.DataSource:GetQuestNextQuestInChain(questId)
-    if nextInChainQuestId and (State:IsQuestTurnedIn(nextInChainQuestId) or State:IsQuestInQuestLog(nextInChainQuestId)) then
-        return false
-    end
-
-    -- Check if quest has exclusive quests completed or in quest log
-    local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(questId)
-    if exclusiveToQuestIds then
-        for _, exclusiveQuestId in pairs(exclusiveToQuestIds) do
-            if State:IsQuestTurnedIn(exclusiveQuestId) or State:IsQuestInQuestLog(exclusiveQuestId) then
-                return false
-            end
-        end
-    end
-
-    return true
-end
-
-local function IsStepDoable(step)
-    if Journeyman:IsStepTypeQuest(step) then
-        -- Check if quest is doable
-        if not IsQuestDoable(step.data.questId) then
-            return false
-        end
-
-        -- Additional checks for quests started from NPC drops
-        if Journeyman.DataSource:IsQuestStartedFromNPCDrop(step.data.questId) then
-            if not State:IsQuestChainStarted(step.data.questId) then
-                return false
-            end
-        end
-
-        -- Additional checks if step is going to be current step
-        if State.currentStep == nil then
-            -- Check if quest has parent quest and is in quest log
-            local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(step.data.questId)
-            if parentQuestId then
-                return State:IsQuestInQuestLog(parentQuestId)
-            end
-
-            -- Check if all pre quests are complete
-            local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(step.data.questId)
-            if preQuestGroup then
-                return IsPreQuestGroupFulfilled(preQuestGroup)
-            end
-
-            -- Check if single pre quest are complete
-            local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(step.data.questId)
-            if preQuestSingle then
-                return IsPreQuestSingleFulfilled(preQuestSingle)
-            end
-        end
-    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-        return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
-    end
-    return true
-end
-
-local function IsStepQuestObjectivesComplete(step)
-    local objectives = C_QuestLog.GetQuestObjectives(step.data.questId)
-    if objectives == nil then
-        return false
-    end
-
-    if step.data.objectives then
-        for _, objectiveIndex in ipairs(step.data.objectives) do
-            local objective = objectives[objectiveIndex]
-            if objective and not objective.finished then
-                return false
-            end
-        end
-    else
-        for objectiveIndex = 1, #objectives do
-            local objective = objectives[objectiveIndex]
-            if objective and not objective.finished then
-                return false
-            end
-        end
-    end
-
-    return true
-end
-
-local function IsStepComplete(step)
-    if Journeyman:IsStepTypeQuest(step) then
-        -- Check if quest is already turned-in
-        if State:IsQuestTurnedIn(step.data.questId) then
-            return true
-        end
-
-        -- Check if quest is exclusive to some other quests
-        local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(step.data.questId)
-        if exclusiveToQuestIds ~= nil then
-            for _, questId in ipairs(exclusiveToQuestIds) do
-                -- Check if exclusive quest is in quest log or already turned-in
-                if State:IsQuestInQuestLog(questId) or State:IsQuestTurnedIn(questId) then
-                    return true -- Quest is unobtainable, consider complete
-                end
-            end
-        end
-
-        -- Per quest step type checks
-        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-            -- Check if quest is in quest log
-            if State:IsQuestInQuestLog(step.data.questId) then
-                return true
-            end
-        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-            if IsStepQuestObjectivesComplete(step) then -- Check if quest specify objectives, and they are all complete
-                return true
-            elseif State:IsQuestInQuestLogAndComplete(step.data.questId) then -- Check if quest is in quest log and complete
-                return true
-            end
-        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-            -- Check if quest is turned-in (redundancy)
-            if State:IsQuestTurnedIn(step.data.questId) then
-                return true
-            end
-        end
-
-        -- Check if quest is repeatable
-        if Journeyman.DataSource:IsQuestRepeatable(step.data.questId) then
-            -- If next step is complete, consider this step complete
-            local nextStep = State:GetNextDoableStep(step.index + 1)
-            if nextStep and IsStepComplete(nextStep) then
-                return true
-            end
-        end
-        return false
-    else
-        if step.type == Journeyman.STEP_TYPE_GO_TO then
-            if Journeyman.player.location then
-                local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
-                if distance and distance <= 15 then
-                    return true
-                end
-            end
-        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            if step.data.xp then
-                return Journeyman.player.level > step.data.level or (Journeyman.player.level == step.data.level and Journeyman.player.xp >= step.data.xp)
-            else
-                return Journeyman.player.level >= step.data.level
-            end
-        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-            -- Check if current bind location match
-            if GetBindLocation() == Journeyman:GetAreaName(step.data.areaId) then
-                return true
-            end
-        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-            -- Check if current bind location match and hearthstone is on cooldown
-            local startTime, duration, enable = GetItemCooldown(Journeyman.ITEM_HEARTHSTONE)
-            local cooldownLeft = duration - (GetTime() - startTime)
-            if cooldownLeft > 0 and GetBindLocation() == Journeyman:GetAreaName(step.data.areaId) then
-                return true
-            end
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-            -- Check if taxiNodeId has been unlocked
-            return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
-        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-            -- Check if we are currently flying to that taxiNodeId
-            if Journeyman.flyingTo == step.data.taxiNodeId and Journeyman.player.onTaxi then
-                return true
-            end
-
-            -- Check if we are in same map as taxiNodeId
-            if Journeyman.player.location then
-                local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(step.data.taxiNodeId)
-                if taxiNodeWorldCoords then
-                    local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], Journeyman.player.location.mapId, false)
-                    if x and y then -- If we have coordinates, it means we are in same zone
-                        return true
-                    end
-                end
-            end
-        end
-
-        -- For step types that cannot be uniquely identified, check if next step is complete
-        if not Journeyman:IsStepTypeUnique(step) then
-            local nextStep = State:GetNextDoableStep(step.index + 1)
-            if nextStep then
-                return IsStepComplete(nextStep)
-            else
-                return false
-            end
-        end
-    end
-
-    Journeyman:Error("Step type %s not implemented.", step.type)
-end
-
-local function IsStepShown(step)
-    -- Check if step is completed, or if we show completed steps
-    local showStep = not step.isComplete or Journeyman.db.profile.window.showCompletedSteps
-
-    -- Hide steps that are not doable
-    if showStep then
-        showStep = IsStepDoable(step)
-    end
-
-    return showStep
-end
-
 local function CompareStepData(step, data)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
         return step.data.questId == data.questId
@@ -322,6 +40,24 @@ local function CompareStepData(step, data)
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
         return step.data.taxiNodeId == data.taxiNodeId
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+        return true
+    elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+        if #step.data.spells ~= #data.spells then
+            return false
+        end
+        for i = 1, #step.data.spells do
+            if step.data.spells[i] ~= data.spells[i] then
+                return false
+            end
+        end
+        return true
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+        return true
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+        return true
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+        return true
+    elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return true
     else
         Journeyman:Error("Step step.type %s not implemented.", step.step.type)
@@ -373,6 +109,7 @@ function State:UpdateImmediate()
     local now = GetTimePreciseSec()
 
     -- Reset state
+    self.currentStep = nil
     self.turnedInQuests = {}
     self.startedQuestChains = {}
 
@@ -390,12 +127,18 @@ function State:UpdateImmediate()
                     if data then
                         local clonedStep = Journeyman.Utils:Clone(step)
                         clonedStep.data = data
-                        clonedStep.index = index
-                        clonedStep.isComplete = false
-                        clonedStep.isCompleteOverride = false
-                        clonedStep.isShown = true
-                        self.steps[index] = clonedStep
-                        index = index + 1
+
+                        local isAvailable, reason = self:IsStepAvailable(clonedStep)
+                        if isAvailable then
+                            clonedStep.index = index
+                            clonedStep.isComplete = false
+                            clonedStep.isCompleteOverride = false
+                            clonedStep.isShown = true
+                            self.steps[index] = clonedStep
+                            index = index + 1
+                        else
+                            --Journeyman:Debug("Step %s %s not available: %s", step.type, step.data, reason)
+                        end
                     end
                 end
             end
@@ -431,7 +174,6 @@ function State:UpdateImmediate()
 
     -- Update steps state
     local stepShownCount = 0
-    self.currentStep = nil
     if self.steps then
         for i = 1, #self.steps do
             local step = self.steps[i]
@@ -440,18 +182,21 @@ function State:UpdateImmediate()
             if step.isCompleteOverride then
                 step.isComplete = true
             else
-                step.isComplete = IsStepComplete(step)
+                step.isComplete = self:IsStepComplete(step)
             end
 
             -- Check if step is shown
             if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
                 step.isShown = false
             else
-                step.isShown = IsStepShown(step)
+                step.isShown = self:IsStepShown(step)
             end
 
             if not step.isComplete and step.isShown then
-                -- Store current step
+                -- Reset location for step that we will show
+                step.location = nil
+
+                -- Set current step
                 if self.currentStep == nil then
                     self.currentStep = step
                 end
@@ -491,7 +236,7 @@ end
 function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
     local step = FindStep(Journeyman.STEP_TYPE_COMPLETE_QUEST, { questId = questId, objectiveIndex = objectiveIndex })
     if step then
-        if IsStepQuestObjectivesComplete(step) then
+        if self:IsStepQuestObjectivesComplete(step) then
             self:OnStepCompleted(step)
         else
             Journeyman:Update()
@@ -572,6 +317,27 @@ function State:OnTrainerClosed()
     end
 end
 
+function State:OnSpellLearned(spellId)
+    local step = nil
+    if spellId == Journeyman.SPELL_FIRST_AID_APPRENTICE then
+        step = FindStep(Journeyman.STEP_TYPE_LEARN_FIRST_AID, {})
+    elseif spellId == Journeyman.SPELL_COOKING_APPRENTICE then
+        step = FindStep(Journeyman.STEP_TYPE_LEARN_COOKING, {})
+    elseif spellId == Journeyman.SPELL_FISHING_APPRENTICE then
+        step = FindStep(Journeyman.STEP_TYPE_LEARN_FISHING, {})
+    end
+    if step then
+        self:OnStepCompleted(step)
+    end
+end
+
+function State:OnSpiritResurrection()
+    local step = FindStep(Journeyman.STEP_TYPE_DIE_AND_RES, {})
+    if step then
+        self:OnStepCompleted(step)
+    end
+end
+
 function State:OnStepCompleted(step)
     -- Mark step as completed
     step.isCompleteOverride = true
@@ -588,6 +354,235 @@ function State:OnStepCompleted(step)
     else
         Journeyman:Update()
     end
+end
+
+function State:IsStepAvailable(step)
+    if Journeyman.db.char.hardcoreMode and step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+        return false
+    end
+
+    if step.requiredRaces and bit.band(step.requiredRaces, Journeyman.player.raceMask) == 0 then
+        return false
+    end
+
+    if step.requiredClasses and bit.band(step.requiredClasses, Journeyman.player.classMask) == 0 then
+        return false
+    end
+
+    if Journeyman:IsStepTypeQuest(step) then
+        return self:IsQuestAvailable(step.data.questId)
+    end
+
+    return true
+end
+
+function State:IsStepDoable(step)
+    if Journeyman:IsStepTypeQuest(step) then
+        local questId = step.data.questId
+
+        -- Quest Distracting Jarven (308):
+        -- # Cannot be accepted
+        -- # Requires quest Bitter Rivals (310) to be in quest log
+        -- # Can no longer be completed after quest Return to Marleth (311) has been turned-in
+        if questId == 308 then
+            return self:IsQuestInQuestLog(310)
+        end
+
+        return self:IsQuestDoable(questId)
+    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+        return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
+        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
+    end
+    return true
+end
+
+function State:IsStepShown(step)
+    -- Check if step is completed, or if we show completed steps
+    local showStep = not step.isComplete or Journeyman.db.profile.window.showCompletedSteps
+
+    -- Additional checks if step is going to become current step
+    if showStep and not step.isComplete and self.currentStep == nil then
+        local doable, reason = self:IsStepDoable(step)
+        if doable then
+            -- Additional checks if step is going to become current step
+            local questId = step.data.questId
+            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+                if not self:IsQuestInQuestLog(questId) then
+                    -- Check if there's any objectives that can be completed even if quest is not in quest log
+                    local hasVendor = self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
+                        local nearest = Journeyman.DataSource:GetNearestQuestObjective(questId, objectiveIndex)
+                        if nearest and nearest.type == "Vendor" then
+                            return true
+                        end
+                    end)
+                    if not hasVendor then
+                        return false, string.format("Quest %s not in quest log", questId)
+                    end
+                end
+            elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+                if not self:IsQuestInQuestLogAndComplete(questId) then
+                    doable, reason = false, string.format("Quest %s is not in quest log or not complete", questId)
+                end
+            end
+        end
+
+        if not doable then
+            --Journeyman:Debug("Step %s %s is not doable: %s", step.type, dump(step.data), dump(reason))
+        end
+
+        showStep = doable -- Hide steps that are not doable
+    end
+
+    return showStep
+end
+
+function State:IsStepComplete(step)
+    if Journeyman:IsStepTypeQuest(step) then
+        local questId = step.data.questId
+
+        -- Check if quest is already turned-in
+        if self:IsQuestTurnedIn(questId) then
+            return true
+        end
+
+        -- Check if quest is exclusive to some other quests
+        local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(questId)
+        if exclusiveToQuestIds ~= nil then
+            for _, exclusiveQuestId in ipairs(exclusiveToQuestIds) do
+                -- Check if exclusive quest is in quest log or already turned-in
+                if self:IsQuestInQuestLogOrTurnedIn(exclusiveQuestId) then
+                    return true -- Quest is unobtainable, consider complete
+                end
+            end
+        end
+
+        -- Per quest step type checks
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+            -- Check if quest is in quest log
+            if self:IsQuestInQuestLog(questId) then
+                return true
+            end
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+            if self:IsQuestInQuestLogAndComplete(questId) then -- Check if quest is in quest log and complete
+                return true
+            elseif self:IsStepQuestObjectivesComplete(step) then -- Check if quest objectives are all complete
+                return true
+            end
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+            -- Check if quest is turned-in (redundancy)
+            if self:IsQuestTurnedIn(questId) then
+                return true
+            end
+        end
+
+        -- Check if quest is repeatable
+        if Journeyman.DataSource:IsQuestRepeatable(questId) then
+            -- If next step is complete, consider this step complete
+            local nextStep = self:GetNextStep(step)
+            if nextStep then
+                return nextStep.isCompleteOverride or self:IsStepComplete(nextStep)
+            else
+                return false
+            end
+        end
+
+        -- Step is not complete
+        return false
+    else
+        if step.type == Journeyman.STEP_TYPE_GO_TO then
+            if Journeyman.player.location then
+                local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+                if distance and distance <= 15 then
+                    return true
+                end
+            end
+        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+            if step.data.xp then
+                return Journeyman.player.level > step.data.level or (Journeyman.player.level == step.data.level and Journeyman.player.xp >= step.data.xp)
+            else
+                return Journeyman.player.level >= step.data.level
+            end
+        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+            -- Check if current bind location match
+            if GetBindLocation() == Journeyman:GetAreaName(step.data.areaId) then
+                return true
+            end
+            -- Check if this is the "current" bind hearthstone step
+            if self.currentStep and step.index < self.currentStep.index then
+                local anyBind = false
+                for i = step.index + 1, self.currentStep.index do
+                    if step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+                        anyBind = true
+                        break
+                    end
+                end
+                if not anyBind then
+                    return false
+                end
+            end
+        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+            -- Check if current bind location match and hearthstone is on cooldown
+            local timeNow = GetTime()
+            local startTime, duration, enable = GetItemCooldown(Journeyman.ITEM_HEARTHSTONE)
+            local cooldownLeft = duration - (timeNow - startTime)
+            if cooldownLeft > 1.5 and GetBindLocation() == Journeyman:GetAreaName(step.data.areaId) then
+                return true
+            end
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+            -- Check if taxiNodeId has been unlocked
+            return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
+        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+            -- Check if we are currently flying to that taxiNodeId
+            if Journeyman.flyingTo == step.data.taxiNodeId then
+                return true
+            end
+
+            -- Check if we are in same map as taxiNodeId
+            -- if Journeyman.player.location then
+                -- local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(step.data.taxiNodeId)
+                -- if taxiNodeWorldCoords then
+                    -- local x, y = HBD:GetZoneCoordinatesFromWorld(taxiNodeWorldCoords[1], taxiNodeWorldCoords[2], Journeyman.player.location.mapId, false)
+                    -- if x and y then -- If we have coordinates, it means we are in same zone
+                        -- return true
+                    -- end
+                -- end
+            -- end
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+            -- Can't verify
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+            local allKnown = true
+            for i = 1, #step.data.spells do
+                if not IsSpellKnown(step.data.spells[i]) then
+                    allKnown = false
+                    break
+                end
+            end
+            if allKnown then
+                return true
+            end
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+            return Journeyman:IsSpellKnown(Journeyman.SPELL_FIRST_AID_APPRENTICE)
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+            return Journeyman:IsSpellKnown(Journeyman.SPELL_COOKING_APPRENTICE)
+        elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+            return Journeyman:IsSpellKnown(Journeyman.SPELL_FISHING_APPRENTICE)
+        elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+            -- Can't verify
+        end
+
+        -- For step types that cannot be uniquely identified, check if next step is complete
+        if not Journeyman:IsStepTypeUnique(step) then
+            local nextStep = self:GetNextStep(step)
+            if nextStep then
+                return nextStep.isCompleteOverride or self:IsStepComplete(nextStep)
+            else
+                return false
+            end
+        end
+    end
+
+    Journeyman:Error("Step type %s not implemented.", step.type)
 end
 
 function State:IsChapterComplete()
@@ -609,41 +604,33 @@ function State:GetCurrentStep()
     return self.currentStep
 end
 
-function State:GetNextDoableStep(index)
+function State:GetNextStep(step)
+    local index = step.index + 1
     if self.steps and index <= #self.steps then
-        for i = index, #self.steps do
-            local step = self.steps[i]
-            if IsStepDoable(step) then
-                return step
-            end
-        end
+        return self.steps[index]
     end
-    return nil
 end
 
 function State:GetStepLocation(step)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
         return Journeyman.DataSource:GetNearestQuestStarter(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-        if step.data.objectives and step.objectiveIndex == nil then
-            local questInfo = self:GetQuestLogInfo(step.data.questId)
-            if questInfo and questInfo.objectives then
-                for _, objectiveIndex in ipairs(step.data.objectives) do
-                    local objective = questInfo.objectives[objectiveIndex]
-                    if objective and not objective.finished then
-                        return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, objectiveIndex)
-                    end
+        if step.objectiveIndex == nil then
+            return self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
+                if not objective.finished then
+                    return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, objectiveIndex)
                 end
-            end
+            end)
+        else
+            return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, step.objectiveIndex)
         end
-        return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, step.objectiveIndex)
     elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
         return Journeyman.DataSource:GetNearestQuestFinisher(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_GO_TO then
         if Journeyman.player.location then
             local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
             if distance then
-                return { distance = distance, x = step.data.x, y = step.data.y, mapId = step.data.mapId, name = string.format("%s\n%s", step.data.desc, step.data.mapName) }
+                return { distance = distance, x = step.data.x, y = step.data.y, mapId = step.data.mapId, name = string.format("%s\n%s", step.data.desc, step.data.mapName), type = "Event" }
             end
         end
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
@@ -658,9 +645,160 @@ function State:GetStepLocation(step)
         return Journeyman.DataSource:GetNearestFlightMasterLocation()
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
         return Journeyman.DataSource:GetNearestClassTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+        return Journeyman.DataSource:GetNearestClassTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+        return Journeyman.DataSource:GetNearestFirstAidTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+        return Journeyman.DataSource:GetNearestCookingTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+        return Journeyman.DataSource:GetNearestFishingTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+        return nil
     else
         Journeyman:Error("Step type %s not implemented.", step.type)
     end
+end
+
+function State:IsQuestAvailable(questId)
+    -- Check if quest exists in game
+    if not Journeyman.DataSource:IsQuestAvailable(questId) then
+        return false, "Invalid quest ID"
+    end
+
+    -- Check if player has required race
+    if not Journeyman.DataSource:GetQuestHasRequiredRace(questId) then
+        return false, "Missing race requirement"
+    end
+
+    -- Check if player has required class
+    if not Journeyman.DataSource:GetQuestHasRequiredClass(questId) then
+        return false, "Missing class requirement"
+    end
+
+    -- Quest should be available now or later
+    return true
+end
+
+function State:IsQuestDoable(questId)
+    -- Check if player has required profession and skill level
+    if not Journeyman.DataSource:GetQuestHasProfessionAndSkillLevel(questId) then
+        return false, "Missing profession or skill level requirement"
+    end
+
+    -- Check if player has required reputation
+    if not Journeyman.DataSource:GetQuestHasReputation(questId) then
+        return false, "Missing reputation requirement"
+    end
+
+    -- If quest is repeatable, skip other checks, assume its doable
+    -- if Journeyman.DataSource:IsQuestRepeatable(questId) then
+        -- return true
+    -- end
+
+    -- Check if quest next quest in chain is complete or in quest log
+    local nextInChainQuestId = Journeyman.DataSource:GetQuestNextQuestInChain(questId)
+    if nextInChainQuestId and State:IsQuestInQuestLogOrTurnedIn(nextInChainQuestId) then
+        return false, string.format("Next quest in chain %s is in quest log or has been turned-in", nextInChainQuestId)
+    end
+
+    -- Check if quest has exclusive quests completed or in quest log
+    local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(questId)
+    if exclusiveToQuestIds then
+        for _, exclusiveQuestId in pairs(exclusiveToQuestIds) do
+            if exclusiveQuestId and State:IsQuestInQuestLogOrTurnedIn(exclusiveQuestId) then
+                return false, string.format("Exclusive quest %s is in quest log or has been turned-in", exclusiveQuestId)
+            end
+        end
+    end
+
+    -- Check if quest has parent quest and is in quest log
+    local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(questId)
+    if parentQuestId and not State:IsQuestInQuestLog(parentQuestId) then
+        return false, string.format("Parent quest %s is not in quest log", parentQuestId)
+    end
+
+    -- Check if all pre quests are complete
+    local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(questId)
+    if preQuestGroup then
+        return self:IsQuestPreQuestGroupFulfilled(preQuestGroup)
+    end
+
+    -- Check if single pre quest are complete
+    local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(questId)
+    if preQuestSingle then
+        return self:IsPreQuestSingleFulfilled(preQuestSingle)
+    end
+
+    -- Quest is doable now
+    return true
+end
+
+function State:IsQuestPreQuestGroupFulfilled(preQuestGroup)
+    -- If a quest is not complete and no exlusive quest is complete, the requirement is not fulfilled
+    for _, preQuestId in pairs(preQuestGroup) do
+        if not self:IsQuestTurnedIn(preQuestId) then
+            local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
+            if exclusiveToQuestIds == nil then
+                return false, string.format("Pre quest %s is not turned-in and there is no exclusive quests", preQuestId)
+            end
+
+            local anyExlusiveFinished = false
+            for _, exclusiveQuestId in ipairs(exclusiveToQuestIds) do
+                if self:IsQuestTurnedIn(exclusiveQuestId) then
+                    anyExlusiveFinished = true
+                    break
+                end
+            end
+
+            if not anyExlusiveFinished then
+                return false, string.format("None of the exclusive quests of pre quest %s have been turned-in", preQuestId)
+            end
+        end
+    end
+
+    -- All pre quests are complete
+    return true
+end
+
+function State:IsPreQuestSingleFulfilled(preQuestSingle)
+    for _, preQuestId in pairs(preQuestSingle) do
+        -- If a quest is complete the requirement is fulfilled
+        if self:IsQuestTurnedIn(preQuestId) then
+            return true
+        end
+
+        -- If one of the quests in the exclusive group is complete the requirement is fulfilled
+        local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
+        if exclusiveToQuestIds then
+            for _, exclusiveQuestId in ipairs(exclusiveToQuestIds) do
+                if self:IsQuestTurnedIn(exclusiveQuestId) then
+                    return true
+                end
+            end
+        end
+    end
+
+    -- No pre quest is complete
+    return false, "No pre quest have been turned-in"
+end
+
+function State:IsStepQuestObjectivesComplete(step)
+    local result = self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
+        if not objective.finished then
+            return false
+        end
+    end)
+    return result == nil -- No result means all objectives are complete
+end
+
+function State:IsQuestObjectivesComplete(questId)
+    local result = self:IterateQuestObjectives(questId, function(objective, objectiveIndex)
+        if not objective.finished then
+            return false
+        end
+    end)
+    return result == nil -- No result means all objectives are complete
 end
 
 function State:IsQuestInQuestLog(questId)
@@ -670,7 +808,7 @@ end
 function State:IsQuestInQuestLogAndComplete(questId)
     if self.questLog then
         local questInfo = self.questLog[questId]
-        if questInfo and questInfo.isComplete then
+        if questInfo and (questInfo.isComplete or self:IsQuestObjectivesComplete(questId)) then
             return true
         end
     end
@@ -714,6 +852,48 @@ end
 function State:GetQuestLogInfo(questId)
     if self.questLog then
         return self.questLog[questId]
+    end
+end
+
+function State:IterateStepQuestObjectives(step, callback)
+    local objectives = C_QuestLog.GetQuestObjectives(step.data.questId)
+    if objectives then
+        if step.data.objectives then
+            for _, objectiveIndex in ipairs(step.data.objectives) do
+                local objective = objectives[objectiveIndex]
+                if objective then
+                    local result = callback(objective, objectiveIndex)
+                    if result ~= nil then
+                        return result
+                    end
+                end
+            end
+        else
+            for objectiveIndex = 1, #objectives do
+                local objective = objectives[objectiveIndex]
+                if objective then
+                    local result = callback(objective, objectiveIndex)
+                    if result ~= nil then
+                        return result
+                    end
+                end
+            end
+        end
+    end
+end
+
+function State:IterateQuestObjectives(questId, callback)
+    local objectives = C_QuestLog.GetQuestObjectives(questId)
+    if objectives then
+        for objectiveIndex = 1, #objectives do
+            local objective = objectives[objectiveIndex]
+            if objective then
+                local result = callback(objective, objectiveIndex)
+                if result ~= nil then
+                    return result
+                end
+            end
+        end
     end
 end
 

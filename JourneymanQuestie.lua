@@ -136,6 +136,18 @@ local function GetNearestItem(items, player, zoneFilter)
                         bestType = "Item"
                     end
                 end
+                if item.vendors then
+                    local nearest = GetNearestNPC(item.vendors, player, zoneFilter)
+                    if nearest and nearest.distance < bestDistance then
+                        bestDistance = nearest.distance
+                        bestX = nearest.x
+                        bestY = nearest.y
+                        bestMapId = nearest.mapId
+                        bestName = nearest.name
+                        bestId = itemId
+                        bestType = "Vendor"
+                    end
+                end
                 if item.npcDrops then
                     local nearest = GetNearestNPC(item.npcDrops, player, zoneFilter)
                     if nearest and nearest.distance < bestDistance then
@@ -184,11 +196,6 @@ end
 local function GetNearestQuestLocation(entity, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
-
-    -- Hack: when quests can be started from both npc and item, favor item
-    if entity.NPC and entity.Item then
-        entity.NPC = nil
-    end
 
     if entity.NPC then
         local nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
@@ -577,6 +584,30 @@ end
 
 function DataSourceQuestie:GetNearestClassTrainerLocation()
     local npcs = Questie.db.global.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"]
+    if npcs == nil then return nil end
+
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId })
+end
+
+function DataSourceQuestie:GetNearestFirstAidTrainerLocation()
+    local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FIRST_AID]
+    if npcs == nil then return nil end
+
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId })
+end
+
+function DataSourceQuestie:GetNearestCookingTrainerLocation()
+    local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.COOKING]
+    if npcs == nil then return nil end
+
+    local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
+    return GetNearestNPC(npcs, { x = playerX, y = playerY, mapId = playerMapId })
+end
+
+function DataSourceQuestie:GetNearestFishingTrainerLocation()
+    local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FISHING]
     if npcs == nil then return nil end
 
     local playerX, playerY, playerMapId = HBD:GetPlayerWorldPosition()
