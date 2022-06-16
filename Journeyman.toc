@@ -1,6 +1,6 @@
 ## Interface: 11402
 ## Title: Journeyman
-## Author: Robert Goulet
+## Author: Erunehtar
 ## Notes: Provides step by step instructions for leveling and glory.
 ## Version: 0.7.0
 ## Dependencies: Questie
@@ -10,6 +10,7 @@
 # Embedded libraries
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\LibCollections-1.0\LibCollections-1.0.xml
 Libs\AceAddon-3.0\AceAddon-3.0.xml
 Libs\AceLocale-3.0\AceLocale-3.0.xml
 Libs\AceDB-3.0\AceDB-3.0.xml

@@ -47,6 +47,7 @@ local databaseDefaults = {
         },
         journey = "",
         chapter = 1,
+        hardcoreMode = false,
         updateJourney = false,
         taxiNodeIds = {}
     }
@@ -55,6 +56,9 @@ local databaseDefaults = {
 function Journeyman:InitializeDatabase()
     -- Create database
     self.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
+    if self.db.profile.advanced.debug then
+        _G["Journeyman"] = Journeyman
+    end
 
     -- Initialize known taxi node ids per race
     if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then

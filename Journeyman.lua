@@ -4,6 +4,8 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
+local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 
 Journeyman.BYTE_ORDER_MARK = "!JM1"
@@ -11,7 +13,9 @@ Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Journeyman.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
 Journeyman.STEP_TYPE_TURNIN_QUEST = "TURNIN"
-Journeyman.STEP_TYPE_GO_TO = "GOTO"
+Journeyman.STEP_TYPE_GO_TO_COORD = "GOTO"
+Journeyman.STEP_TYPE_GO_TO_AREA = "GOTOAREA"
+Journeyman.STEP_TYPE_GO_TO_ZONE = "GOTOZONE"
 Journeyman.STEP_TYPE_REACH_LEVEL = "LEVEL"
 Journeyman.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
@@ -23,12 +27,25 @@ Journeyman.STEP_TYPE_LEARN_FIRST_AID = "LEARNFIRSTAID"
 Journeyman.STEP_TYPE_LEARN_COOKING = "LEARNCOOKING"
 Journeyman.STEP_TYPE_LEARN_FISHING = "LEARNFISHING"
 Journeyman.STEP_TYPE_DIE_AND_RES = "DIE"
+
 Journeyman.ITEM_HEARTHSTONE = 6948
+
+Journeyman.NPC_STORMWIND_PORTAL_TRAINER = 2485
+Journeyman.NPC_IRONFORGE_PORTAL_TRAINER = 2489
+Journeyman.NPC_DARNASSUS_PORTAL_TRAINER = 4165
+
 Journeyman.SPELL_HEARTHSTONE = 8690
 Journeyman.SPELL_ASTRAL_RECALL = 556
 Journeyman.SPELL_FIRST_AID_APPRENTICE = 3273
 Journeyman.SPELL_COOKING_APPRENTICE = 2550
 Journeyman.SPELL_FISHING_APPRENTICE = 7620
+Journeyman.SPELL_TELEPORT_TO_STORMWIND = 3561
+Journeyman.SPELL_TELEPORT_TO_IRONFORGE = 3562
+Journeyman.SPELL_TELEPORT_TO_DARNASSUS = 3565
+Journeyman.SPELL_PORTAL_TO_STORMWIND = 10059
+Journeyman.SPELL_PORTAL_TO_IRONFORGE = 11416
+Journeyman.SPELL_PORTAL_TO_DARNASSUS = 11419
+
 Journeyman.ICON_HUNTERS_MARK = 132212
 
 -- Store races info
@@ -78,6 +95,25 @@ local function Equals(a, b, epsilon)
     return diff <= epsilon
 end
 
+local function LocationEquals(current, previous)
+    if current == nil and previous == nil then
+        return true
+    end
+    if current == nil or previous == nil then
+        return false
+    end
+    if current.mapId ~= previous.mapId then
+        return false
+    end
+    if not Equals(current.x, previous.x, 0.0001) then
+        return false
+    end
+    if not Equals(current.y, previous.y, 0.0001) then
+        return false
+    end
+    return true
+end
+
 -- Some taxi nodes were never implemented in game, or are innacessible, or don't need to be considered (e.g. battlegrounds)
 local taxiNodeIdsToSkip = {1, 3, 9, 15, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
 local skipTaxiNodeIds = {}
@@ -86,9 +122,6 @@ for i = 1, #taxiNodeIdsToSkip do
 end
 
 function Journeyman:OnInitialize()
-    self.waypointNeedUpdate = false
-    self.macroNeedUpdate = false
-
     self.player = {}
 
     local factionName, factionNameLocal = UnitFactionGroup("player")
@@ -111,9 +144,7 @@ function Journeyman:OnInitialize()
     self.player.xp = UnitXP("player")
     self.player.maxXP = UnitXPMax("player")
     self.player.greenRange = GetQuestGreenRange("player")
-    self.player.onTaxi = UnitOnTaxi("player")
     self.player.location = nil
-    self.player.lastLocation = nil
 
     self:InitializeDatabase()
     self.Editor:Initialize()
@@ -131,89 +162,15 @@ function Journeyman:OnEnable()
     -- Install update ticker
     local updateFrequency = min(max(Journeyman.db.profile.advanced.updateFrequency, 0.1), 5)
     self.updateTicker = C_Timer.NewTicker(updateFrequency, function()
-        -- Store some values
-        self.player.level = UnitLevel("player")
-        self.player.xp = UnitXP("player")
-        self.player.maxXP = UnitXPMax("player")
-        self.player.greenRange = GetQuestGreenRange("player")
-
         -- Check for state and window update
         self.State:CheckForUpdate()
         self.Window:CheckForUpdate()
-
-        -- Check for waypoint and macro update
-        if not self.State.needUpdate then
-            local step = self.State:GetCurrentStep()
-
-            -- Check for waypoint update
-            if self.waypointNeedUpdate and self.player.location then
-                if self.db.profile.autoSetWaypoint then
-                    self:SetWaypoint(step, false)
-                end
-                self.waypointNeedUpdate = false
-            end
-
-            -- Check for macro update
-            if self.macroNeedUpdate then
-                self:SetMacro(step)
-            end
-        end
     end)
 
     -- High frequency ticker for goto steps
     C_Timer.NewTicker(0.25, function()
-        if not Journeyman.db.char.window.show then
-            return
-        end
-
-        local now = GetTimePreciseSec()
-
-        -- Store player is on taxi
-        self.player.onTaxi = UnitOnTaxi("player")
-
-        -- Get player location
-        local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
-        if playerMapId and playerX and playerY then
-            self.player.location = { mapId = playerMapId, x = playerX, y = playerY }
-        else
-            -- Could not get location, bail
-            self.player.location = nil
-            self.player.lastLocation = nil
-            return
-        end
-
-        -- Check if we have last location, otherwise store and bail
-        if self.player.lastLocation == nil then
-            self.player.lastLocation = { mapId = playerMapId, x = playerX, y = playerY }
-            return
-        end
-
-        -- Check if location changed for at least second decimal point
-        if playerMapId == self.player.lastLocation.mapId and Equals(playerX, self.player.lastLocation.x, 0.0001) and Equals(playerY, self.player.lastLocation.y, 0.0001) then
-            return
-        end
-
-        -- Compare all incomplete goto step that matches the mapId
-        if Journeyman.State.steps then
-            for i = 1, #Journeyman.State.steps do
-                local step = Journeyman.State.steps[i]
-                if step and step.type == Journeyman.STEP_TYPE_GO_TO and not step.isComplete and step.isShown then
-                    if step.data.mapId == playerMapId then
-                        local distance = HBD:GetZoneDistance(playerMapId, playerX, playerY, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
-                        if distance and distance <= 15 then
-                            self:OnLocationReached(step.data)
-                        end
-                    end
-                end
-            end
-        end
-
-        -- Store last location
-        self.player.lastLocation = { mapId = playerMapId, x = playerX, y = playerY }
-
-        local elapsed = (GetTimePreciseSec() - now) * 1000
-        if elapsed > 1 then
-            Journeyman:Debug("Goto ticker took %.2fms", elapsed)
+        if self:UpdatePosition() then
+            self:OnLocationChanged()
         end
     end)
 end
@@ -227,26 +184,35 @@ end
 
 function Journeyman:Reset(immediate)
     if self.db.char.window.show then
-        self:UpdateWaypoint()
-        self:UpdateMacro()
         self.State:Reset(immediate)
     end
 end
 
 function Journeyman:Update(immediate)
     if self.db.char.window.show then
-        self:UpdateWaypoint()
-        self:UpdateMacro()
         self.State:Update(immediate)
     end
 end
 
-function Journeyman:UpdateWaypoint()
-    self.waypointNeedUpdate = true
-end
+function Journeyman:UpdatePosition()
+    if not Journeyman.db.char.window.show then
+        return
+    end
 
-function Journeyman:UpdateMacro()
-    self.macroNeedUpdate = true
+    -- Get player location
+    local location = nil
+    local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+    if playerMapId and playerX and playerY then
+        location = { mapId = playerMapId, x = playerX, y = playerY }
+    end
+
+    -- Check if location changed
+    local locationChanged = LocationEquals(location, self.player.location) == false
+
+    -- Store player location
+    self.player.location = location
+
+    return locationChanged
 end
 
 Journeyman._Print = Journeyman.Print
@@ -387,6 +353,21 @@ function Journeyman:GetMapNameById(mapId, showId)
     end
 end
 
+function Journeyman:GetPlayerAreaId()
+    local mapID = C_Map.GetBestMapForUnit("player")
+    local pos = C_Map.GetPlayerMapPosition(mapID, "player")
+    local areaIDs = C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapID, pos)
+    if areaIDs then
+        for i, areaID in ipairs(areaIDs) do
+            local name = C_Map.GetAreaInfo(areaID)
+            if name then
+                Journeyman:Debug("MapID=%d, Position=%.3f:%.3f, AreaID=%s", mapID, pos.x, pos.y, areaID)
+                return areaID
+            end
+        end
+    end
+end
+
 function Journeyman:GetAreaIdFromBindLocationLocalizedName(name)
     if self.bindLocationNameToAreaId == nil then
         self.bindLocationNameToAreaId = {}
@@ -406,7 +387,7 @@ function Journeyman:GetAreaIdFromBindLocationLocalizedName(name)
     return self.bindLocationNameToAreaId[name]
 end
 
-function Journeyman:GetAreaName(areaId, showId)
+function Journeyman:GetAreaNameById(areaId, showId)
     if areaId and type(areaId) == "number" then
         local info = L.areaTable[areaId]
         if info then
@@ -485,7 +466,7 @@ function Journeyman:GetTaxiNodeWorldCoordinates(taxiNodeId)
     if taxiNodeId and type(taxiNodeId) == "number" then
         local info = L.taxiNodes[taxiNodeId]
         if info then
-            return { [1] = info.Pos[2], [2] = info.Pos[1] }
+            return { instanceId = info.ContinentID, x = info.Pos[2], y = info.Pos[1] }
         end
     end
 end
@@ -544,7 +525,7 @@ function Journeyman:GetStepData(step)
                     end
                 end
             end
-        elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
             local values = self.Utils:Split(step.data, ",")
             local mapId = tonumber(values[1])
             local mapName = Journeyman:GetMapNameById(mapId)
@@ -556,6 +537,28 @@ function Journeyman:GetStepData(step)
                      desc = x..", "..y
                 end
                 data = { mapId = mapId, mapName = mapName, x = x, y = y, desc = desc }
+            end
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+            local values = self.Utils:Split(step.data, ",")
+            local mapId = tonumber(values[1])
+            local mapName = Journeyman:GetMapNameById(mapId)
+            if mapId and mapName then
+                local x = tonumber(values[2])
+                local y = tonumber(values[3])
+                data = { mapId = mapId, mapName = mapName, x = x, y = y }
+            end
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+            local values = self.Utils:Split(step.data, ",")
+            local areaId = tonumber(values[1])
+            local areaName = Journeyman:GetAreaNameById(areaId)
+            local x = tonumber(values[2])
+            local y = tonumber(values[3])
+            local desc = values[4]
+            if areaId and areaName and x and y then
+                if desc == nil or desc:len() == 0 then
+                     desc = x..", "..y
+                end
+                data = { areaId = areaId, areaName = areaName, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             local values = self.Utils:Split(step.data, ",")
@@ -582,14 +585,14 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
             local values = self.Utils:Split(step.data, ",")
             local spells = {}
-            for i=1, #values do
+            for i = 1, #values do
                 local spellId = tonumber(values[i])
                 if spellId then
                     tinsert(spells, spellId)
                 end
             end
             if #spells > 0 then
-                data.spells = spells
+                data = { spells = spells }
             end
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
             data = {}
@@ -629,7 +632,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
             Journeyman:Error("Step type %s not implemented.", step.type)
         end
 
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO then
+    elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
         local mapId = data and data.mapId or 0
         local mapName = Journeyman:GetMapNameById(mapId, showId)
         if mapName == nil then
@@ -643,7 +646,32 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
             desc = x..", "..y
         end
 
-        return string.format(L["STEP_TEXT_GO_TO"], desc, mapName)
+        return string.format(L["STEP_TEXT_GO_TO_COORD"], desc, mapName)
+
+    elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+        local mapId = data and data.mapId or 0
+        local mapName = Journeyman:GetMapNameById(mapId, showId)
+        if mapName == nil then
+            mapName = string.format("map:%d", mapId)
+        end
+
+        return string.format(L["STEP_TEXT_GO_TO_ZONE"], mapName)
+
+    elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+        local areaId = data and data.areaId or 0
+        local areaName = Journeyman:GetAreaNameById(areaId, showId)
+        if areaName == nil then
+            areaName = string.format("area:%d", areaId)
+        end
+
+        local desc = data and data.desc or nil
+        if desc == nil then
+            local x = data and data.x or 0
+            local y = data and data.y or 0
+            desc = x..", "..y
+        end
+
+        return string.format(L["STEP_TEXT_GO_TO_AREA"], desc, areaName)
 
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
         local level = data and data.level or 0
@@ -662,7 +690,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         end
 
         local areaId = data and data.areaId or 0
-        local areaName = self:GetAreaName(areaId, showId)
+        local areaName = self:GetAreaNameById(areaId, showId)
         if areaName == nil then
             areaName = string.format("area:%d", areaId)
         end
@@ -691,14 +719,12 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
         local spells = ""
-        for i = 1, #data.spells do
-            local spellName = self:GetSpellName(data.spells[i], callback)
-            if spellName then
-                spells = spells..spellName
-                if i + 1 < #data.spells then
-                    spells = spells..", "
-                end
-            end
+        if data and data.spells then
+            local spellNames = {}
+            List:ForEach(data.spells, function(spellId)
+                List:Add(spellNames, self:GetSpellName(spellId, callback))
+            end)
+            spells = Journeyman.Utils:Join(", ", spellNames)
         end
         return string.format(L["STEP_TEXT_TRAIN_SPELLS"], spells)
 
@@ -721,7 +747,7 @@ end
 
 function Journeyman:SetWaypoint(step, force)
     if step == nil or TomTom == nil or TomTom.AddWaypoint == nil or TomTom.RemoveWaypoint == nil then
-        return
+        return false
     end
 
     -- Remove last waypoint
@@ -739,7 +765,7 @@ function Journeyman:SetWaypoint(step, force)
     end
 
     if location == nil then
-        return
+        return true
     end
 
     -- Waypoint settings based on step information
@@ -754,8 +780,8 @@ function Journeyman:SetWaypoint(step, force)
         end
     end
 
-    -- Add waypoint if greater or equal to minimum distance
-    if force or location.distance >= minDistance then
+    -- Add waypoint if forced, or if no distance, or if distance is greater or equal to minimum distance
+    if force or location.distance == nil or location.distance >= minDistance then
         self.db.char.waypoint = TomTom:AddWaypoint(location.mapId, location.x / 100.0, location.y / 100.0,
         {
             title = location.name,
@@ -767,11 +793,13 @@ function Journeyman:SetWaypoint(step, force)
             arrivaldistance = arrivalDistance
         })
     end
+
+    return true
 end
 
 function Journeyman:SetMacro(step)
     if InCombatLockdown() then
-        return
+        return false
     end
 
     -- Find macro
@@ -799,14 +827,15 @@ function Journeyman:SetMacro(step)
     -- Early exit if we can't create a new macro
     if macroId == nil then
         Journeyman:Error("Failed to create targeting macro.")
-        return
+        return true
     end
 
     -- Update macro body
-    local body = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
+    local body = ""
+    local suffix = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
     if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
         -- Get quest objectives
-        local objectives = self.DataSource:GetQuestObjectives(step.data.questId)
+        local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
         if objectives then
             -- Get NPC objective names
             local names = {}
@@ -816,43 +845,79 @@ function Journeyman:SetMacro(step)
                 end
             end
 
-            if #names == 0 then
-                -- Wipe macro body, nothing to do
-                body = ""
-            else
-                -- Append NPC names to macro
-                for i, name in ipairs(names) do
-                    local target = string.format("/tar [noexists][dead][help] %s\n", name)
-                    if string.len(body) + string.len(target) <= 255 then
-                        body = target..body
-                    else
-                        break
-                    end
+            -- Append NPC names to macro
+            for i, name in ipairs(names) do
+                local target = string.format("/tar [noexists][dead][help] %s\n", name)
+                if body:len() + target:len() + suffix:len() <= 255 then
+                    body = body..target
+                else
+                    break
                 end
             end
+
         end
     end
+
+    -- Append suffix
+    body = body..suffix
 
     -- Update macro
     if body ~= macroBody then
         EditMacro(macroId, addonName, macroIcon, body)
     end
 
-    self.macroNeedUpdate = false
+    return true
 end
 
-function Journeyman:ReplaceAllItemStringToHyperlinks(input, callback)
-    if input and type(input) == "string" then
-        local result = input
-        local itemString, itemId
-        for itemString, itemId in input:gmatch("(item:(%d+))") do
-            local itemLink = Journeyman:GetItemLink(tonumber(itemId), callback)
-            if itemLink and itemLink ~= itemString then
-                result = result:gsub(itemString, itemLink)
-            else
-                break
+function Journeyman:ReplaceAllShortLinks(input, callback)
+    local result = input
+    local matches = {}
+
+    -- Get all short links
+    for match, npcId in input:gmatch("(npc:(%d+))") do
+        List:Add(matches, { match = match, npcId = tonumber(npcId) })
+    end
+    for match, itemId in input:gmatch("(item:(%d+))") do
+        List:Add(matches, { match = match, itemId = tonumber(itemId) })
+    end
+    for match, spellId in input:gmatch("(spell:(%d+))") do
+        List:Add(matches, { match = match, spellId = tonumber(spellId) })
+    end
+    for match, mapId in input:gmatch("(map:(%d+))") do
+        List:Add(matches, { match = match, mapId = tonumber(mapId) })
+    end
+    for match, questId in input:gmatch("(quest:(%d+))") do
+        List:Add(matches, { match = match, questId = tonumber(questId) })
+    end
+
+    -- Replace all short links we found
+    List:ForEach(matches, function(m)
+        if m.npcId then
+            local npcName = Journeyman.DataSource:GetNPCName(m.npcId)
+            if not Journeyman.Utils:IsNilOrEmpty(npcName) and npcName ~= m.match then
+                result = result:gsub(m.match, npcName)
+            end
+        elseif m.itemId then
+            local itemLink = Journeyman:GetItemLink(m.itemId, callback)
+            if not Journeyman.Utils:IsNilOrEmpty(itemLink) and itemLink ~= m.match then
+                result = result:gsub(m.match, itemLink)
+            end
+        elseif m.spellId then
+            local spellName = Journeyman:GetSpellName(m.spellId, callback)
+            if not Journeyman.Utils:IsNilOrEmpty(spellName) and spellName ~= m.match then
+                result = result:gsub(m.match, spellName)
+            end
+        elseif m.mapId then
+            local mapName = Journeyman:GetMapNameById(m.mapId)
+            if not Journeyman.Utils:IsNilOrEmpty(mapName) and mapName ~= m.match then
+                result = result:gsub(m.match, mapName)
+            end
+        elseif m.questId then
+            local questName = Journeyman.DataSource:GetQuestName(m.questId, Journeyman.db.profile.window.showQuestLevel)
+            if not Journeyman.Utils:IsNilOrEmpty(questName) and questName ~= m.match then
+                result = result:gsub(m.match, questName)
             end
         end
-        return result
-    end
+    end)
+    return result
 end

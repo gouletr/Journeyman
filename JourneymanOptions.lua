@@ -557,6 +557,11 @@ function Journeyman:GetAdvancedOptionsTable()
                 set = function(info, value)
                     if self.db.profile.advanced.debug ~= value then
                         self.db.profile.advanced.debug = value
+                        if self.db.profile.advanced.debug then
+                            _G["Journeyman"] = Journeyman
+                        else
+                            _G["Journeyman"] = nil
+                        end
                         self.Window:Update(true)
                     end
                 end

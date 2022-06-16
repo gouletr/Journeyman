@@ -521,13 +521,16 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Journeyman.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
             [Journeyman.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
             [Journeyman.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
-            [Journeyman.STEP_TYPE_GO_TO] = L["DROPDOWN_GO_TO"],
+            [Journeyman.STEP_TYPE_GO_TO_COORD] = L["DROPDOWN_GO_TO_COORD"],
+            [Journeyman.STEP_TYPE_GO_TO_ZONE] = L["DROPDOWN_GO_TO_ZONE"],
+--            [Journeyman.STEP_TYPE_GO_TO_AREA] = L["DROPDOWN_GO_TO_AREA"],
             [Journeyman.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
             [Journeyman.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
             [Journeyman.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
             [Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
             [Journeyman.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
             [Journeyman.STEP_TYPE_TRAIN_CLASS] = L["DROPDOWN_TRAIN_CLASS"],
+            [Journeyman.STEP_TYPE_TRAIN_SPELLS] = L["DROPDOWN_TRAIN_SPELLS"],
             [Journeyman.STEP_TYPE_LEARN_FIRST_AID] = L["DROPDOWN_LEARN_FIRST_AID"],
             [Journeyman.STEP_TYPE_LEARN_COOKING] = L["DROPDOWN_LEARN_COOKING"],
             [Journeyman.STEP_TYPE_LEARN_FISHING] = L["DROPDOWN_LEARN_FISHING"],
@@ -541,11 +544,14 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Journeyman.STEP_TYPE_COMPLETE_QUEST,
             Journeyman.STEP_TYPE_TURNIN_QUEST,
             Journeyman.STEP_TYPE_REACH_LEVEL,
-            Journeyman.STEP_TYPE_GO_TO,
+            Journeyman.STEP_TYPE_GO_TO_COORD,
+            Journeyman.STEP_TYPE_GO_TO_ZONE,
+--            Journeyman.STEP_TYPE_GO_TO_AREA,
             Journeyman.STEP_TYPE_FLY_TO,
             Journeyman.STEP_TYPE_BIND_HEARTHSTONE,
             Journeyman.STEP_TYPE_USE_HEARTHSTONE,
             Journeyman.STEP_TYPE_TRAIN_CLASS,
+            Journeyman.STEP_TYPE_TRAIN_SPELLS,
             Journeyman.STEP_TYPE_LEARN_FIRST_AID,
             Journeyman.STEP_TYPE_LEARN_COOKING,
             Journeyman.STEP_TYPE_LEARN_FISHING,
@@ -558,7 +564,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         if step then
             step.type = value
             if Journeyman.Utils:IsNilOrEmpty(step.data) then
-                if step.type == Journeyman.STEP_TYPE_GO_TO then
+                if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
                     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
                     if playerMapId and playerX and playerY then
                         local subZoneText = GetSubZoneText()
@@ -567,6 +573,11 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                         else
                             step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
                         end
+                    end
+                elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+                    local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
+                    if playerMapId and playerX and playerY then
+                        step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
                     end
                 end
             end

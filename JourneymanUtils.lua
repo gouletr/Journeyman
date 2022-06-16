@@ -1,25 +1,14 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
 local Utils = {}
 Journeyman.Utils = Utils
 
-local tinsert = table.insert
+local tinsert, tremove = table.insert, table.remove
 
 function Utils:IsNilOrEmpty(value)
-    if value == nil or (type(value) == "string" and value:len() == 0) then
-        return true
-    end
-    return false
-end
-
-function Utils:Contains(t, value)
-    for i, v in ipairs(t) do
-        if v == value then
-            return true
-        end
-    end
-    return false
+    return value == nil or type(value) ~= "string" or string.len(value) == 0
 end
 
 function Utils:Split(s, separator)
@@ -28,6 +17,21 @@ function Utils:Split(s, separator)
         tinsert(t, v)
     end
     return t
+end
+
+function Utils:Join(separator, values)
+    local result = ""
+    local n = #values
+    for i = 1, n do
+        local value = values[i]
+        if not self:IsNilOrEmpty(value) then
+            result = result..value
+            if i < n then
+                result = result..separator
+            end
+        end
+    end
+    return result
 end
 
 function Utils:Clone(t)
@@ -52,38 +56,6 @@ function Utils:CreateGUID()
         return string.format('%x', v)
     end)
     return guid
-end
-
-function Utils:Remove(t, v)
-    if t == nil then return end
-    local j, n = 1, #t
-    for i = 1, n do
-        if t[i] ~= v then
-            if i ~= j then
-                t[j] = t[i]
-                t[i] = nil
-            end
-            j = j + 1
-        else
-            t[i] = nil
-        end
-    end
-end
-
-function Utils:RemoveIf(t, f)
-    if t == nil then return end
-    local j, n = 1, #t
-    for i = 1, n do
-        if not f(i) then
-            if i ~= j then
-                t[j] = t[i]
-                t[i] = nil
-            end
-            j = j + 1
-        else
-            t[i] = nil
-        end
-    end
 end
 
 function Utils:CountBits(value)

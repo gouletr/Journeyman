@@ -4,6 +4,7 @@ local L = addon.Locale
 local Window = {}
 Journeyman.Window = Window
 
+local List = LibStub("LibCollections-1.0").List
 local TomTom = TomTom
 
 local tinsert = table.insert
@@ -441,8 +442,12 @@ function Window:DisplayStep(step, depth)
             self:DisplayStepObjectives(step, depth + 1)
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TURNIN_QUEST"], self:GetColoredQuestText(step.data.questId, step.isComplete))
-        elseif step.type == Journeyman.STEP_TYPE_GO_TO then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO"], self:GetColoredHighlightText(step.data.desc, step.isComplete), self:GetColoredHighlightText(step.data.mapName, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO_COORD"], self:GetColoredHighlightText(step.data.desc, step.isComplete), self:GetColoredHighlightText(step.data.mapName, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO_ZONE"], self:GetColoredHighlightText(step.data.mapName, step.isComplete))
+        elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_GO_TO_AREA"], self:GetColoredHighlightText(step.data.desc, step.isComplete), self:GetColoredHighlightText(step.data.areaName, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
             -- Step text
             local text = string.format(L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(step.data.level, step.isComplete))
@@ -461,18 +466,33 @@ function Window:DisplayStep(step, depth)
                 end
             end
             if gainXP and gainXP > 0 then
-                self:GetNextLine():SetStepText(step, depth + 1, L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
+                local gainXPText = string.format(L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
+                if Journeyman.player.lastXP then
+                    local xpGained = Journeyman.player.xp - Journeyman.player.lastXP
+                    local count = math.ceil(gainXP / xpGained)
+                    gainXPText = string.format("%s (%s kill)", gainXPText, count)
+                end
+                self:GetNextLine():SetStepText(step, depth + 1, gainXPText)
             end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_USE_HEARTHSTONE"], self:GetColoredItemText(step, Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_USE_HEARTHSTONE"], self:GetColoredItemText(Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FLIGHT_PATH"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_FLY_TO"], self:GetColoredTaxiNodeText(step.data.taxiNodeId, step.isComplete))
         elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TRAIN_CLASS"])
+        elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+            local spellNames = {}
+            List:ForEach(step.data.spells, function(spellId)
+                local isComplete = Journeyman:IsSpellKnown(spellId)
+                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
+                    List:Add(spellNames, self:GetColoredSpellText(spellId, isComplete))
+                end
+            end)
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TRAIN_SPELLS"], Journeyman.Utils:Join(", ", spellNames))
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FIRST_AID"])
         elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
@@ -487,9 +507,9 @@ function Window:DisplayStep(step, depth)
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            local note = Journeyman:ReplaceAllItemStringToHyperlinks(L[step.note], function() Window:Update() end)
+            local note = Journeyman:ReplaceAllShortLinks(L[step.note], function() Window:Update() end)
             local indent = depth
-            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_GO_TO_COORD or step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
                 indent = indent + 1
             end
             self:GetNextLine():SetStepText(step, indent, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
@@ -547,15 +567,28 @@ function Window:GetNextLine()
                         if Journeyman:IsStepTypeQuest(step) then
                             Window:ShowQuest(step.data.questId)
                         end
-                    elseif IsModifiedClick("CHATLINK") and ChatEdit_GetActiveWindow() then
+                    elseif IsModifiedClick("CHATLINK") then
                         if Journeyman:IsStepTypeQuest(step) then
-                            Window:LinkQuest(step.data.questId)
+                            if step.objectiveIndex then
+                                local objectives = Journeyman.DataSource:GetQuestObjectives(step.data.questId, { step.objectiveIndex })
+                                for i = 1, #objectives do
+                                    local objective = objectives[i]
+                                    if objective.type == "Item" then
+                                        Window:LinkItem(objective.id)
+                                        break
+                                    end
+                                end
+                            else
+                                Window:LinkQuest(step.data.questId)
+                            end
                         end
                     elseif IsControlKeyDown() then
                         Journeyman:SetWaypoint(step, true)
                     elseif IsAltKeyDown() and not step.hasChildren then
                         step.isComplete = true
                         step.isCompleteOverride = true
+                        Journeyman.State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+                        Journeyman.State.macroNeedUpdate = true
                         Journeyman:Update(true)
                     end
                 end
@@ -579,14 +612,17 @@ function Window:GetNextLine()
 end
 
 function Window:GetColoredHighlightText(text, isComplete)
-    if text and not isComplete then
-        return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, text)
+    if text then
+        if isComplete then
+            return string.format("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, text)
+        else
+            return string.format("|c%s%s|r", TEXT_COLOR_HIGHLIGHT, text)
+        end
     end
-    return text
 end
 
 function Window:GetColoredAreaText(areaId, isComplete)
-    local areaName = Journeyman:GetAreaName(areaId)
+    local areaName = Journeyman:GetAreaNameById(areaId)
     if areaName == nil then return string.format("area:%s", areaId) end
 
     if not isComplete then
@@ -634,14 +670,22 @@ function Window:GetColoredQuestText(questId, isComplete)
     return questName
 end
 
-function Window:GetColoredItemText(step, itemId)
-    if step and itemId and type(itemId) == "number" then
+function Window:GetColoredItemText(itemId)
+    if itemId and type(itemId) == "number" then
         local itemLink = Journeyman:GetItemLink(itemId, function() Window:Update() end)
         if itemLink then
             return itemLink
         end
     end
     return "item:" .. itemId
+end
+
+function Window:GetColoredSpellText(spellId, isComplete)
+    if spellId and type(spellId) == "number" then
+        local spellName = Journeyman:GetSpellName(spellId, function() Window:Update() end)
+        return self:GetColoredHighlightText(spellName, isComplete)
+    end
+    return "spell:"..spellId
 end
 
 function Window:ShowQuest(questId)
@@ -689,4 +733,9 @@ function Window:LinkQuest(questId)
     local questName = Journeyman.DataSource:GetQuestName(questId, Journeyman.db.profile.window.showQuestLevel)
     local questLink = string.format("[%s (%d)]", questName, questId)
     ChatEdit_InsertLink(questLink)
+end
+
+function Window:LinkItem(itemId)
+    local itemLink = Journeyman:GetItemLink(itemId)
+    ChatEdit_InsertLink(itemLink)
 end

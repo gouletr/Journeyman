@@ -1,6 +1,7 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+local HBD = LibStub("HereBeDragons-2.0")
 
 function Journeyman:InitializeEvents()
     self.questTurnedIn = {}
@@ -20,11 +21,24 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("ZONE_CHANGED", function(event)
-        Journeyman.State:Update()
+        if Journeyman:UpdatePosition() then
+            Journeyman:OnLocationChanged()
+        end
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", function(event)
-        Journeyman.State:Update()
+        if Journeyman:UpdatePosition() then
+            Journeyman:OnLocationChanged()
+        end
+        Journeyman:Update()
+    end)
+
+    self:RegisterEvent("ZONE_CHANGED_INDOORS", function(event)
+        if Journeyman:UpdatePosition() then
+            Journeyman:OnLocationChanged()
+        end
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId)
@@ -37,11 +51,11 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
-        Journeyman:UpdateMacro()
+        Journeyman:SetMacro(Journeyman.State.currentStep)
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        Journeyman.State:Update()
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("QUEST_REMOVED", function(event, questId)
@@ -53,12 +67,12 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("BAG_UPDATE_DELAYED", function(event)
-        Journeyman.State:Update()
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
         -- Delay level up so that it happens after quests turn-in
-        C_Timer.After(2, function() self:OnLevelUp(level) end)
+        C_Timer.After(1, function() self:OnLevelUp(level) end)
     end)
 
     self:RegisterEvent("PLAYER_XP_UPDATE", function(event, unit)
@@ -66,28 +80,27 @@ function Journeyman:InitializeEvents()
             return
         end
 
-        local now = GetTimePreciseSec()
+        -- Store some values
+        local xp = UnitXP("player")
+        Journeyman.player.level = UnitLevel("player")
+        Journeyman.player.lastXP = Journeyman.player.xp
+        Journeyman.player.xp = xp
+        Journeyman.player.maxXP = UnitXPMax("player")
+        Journeyman.player.greenRange = GetQuestGreenRange("player")
 
-        local playerLevel = UnitLevel("player")
-        local playerXP = UnitXP("player")
         for i = 1, #Journeyman.State.steps do
             local step = Journeyman.State.steps[i]
             if step and step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
-                if playerLevel == step.data.level and step.data.xp then
-                    if playerXP >= step.data.xp then
+                if Journeyman.player.level == step.data.level and step.data.xp then
+                    if Journeyman.player.xp >= step.data.xp then
                         self:OnLevelXPReached(step)
                     else
-                        Journeyman.State:Update()
+                        Journeyman:Update()
                     end
-                elseif playerLevel == step.data.level - 1 then
-                    Journeyman.State:Update()
+                elseif Journeyman.player.level == step.data.level - 1 then
+                    Journeyman:Update()
                 end
             end
-        end
-
-        local elapsed = (GetTimePreciseSec() - now) * 1000
-        if elapsed > 1 then
-            Journeyman:Debug("XP update took %.2fms", elapsed)
         end
     end)
 
@@ -107,14 +120,23 @@ function Journeyman:InitializeEvents()
         end
     end)
 
-    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellID)
-        if spellID == Journeyman.SPELL_HEARTHSTONE or spellID == Journeyman.SPELL_ASTRAL_RECALL then
+    self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellId)
+        if spellId == Journeyman.SPELL_HEARTHSTONE or spellId == Journeyman.SPELL_ASTRAL_RECALL then
+            self.lastSpellCast = spellId
+        else
+            self:OnSpellCast(spellId)
+        end
+    end)
+
+    self:RegisterEvent("LOADING_SCREEN_DISABLED", function(event)
+        if self.lastSpellCast == Journeyman.SPELL_HEARTHSTONE or self.lastSpellCast == Journeyman.SPELL_ASTRAL_RECALL then
             local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(GetBindLocation())
             if areaId then
                 self:OnHearthstoneUsed(areaId)
             else
                 Journeyman:Error("Could not find areaId for bind location name '%s'.", location)
             end
+            self.lastSpellCast = nil
         end
     end)
 
@@ -141,10 +163,12 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("PLAYER_CONTROL_GAINED", function(event)
-        if not InCombatLockdown() and Journeyman.db.char.window.show then
+        if Journeyman.db.char.window.show and not InCombatLockdown() then
             if not UnitOnTaxi("player") then
                 Journeyman.flyingTo = nil
             end
+            Journeyman.State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+            Journeyman.State.macroNeedUpdate = true
             Journeyman:Update()
         end
     end)
@@ -165,7 +189,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("SKILL_LINES_CHANGED", function(event)
-        Journeyman.State:Update()
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("CONFIRM_XP_LOSS", function(event)
@@ -222,9 +246,44 @@ function Journeyman:OnQuestAbandoned(questId)
     end
 end
 
-function Journeyman:OnLocationReached(location)
+function Journeyman:OnLocationChanged()
     if self.db.char.window.show then
-        self.State:OnLocationReached(location)
+        if Journeyman.State.steps == nil then
+            return
+        end
+
+        local location = self.player.location
+        if location == nil then
+            return
+        end
+
+        if UnitOnTaxi("player") then
+            return
+        end
+
+        local playerAreaId = nil
+        for i = 1, #Journeyman.State.steps do
+            local step = Journeyman.State.steps[i]
+            if step and not step.isComplete and step.isShown then
+                if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+                    local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+                    if distance and distance <= 15 then
+                        self.State:OnStepCompleted(step)
+                    end
+                elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+                    if playerAreaId == nil then
+                        playerAreaId = Journeyman:GetPlayerAreaId()
+                    end
+                    if playerAreaId and playerAreaId == step.data.areaId then
+                        self.State:OnStepCompleted(step)
+                    end
+                elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+                    if location.mapId == step.data.mapId then
+                        self.State:OnStepCompleted(step)
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -283,6 +342,12 @@ end
 function Journeyman:OnSpellLearned(spellId)
     if self.db.char.window.show then
         self.State:OnSpellLearned(spellId)
+    end
+end
+
+function Journeyman:OnSpellCast(spellId)
+    if self.db.char.window.show then
+        self.State:OnSpellCast(spellId)
     end
 end
 
