@@ -420,17 +420,7 @@ end
 
 function State:IsStepDoable(step)
     if Journeyman:IsStepTypeQuest(step) then
-        local questId = step.data.questId
-
-        -- Quest Distracting Jarven (308):
-        -- # Cannot be accepted
-        -- # Requires quest Bitter Rivals (310) to be in quest log
-        -- # Can no longer be completed after quest Return to Marleth (311) has been turned-in
-        if questId == 308 then
-            return self:IsQuestInQuestLog(310)
-        end
-
-        return self:IsQuestDoable(questId, step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST)
+        return self:IsQuestDoable(step.data.questId, step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST)
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
@@ -465,8 +455,8 @@ function State:IsStepShown(step)
                         end
                     end
                 elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                    if not self:IsQuestInQuestLogAndComplete(questId) then
-                        doable, reason = false, string.format("Quest %s is not in quest log or not complete", questId)
+                    if not self:IsQuestObjectivesComplete(questId) then
+                        doable, reason = false, string.format("Quest %s is not complete", questId)
                     end
                 end
             end
