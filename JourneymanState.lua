@@ -455,8 +455,14 @@ function State:IsStepShown(step)
                         end
                     end
                 elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                    if not self:IsQuestObjectivesComplete(questId) then
-                        doable, reason = false, string.format("Quest %s is not complete", questId)
+                    if Journeyman.DataSource:IsQuestRepeatable(questId) then
+                        if not self:IsQuestObjectivesComplete(questId) then
+                            doable, reason = false, string.format("Quest %s is not complete", questId)
+                        end
+                    else
+                        if not self:IsQuestInQuestLogAndComplete(questId) then
+                            doable, reason = false, string.format("Quest %s is not in quest log or not complete", questId)
+                        end
                     end
                 end
             end
