@@ -6,6 +6,7 @@ local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local List = LibStub("LibCollections-1.0").List
+local Dict = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
 
 Journeyman.BYTE_ORDER_MARK = "!JM1"
@@ -354,37 +355,48 @@ function Journeyman:GetMapNameById(mapId, showId)
 end
 
 function Journeyman:GetPlayerAreaId()
-    local mapID = C_Map.GetBestMapForUnit("player")
-    local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-    local areaIDs = C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapID, pos)
-    if areaIDs then
-        for i, areaID in ipairs(areaIDs) do
-            local name = C_Map.GetAreaInfo(areaID)
-            if name then
-                Journeyman:Debug("MapID=%d, Position=%.3f:%.3f, AreaID=%s", mapID, pos.x, pos.y, areaID)
-                return areaID
-            end
+    local mapId = C_Map.GetBestMapForUnit("player")
+    if mapId then
+        local pos = C_Map.GetPlayerMapPosition(mapId, "player")
+        local areaIds = C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapId, pos)
+        if areaIds == nil then
+            areaIds = self:GetAreaIdsFromLocalizedName(self:GetMapNameById(mapId))
+        end
+        if areaIds then
+            return List:First(areaIds, function(areaId) return not Journeyman.Utils:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
         end
     end
 end
 
-function Journeyman:GetAreaIdFromBindLocationLocalizedName(name)
-    if self.bindLocationNameToAreaId == nil then
-        self.bindLocationNameToAreaId = {}
-        local innkeeperZones = self.DataSource:GetAllInnkeeperZones()
-        if innkeeperZones then
-            for k, v in pairs(L.areaTable) do
-                if innkeeperZones[k] or innkeeperZones[v.ParentAreaID] then
-                    if self.bindLocationNameToAreaId[v.AreaName_lang] == nil then
-                        self.bindLocationNameToAreaId[v.AreaName_lang] = k
-                    else
-                        --Journeyman:Debug("bindLocationNameToAreaId table already contains key pair ('%s', %d), when trying to add ('%s', %d)", v.AreaName_lang, self.bindLocationNameToAreaId[v.AreaName_lang], v.AreaName_lang, k)
-                    end
-                end
-            end
-        end
+function Journeyman:GetAreaIdsFromLocalizedName(name)
+    if Journeyman.Utils:IsNilOrEmpty(name) then
+        return nil
     end
-    return self.bindLocationNameToAreaId[name]
+
+    if self.areaLocalizedNameToAreaIds == nil then
+        self.areaLocalizedNameToAreaIds = {}
+    end
+
+    local areaIds = self.areaLocalizedNameToAreaIds[name]
+    if areaIds ~= nil then
+        return areaIds
+    end
+
+    Dict:ForEach(L.areaTable, function(k, v)
+        if self.areaLocalizedNameToAreaIds[v.AreaName_lang] == nil then
+            self.areaLocalizedNameToAreaIds[v.AreaName_lang] = {}
+        end
+        List:Add(self.areaLocalizedNameToAreaIds[v.AreaName_lang], k)
+    end)
+
+    return self.areaLocalizedNameToAreaIds[name]
+end
+
+function Journeyman:GetAreaIdFromLocalizedName(name)
+    local areaIds = self:GetAreaIdsFromLocalizedName(name)
+    if areaIds then
+        return List:First(areaIds, function(areaId) return not Journeyman.Utils:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
+    end
 end
 
 function Journeyman:GetAreaNameById(areaId, showId)

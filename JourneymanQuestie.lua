@@ -657,8 +657,19 @@ function DataSourceQuestie:GetNearestClassTrainerLocation()
     local npcs = Questie.db.global.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"]
     if npcs == nil then return nil end
 
+    local nearest = nil
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    local playerAreaId = Journeyman:GetPlayerAreaId()
+    if playerAreaId then
+        local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
+        if parentAreaId then
+            nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, parentAreaId, true)
+        end
+    end
+    if nearest == nil then
+        nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    end
+    return nearest
 end
 
 function DataSourceQuestie:GetNearestPortalTrainerLocation()

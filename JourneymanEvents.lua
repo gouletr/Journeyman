@@ -105,7 +105,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
-        local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(location)
+        local areaId = Journeyman:GetAreaIdFromLocalizedName(location)
         if areaId then
             self.bindAreaId = areaId
         else
@@ -130,7 +130,7 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("LOADING_SCREEN_DISABLED", function(event)
         if self.lastSpellCast == Journeyman.SPELL_HEARTHSTONE or self.lastSpellCast == Journeyman.SPELL_ASTRAL_RECALL then
-            local areaId = Journeyman:GetAreaIdFromBindLocationLocalizedName(GetBindLocation())
+            local areaId = Journeyman:GetAreaIdFromLocalizedName(GetBindLocation())
             if areaId then
                 self:OnHearthstoneUsed(areaId)
             else
