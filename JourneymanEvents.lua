@@ -83,7 +83,6 @@ function Journeyman:InitializeEvents()
         -- Store some values
         local xp = UnitXP("player")
         Journeyman.player.level = UnitLevel("player")
-        Journeyman.player.lastXP = Journeyman.player.xp
         Journeyman.player.xp = xp
         Journeyman.player.maxXP = UnitXPMax("player")
         Journeyman.player.greenRange = GetQuestGreenRange("player")
@@ -101,6 +100,15 @@ function Journeyman:InitializeEvents()
                     Journeyman:Update()
                 end
             end
+        end
+    end)
+
+    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, arg1)
+        local xpGained = tonumber(string.match(arg1, "gain (%d+) experience"))
+        if xpGained and xpGained > 0 then
+            Journeyman.player.xpGained = xpGained
+        else
+            Journeyman.player.xpGained = nil
         end
     end)
 

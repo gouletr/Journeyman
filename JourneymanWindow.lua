@@ -467,9 +467,8 @@ function Window:DisplayStep(step, depth)
             end
             if gainXP and gainXP > 0 then
                 local gainXPText = string.format(L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
-                if Journeyman.player.lastXP then
-                    local xpGained = Journeyman.player.xp - Journeyman.player.lastXP
-                    local count = math.ceil(gainXP / xpGained)
+                if Journeyman.player.xpGained then
+                    local count = math.ceil(gainXP / Journeyman.player.xpGained)
                     gainXPText = string.format("%s (%s kill)", gainXPText, count)
                 end
                 self:GetNextLine():SetStepText(step, depth + 1, gainXPText)
