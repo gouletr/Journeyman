@@ -4,6 +4,7 @@ local L = addon.Locale
 local DataSourceQuestie = {}
 Journeyman.DataSource = DataSourceQuestie
 
+local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 local QuestieDB = QuestieLoader and QuestieLoader:ImportModule("QuestieDB")
 local QuestiePlayer = QuestieLoader and QuestieLoader:ImportModule("QuestiePlayer")
@@ -203,7 +204,7 @@ local function GetNearestItem(items, player, zoneFilter, sameContinent)
     end
 end
 
-local function GetNearestQuestLocation(entity, player, zoneFilter, sameContinent)
+local function GetNearestEntityLocation(entity, player, zoneFilter, sameContinent)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
 
@@ -508,7 +509,7 @@ function DataSourceQuestie:GetNearestQuestStarter(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Starts then
         local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestQuestLocation(quest.Starts, { instanceId = playerInstanceId, x = playerX, y = playerY })
+        return GetNearestEntityLocation(quest.Starts, { instanceId = playerInstanceId, x = playerX, y = playerY })
     end
 end
 
@@ -529,9 +530,21 @@ function DataSourceQuestie:GetNearestQuestObjective(questId, objectiveIndex)
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
     local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
 
+    -- Get index of first incomplete objective
+    if objectiveIndex == nil then
+        local n = #objectives
+        for i = 1, n do
+            if not objectives[i].finished then
+                objectiveIndex = i
+                break
+            end
+        end
+    end
+
+    -- Get nearest objective that matches the specified objective index, or first one if not specified.
     for i = 1, #objectives do
-        if objectives[i].finished == false and (objectiveIndex == nil or objectiveIndex == i) then
-            local nearest = GetNearestQuestLocation(quest.ObjectiveData[i], player)
+        if objectiveIndex == nil or objectiveIndex == i then
+            local nearest = GetNearestEntityLocation(quest.ObjectiveData[i], player)
             if nearest and nearest.distance < bestDistance then
                 bestDistance = nearest.distance
                 bestX = nearest.x
@@ -553,7 +566,7 @@ function DataSourceQuestie:GetNearestQuestFinisher(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Finisher then
         local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestQuestLocation(quest.Finisher, { instanceId = playerInstanceId, x = playerX, y = playerY })
+        return GetNearestEntityLocation(quest.Finisher, { instanceId = playerInstanceId, x = playerX, y = playerY })
     end
 end
 

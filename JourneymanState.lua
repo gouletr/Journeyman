@@ -624,15 +624,7 @@ function State:GetStepLocation(step)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
         return Journeyman.DataSource:GetNearestQuestStarter(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-        if step.objectiveIndex == nil then
-            return self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
-                if not objective.finished then
-                    return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, objectiveIndex)
-                end
-            end)
-        else
-            return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, step.objectiveIndex)
-        end
+        return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, step.objectiveIndex)
     elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
         return Journeyman.DataSource:GetNearestQuestFinisher(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
