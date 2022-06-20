@@ -104,11 +104,9 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, arg1)
-        local xpGained = tonumber(string.match(arg1, "gain (%d+) experience"))
+        local xpGained = tonumber(string.match(arg1, "dies, you gain (%d+) experience"))
         if xpGained and xpGained > 0 then
             Journeyman.player.xpGained = xpGained
-        else
-            Journeyman.player.xpGained = nil
         end
     end)
 
