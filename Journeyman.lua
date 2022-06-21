@@ -5,6 +5,7 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dict = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
@@ -363,13 +364,13 @@ function Journeyman:GetPlayerAreaId()
             areaIds = self:GetAreaIdsFromLocalizedName(self:GetMapNameById(mapId))
         end
         if areaIds then
-            return List:First(areaIds, function(areaId) return not Journeyman.Utils:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
+            return List:First(areaIds, function(areaId) return not String:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
         end
     end
 end
 
 function Journeyman:GetAreaIdsFromLocalizedName(name)
-    if Journeyman.Utils:IsNilOrEmpty(name) then
+    if String:IsNilOrEmpty(name) then
         return nil
     end
 
@@ -395,7 +396,7 @@ end
 function Journeyman:GetAreaIdFromLocalizedName(name)
     local areaIds = self:GetAreaIdsFromLocalizedName(name)
     if areaIds then
-        return List:First(areaIds, function(areaId) return not Journeyman.Utils:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
+        return List:First(areaIds, function(areaId) return not String:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
     end
 end
 
@@ -520,7 +521,7 @@ function Journeyman:GetStepData(step)
     local data
     if step.data and type(step.data) == "string" then
         if self:IsStepTypeQuest(step) then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local questId = tonumber(values[1])
             if questId then
                 data = { questId = questId }
@@ -538,7 +539,7 @@ function Journeyman:GetStepData(step)
                 end
             end
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local mapId = tonumber(values[1])
             local mapName = Journeyman:GetMapNameById(mapId)
             local x = tonumber(values[2])
@@ -551,7 +552,7 @@ function Journeyman:GetStepData(step)
                 data = { mapId = mapId, mapName = mapName, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local mapId = tonumber(values[1])
             local mapName = Journeyman:GetMapNameById(mapId)
             if mapId and mapName then
@@ -560,7 +561,7 @@ function Journeyman:GetStepData(step)
                 data = { mapId = mapId, mapName = mapName, x = x, y = y }
             end
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local areaId = tonumber(values[1])
             local areaName = Journeyman:GetAreaNameById(areaId)
             local x = tonumber(values[2])
@@ -573,7 +574,7 @@ function Journeyman:GetStepData(step)
                 data = { areaId = areaId, areaName = areaName, x = x, y = y, desc = desc }
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local level = tonumber(values[1])
             local xp = tonumber(values[2])
             if level then
@@ -595,7 +596,7 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
             data = {}
         elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
-            local values = self.Utils:Split(step.data, ",")
+            local values = String:Split(step.data, ",")
             local spells = {}
             for i = 1, #values do
                 local spellId = tonumber(values[i])
@@ -736,7 +737,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
             List:ForEach(data.spells, function(spellId)
                 List:Add(spellNames, self:GetSpellName(spellId, callback))
             end)
-            spells = Journeyman.Utils:Join(", ", spellNames)
+            spells = String:Join(", ", spellNames)
         end
         return string.format(L["STEP_TEXT_TRAIN_SPELLS"], spells)
 
@@ -906,27 +907,27 @@ function Journeyman:ReplaceAllShortLinks(input, callback)
     List:ForEach(matches, function(m)
         if m.npcId then
             local npcName = Journeyman.DataSource:GetNPCName(m.npcId)
-            if not Journeyman.Utils:IsNilOrEmpty(npcName) and npcName ~= m.match then
+            if not String:IsNilOrEmpty(npcName) and npcName ~= m.match then
                 result = result:gsub(m.match, npcName)
             end
         elseif m.itemId then
             local itemLink = Journeyman:GetItemLink(m.itemId, callback)
-            if not Journeyman.Utils:IsNilOrEmpty(itemLink) and itemLink ~= m.match then
+            if not String:IsNilOrEmpty(itemLink) and itemLink ~= m.match then
                 result = result:gsub(m.match, itemLink)
             end
         elseif m.spellId then
             local spellName = Journeyman:GetSpellName(m.spellId, callback)
-            if not Journeyman.Utils:IsNilOrEmpty(spellName) and spellName ~= m.match then
+            if not String:IsNilOrEmpty(spellName) and spellName ~= m.match then
                 result = result:gsub(m.match, spellName)
             end
         elseif m.mapId then
             local mapName = Journeyman:GetMapNameById(m.mapId)
-            if not Journeyman.Utils:IsNilOrEmpty(mapName) and mapName ~= m.match then
+            if not String:IsNilOrEmpty(mapName) and mapName ~= m.match then
                 result = result:gsub(m.match, mapName)
             end
         elseif m.questId then
             local questName = Journeyman.DataSource:GetQuestName(m.questId, Journeyman.db.profile.window.showQuestLevel)
-            if not Journeyman.Utils:IsNilOrEmpty(questName) and questName ~= m.match then
+            if not String:IsNilOrEmpty(questName) and questName ~= m.match then
                 result = result:gsub(m.match, questName)
             end
         end

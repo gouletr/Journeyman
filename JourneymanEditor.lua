@@ -2,9 +2,11 @@ local addonName, addon = ...
 local addonVersion = GetAddOnMetadata(addonName, "version")
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
 local Editor = {}
 Journeyman.Editor = Editor
 
+local String = LibStub("LibCollections-1.0").String
 local AceGUI = LibStub("AceGUI-3.0")
 local HBD = LibStub("HereBeDragons-2.0")
 
@@ -563,7 +565,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         local step = Journeyman.Editor:GetSelectedStep()
         if step then
             step.type = value
-            if Journeyman.Utils:IsNilOrEmpty(step.data) then
+            if String:IsNilOrEmpty(step.data) then
                 if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
                     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
                     if playerMapId and playerX and playerY then

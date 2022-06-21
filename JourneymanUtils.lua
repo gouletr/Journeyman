@@ -5,35 +5,6 @@ local L = addon.Locale
 local Utils = {}
 Journeyman.Utils = Utils
 
-local tinsert, tremove = table.insert, table.remove
-
-function Utils:IsNilOrEmpty(value)
-    return value == nil or type(value) ~= "string" or string.len(value) == 0
-end
-
-function Utils:Split(s, separator)
-    local t = {}
-    for v in string.gmatch(s, "([^"..separator.."]+)") do
-        tinsert(t, v)
-    end
-    return t
-end
-
-function Utils:Join(separator, values)
-    local result = ""
-    local n = #values
-    for i = 1, n do
-        local value = values[i]
-        if not self:IsNilOrEmpty(value) then
-            result = result..value
-            if i < n then
-                result = result..separator
-            end
-        end
-    end
-    return result
-end
-
 function Utils:Clone(t)
     local c
     if type(t) == "table" then

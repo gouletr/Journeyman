@@ -4,6 +4,7 @@ local L = addon.Locale
 local Window = {}
 Journeyman.Window = Window
 
+local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local TomTom = TomTom
 
@@ -491,7 +492,7 @@ function Window:DisplayStep(step, depth)
                     List:Add(spellNames, self:GetColoredSpellText(spellId, isComplete))
                 end
             end)
-            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TRAIN_SPELLS"], Journeyman.Utils:Join(", ", spellNames))
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_TRAIN_SPELLS"], String:Join(", ", spellNames))
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FIRST_AID"])
         elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
