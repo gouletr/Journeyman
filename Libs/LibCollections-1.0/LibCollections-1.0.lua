@@ -16,10 +16,16 @@ LibCollections.Dictionary = Dictionary
 
 -- Lua APIs
 local tinsert, tremove, tsort = table.insert, table.remove, table.sort
+local slen, sfind, sgmatch = string.len, string.find, string.gmatch
+
+-- Returns a value indicating whether a specified substring occurs within this string.
+function String:Contains(value, substring)
+    return sfind(value, substring) ~= nil
+end
 
 -- Indicates whether the specified string is nil or an empty string.
 function String:IsNilOrEmpty(value)
-    return value == nil or type(value) ~= "string" or string.len(value) == 0
+    return value == nil or type(value) ~= "string" or slen(value) == 0
 end
 
 -- Concatenates all the items as a string, using the specified separator between each.
@@ -38,7 +44,7 @@ end
 -- Splits a string into substrings based on a specified delimiting character.
 function String:Split(value, separator)
     local result = {}
-    for match in string.gmatch(value, "([^"..separator.."]+)") do
+    for match in sgmatch(value, "([^"..separator.."]+)") do
         tinsert(result, match)
     end
     return result
@@ -397,6 +403,16 @@ end
 
 LibCollections.RunTests = function()
     local tests = {
+        TestStringContains = function()
+            assert(String:Contains("Hello the World", "Hello") == true)
+            assert(String:Contains("Hello the World", "the") == true)
+            assert(String:Contains("Hello the World", "World") == true)
+            assert(String:Contains("Hello the World", "Hello World") == false)
+            assert(String:Contains("Hello the World", "") == true)
+            assert(String:Contains("", "Hello") == false)
+            assert(String:Contains("", "") == true)
+        end,
+
         TestStringIsNilOrEmpty = function()
             assert(String:IsNilOrEmpty("") == true)
             assert(String:IsNilOrEmpty(nil) == true)
