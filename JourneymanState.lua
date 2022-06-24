@@ -445,10 +445,17 @@ function State:IsStepShown(step)
                 if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
                     if not self:IsQuestInQuestLog(questId) then
                         -- Check if there's any objectives that can be completed even if quest is not in quest log
-                        doable = self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
-                            if not objective.finished then
-                                return true
+                        local objectives = Journeyman.DataSource:GetQuestObjectives(questId, step.data.objectives)
+                        doable = List:Any(objectives, function(objective)
+                            if not objective.isComplete and objective.type == "Item" then
+                                -- Check if we can get item from vendors
+                                if List:Any(objective.sources, function(source) return source.type == "Vendor" end) then
+                                    return true
+                                end
+                                -- Check if this is NOT a quest item
+                                return objective.class ~= 12
                             end
+                            return false
                         end)
                         if not doable then
                             return false, string.format("Quest %s not in quest log", questId)

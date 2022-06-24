@@ -810,6 +810,21 @@ function Journeyman:SetWaypoint(step, force)
     return true
 end
 
+local function GetNPCNamesRecurse(objectives)
+    local result = {}
+    List:ForEach(objectives, function(objective)
+        if not objective.isComplete then
+            if String:Contains(objective.type, "NPC") then
+                List:Add(result, objective.name)
+            end
+            if objective.sources then
+                List:AddRange(result, GetNPCNamesRecurse(objective.sources))
+            end
+        end
+    end)
+    return result
+end
+
 function Journeyman:SetMacro(step)
     if InCombatLockdown() then
         return false
@@ -847,27 +862,18 @@ function Journeyman:SetMacro(step)
     local body = ""
     local suffix = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
     if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
-        -- Get quest objectives
         local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
         if objectives then
-            -- Get NPC objective names
-            local names = {}
-            for i, objective in ipairs(objectives or {}) do
-                if objective and objective.type == "NPC" and not objective.isComplete then
-                    tinsert(names, objective.name)
-                end
-            end
-
-            -- Append NPC names to macro
-            for i, name in ipairs(names) do
-                local target = string.format("/tar [noexists][dead][help] %s\n", name)
+            local names = GetNPCNamesRecurse(objectives)
+            local n = #names
+            for i = 1, n do
+                local target = string.format("/tar [noexists][dead][help] %s\n", names[i])
                 if body:len() + target:len() + suffix:len() <= 255 then
                     body = body..target
                 else
                     break
                 end
             end
-
         end
     end
 
