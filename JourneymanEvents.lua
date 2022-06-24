@@ -268,25 +268,23 @@ function Journeyman:OnLocationChanged()
         end
 
         local playerAreaId = nil
-        for i = 1, #Journeyman.State.steps do
-            local step = Journeyman.State.steps[i]
-            if step and not step.isComplete and step.isShown then
-                if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
-                    local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
-                    if distance and distance <= 15 then
-                        self.State:OnStepCompleted(step)
-                    end
-                elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
-                    if playerAreaId == nil then
-                        playerAreaId = Journeyman:GetPlayerAreaId()
-                    end
-                    if playerAreaId and playerAreaId == step.data.areaId then
-                        self.State:OnStepCompleted(step)
-                    end
-                elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
-                    if location.mapId == step.data.mapId then
-                        self.State:OnStepCompleted(step)
-                    end
+        local step = Journeyman.State.currentStep
+        if step and not step.isComplete and step.isShown then
+            if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+                local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+                if distance and distance <= 15 then
+                    self.State:OnStepCompleted(step)
+                end
+            elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+                if playerAreaId == nil then
+                    playerAreaId = Journeyman:GetPlayerAreaId()
+                end
+                if playerAreaId and playerAreaId == step.data.areaId then
+                    self.State:OnStepCompleted(step)
+                end
+            elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+                if location.mapId == step.data.mapId then
+                    self.State:OnStepCompleted(step)
                 end
             end
         end
