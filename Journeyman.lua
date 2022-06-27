@@ -286,7 +286,7 @@ function Journeyman:GetQuestLog()
     for i = 1, entriesCount do
         local info = self:GetQuestLogInfo(i)
         if info and not info.isHeader then
-            info.objectives = C_QuestLog.GetQuestObjectives(info.questId)
+            info.objectives = Journeyman.State:GetQuestObjectives(info.questId)
             questLog[info.questId] = info
         end
     end

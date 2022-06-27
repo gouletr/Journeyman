@@ -516,15 +516,20 @@ function DataSourceQuestie:GetNearestQuestStarter(questId)
     end
 end
 
-function DataSourceQuestie:GetNearestQuestObjective(questId, objectiveIndex)
+function DataSourceQuestie:GetQuestObjectiveLocation(questId, objectiveIndex)
     local quest = QuestieDB:GetQuest(questId)
-    if quest == nil or quest.ObjectiveData == nil then return nil end
+    if quest == nil or quest.ObjectiveData == nil then
+        return nil
+    end
 
-    local objectives = C_QuestLog.GetQuestObjectives(questId)
-    if objectives == nil then return nil end
+    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
+    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
+    return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], player)
+end
 
-    if #objectives ~= #quest.ObjectiveData then
-        Journeyman:Error("Quest objectives count does not match (%d ~= %d)", #objectives, #quest.ObjectiveData)
+function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
+    local quest = QuestieDB:GetQuest(questId)
+    if quest == nil or quest.ObjectiveData == nil then
         return nil
     end
 
@@ -533,20 +538,9 @@ function DataSourceQuestie:GetNearestQuestObjective(questId, objectiveIndex)
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
     local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
 
-    -- Get index of first incomplete objective
-    if objectiveIndex == nil then
-        local n = #objectives
-        for i = 1, n do
-            if not objectives[i].finished then
-                objectiveIndex = i
-                break
-            end
-        end
-    end
-
-    -- Get nearest objective that matches the specified objective index, or first one if not specified.
-    for i = 1, #objectives do
-        if objectiveIndex == nil or objectiveIndex == i then
+    local n = #quest.ObjectiveData
+    for i = 1, n do
+        if objectives == nil or not objectives[i].finished then
             local nearest = GetNearestEntityLocation(quest.ObjectiveData[i], player)
             if nearest and nearest.distance < bestDistance then
                 bestDistance = nearest.distance

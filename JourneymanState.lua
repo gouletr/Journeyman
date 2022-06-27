@@ -129,6 +129,7 @@ function State:UpdateImmediate()
 
     -- Reset state
     self.currentStep = nil
+    self.questObjectives = {}
     self.startedQuestChains = {}
 
     -- Clone steps
@@ -284,10 +285,10 @@ end
 function State:OnQuestTurnedIn(questId)
     local step = FindStep(Journeyman.STEP_TYPE_TURNIN_QUEST, { questId = questId })
     if step then
-        if self.turnedInQuests == nil then
-            self.turnedInQuests = {}
+        if self.questsTurnedIn == nil then
+            self.questsTurnedIn = {}
         end
-        self.turnedInQuests[questId] = true
+        self.questsTurnedIn[questId] = true
         self:OnStepCompleted(step)
     end
 end
@@ -631,15 +632,26 @@ function State:GetStepLocation(step)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
         return Journeyman.DataSource:GetNearestQuestStarter(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-        local index = step.objectiveIndex
-        if index == nil then
-            index = self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
-                if not objective.finished then
-                    return objectiveIndex
+        if step.objectiveIndex then
+            return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, step.objectiveIndex)
+        else
+            local objectives = self:GetQuestObjectives(step.data.questId)
+            if step.data.objectives then
+                local n = #step.data.objectives
+                for i = 1, n do
+                    local objectiveIndex = step.data.objectives[i]
+                    if not objectives[objectiveIndex].finished then
+                        return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, objectiveIndex)
+                    end
                 end
-            end)
+                return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, step.data.objectives[1])
+            else
+                if self:IsQuestTurnedIn(step.data.questId) or List:All(objectives, function(objective) return objective.finished end) then
+                    return Journeyman.DataSource:GetNearestQuestObjectiveLocation(step.data.questId)
+                end
+                return Journeyman.DataSource:GetNearestQuestObjectiveLocation(step.data.questId, objectives)
+            end
         end
-        return Journeyman.DataSource:GetNearestQuestObjective(step.data.questId, index)
     elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
         return Journeyman.DataSource:GetNearestQuestFinisher(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
@@ -845,42 +857,35 @@ function State:IsQuestInQuestLogOrTurnedIn(questId)
 end
 
 function State:IsQuestTurnedIn(questId)
-    if self.turnedInQuests == nil then
-        self.turnedInQuests = {}
+    if self.questsTurnedIn == nil then
+        self.questsTurnedIn = {}
     end
 
-    if self.turnedInQuests[questId] == true then
-        return true
+    local isQuestTurnedIn = self.questsTurnedIn[questId]
+    if not isQuestTurnedIn then -- Update if nil or false
+        isQuestTurnedIn = C_QuestLog.IsQuestFlaggedCompleted(questId) == true
+        self.questsTurnedIn[questId] = isQuestTurnedIn
     end
 
-    -- Force update if nil or false
-    local isQuestTurnedIn = C_QuestLog.IsQuestFlaggedCompleted(questId) == true
-    self.turnedInQuests[questId] = isQuestTurnedIn
     return isQuestTurnedIn
 end
 
-function State:IsQuestChainStarted(questId)
-    if self.startedQuestChains == nil then
-        self.startedQuestChains = {}
+function State:GetQuestObjectives(questId)
+    if self.questObjectives == nil then
+        self.questObjectives = {}
     end
 
-    if self.startedQuestChains[questId] == true then
-        return true
+    local questObjectives = self.questObjectives[questId]
+    if questObjectives == nil then
+        questObjectives = C_QuestLog.GetQuestObjectives(questId)
+        self.questObjectives[questId] = questObjectives
     end
 
-    local isQuestChainStarted = self:_IsQuestChainStarted(questId)
-    self.startedQuestChains[questId] = isQuestChainStarted
-    return isQuestChainStarted
-end
-
-function State:GetQuestLogInfo(questId)
-    if self.questLog then
-        return self.questLog[questId]
-    end
+    return questObjectives
 end
 
 function State:IterateStepQuestObjectives(step, callback)
-    local objectives = C_QuestLog.GetQuestObjectives(step.data.questId)
+    local objectives = self:GetQuestObjectives(step.data.questId)
     if objectives == nil then
         return
     end
@@ -909,7 +914,7 @@ function State:IterateStepQuestObjectives(step, callback)
 end
 
 function State:IterateQuestObjectives(questId, callback)
-    local objectives = C_QuestLog.GetQuestObjectives(questId)
+    local objectives = self:GetQuestObjectives(questId)
     if objectives == nil then
         return
     end
@@ -923,34 +928,4 @@ function State:IterateQuestObjectives(questId, callback)
             end
         end
     end
-end
-
-function State:_IsQuestChainStarted(questId)
-    if self:IsQuestInQuestLogOrTurnedIn(questId) then
-        return true
-    end
-
-    -- Check parent quest
-    local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(questId)
-    if parentQuestId and self:IsQuestChainStarted(parentQuestId) then
-        return true
-    end
-
-    -- Check pre quest group
-    local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(questId)
-    if preQuestGroup and next(preQuestGroup) then
-        if List:Any(preQuestGroup, function(preQuestId) return preQuestId and self:IsQuestChainStarted(preQuestId) end) then
-            return true
-        end
-    end
-
-    -- Check pre quest single
-    local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(questId)
-    if preQuestSingle and next(preQuestSingle) then
-        if List:Any(preQuestSingle, function(preQuestId) return preQuestId and self:IsQuestChainStarted(preQuestId) end) then
-            return true
-        end
-    end
-
-    return false
 end
