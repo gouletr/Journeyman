@@ -345,7 +345,7 @@ function State:OnTakeFlightPath(taxiNodeId)
     end
 end
 
-function State:OnTrainerClosed()
+function State:OnClassTrainerClosed()
     local step = FindStep(Journeyman.STEP_TYPE_TRAIN_CLASS, {})
     if step then
         self:OnStepCompleted(step)

@@ -185,7 +185,11 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("TRAINER_CLOSED", function(event)
         if self.trainerOpen then
-            self:OnTrainerClosed()
+            if IsTradeskillTrainer() then
+                -- todo: profession trainer
+            else
+                self:OnClassTrainerClosed()
+            end
             self.trainerOpen = nil
         end
     end)
@@ -336,10 +340,10 @@ function Journeyman:OnLearnFlightPath(taxiNodeId)
     end
 end
 
-function Journeyman:OnTrainerClosed()
-    self.Journey:OnTrainerClosed()
+function Journeyman:OnClassTrainerClosed()
+    self.Journey:OnClassTrainerClosed()
     if self.db.char.window.show then
-        self.State:OnTrainerClosed()
+        self.State:OnClassTrainerClosed()
     end
 end
 

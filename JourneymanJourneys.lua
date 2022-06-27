@@ -281,7 +281,7 @@ function Journey:OnTakeFlightPath(taxiNodeId)
     end
 end
 
-function Journey:OnTrainerClosed()
+function Journey:OnClassTrainerClosed()
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
