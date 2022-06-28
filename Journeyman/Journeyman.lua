@@ -905,6 +905,9 @@ function Journeyman:ReplaceAllShortLinks(input, callback)
     for match, mapId in input:gmatch("(map:(%d+))") do
         List:Add(matches, { match = match, mapId = tonumber(mapId) })
     end
+    for match, mapId in input:gmatch("(zone:(%d+))") do
+        List:Add(matches, { match = match, mapId = tonumber(mapId) })
+    end
     for match, questId in input:gmatch("(quest:(%d+))") do
         List:Add(matches, { match = match, questId = tonumber(questId) })
     end
