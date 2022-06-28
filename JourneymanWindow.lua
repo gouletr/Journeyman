@@ -509,7 +509,7 @@ function Window:DisplayStep(step, depth)
         if step.note and string.len(step.note) > 0 then
             local note = Journeyman:ReplaceAllShortLinks(L[step.note], function() Window:Update() end)
             local indent = depth
-            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_GO_TO_COORD or step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_GO_TO_COORD or step.type == Journeyman.STEP_TYPE_GO_TO_ZONE or step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
                 indent = indent + 1
             end
             self:GetNextLine():SetStepText(step, indent, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
