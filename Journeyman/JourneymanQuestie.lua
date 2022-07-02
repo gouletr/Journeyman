@@ -352,49 +352,49 @@ function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
 end
 
-local function GetQuestObjectivesNPC(result, npcs, type, questLogObjective)
+local function GetQuestObjectivesNPC(result, npcs, type, isComplete)
     for i = 1, #npcs do
         local npcId = npcs[i]
         if npcId then
             local npc = QuestieDB:GetNPC(npcId)
             if npc then
-                tinsert(result, { name = npc.name, id = npcId, type = type, isComplete = questLogObjective.finished == true })
+                tinsert(result, { name = npc.name, id = npcId, type = type, isComplete = isComplete })
             end
         end
     end
 end
 
-local function GetQuestObjectivesObject(result, objects, type, questLogObjective)
+local function GetQuestObjectivesObject(result, objects, type, isComplete)
     for i = 1, #objects do
         local objectId = objects[i]
         if objectId then
             local obj = QuestieDB:GetObject(objectId)
             if obj then
-                tinsert(result, { name = obj.name, id = objectId, type = type, isComplete = questLogObjective.finished == true })
+                tinsert(result, { name = obj.name, id = objectId, type = type, isComplete = isComplete })
             end
         end
     end
 end
 
-local function GetQuestObjectivesItem(result, items, type, questLogObjective)
+local function GetQuestObjectivesItem(result, items, type, isComplete)
     for i = 1, #items do
         local itemId = items[i]
         if itemId then
             local item = QuestieDB:GetItem(itemId)
             if item then
-                local objective = { name = item.name, id = itemId, type = type, class = item.class, subClass = item.subClass, isComplete = questLogObjective.finished == true }
+                local objective = { name = item.name, id = itemId, type = type, class = item.class, subClass = item.subClass, isComplete = isComplete }
                 local sources = {}
                 if item.vendors then
-                    GetQuestObjectivesNPC(sources, item.vendors, "Vendor", questLogObjective)
+                    GetQuestObjectivesNPC(sources, item.vendors, "Vendor", isComplete)
                 end
                 if item.npcDrops then
-                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC Drop", questLogObjective)
+                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC Drop", isComplete)
                 end
                 if item.objectDrops then
-                    GetQuestObjectivesObject(sources, item.objectDrops, "Object Drop", questLogObjective)
+                    GetQuestObjectivesObject(sources, item.objectDrops, "Object Drop", isComplete)
                 end
                 if item.itemDrops then
-                    GetQuestObjectivesItem(sources, item.itemDrops, "Item Drop", questLogObjective)
+                    GetQuestObjectivesItem(sources, item.itemDrops, "Item Drop", isComplete)
                 end
                 objective.sources = sources
                 tinsert(result, objective)
@@ -411,44 +411,49 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
         if objectives then
             for _, objectiveIndex in ipairs(objectives) do
                 local objective = quest.ObjectiveData[objectiveIndex]
-                local questLogObjective = questLogObjectives[objectiveIndex]
+                local isComplete = questLogObjectives[objectiveIndex].finished == true
                 if objective.NPC then
-                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", questLogObjective)
+                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete)
                 elseif objective.GameObject then
-                    GetQuestObjectivesObject(result, objective.GameObject, "Object", questLogObjective)
+                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete)
                 elseif objective.Item then
-                    GetQuestObjectivesItem(result, objective.Item, "Item", questLogObjective)
+                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete)
                 elseif objective.Type == "monster" then
-                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", questLogObjective)
+                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete)
                 elseif objective.Type == "object" then
-                    GetQuestObjectivesObject(result, { objective.Id }, "Object", questLogObjective)
+                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete)
                 elseif objective.Type == "item" then
-                    GetQuestObjectivesItem(result, { objective.Id }, "Item", questLogObjective)
+                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete)
                 elseif objective.Type == "event" then
-                    tinsert(result, { name = objective.Text, type = "Event", isComplete = questLogObjective.finished == true })
+                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete })
                 end
             end
         else
             for objectiveIndex = 1, #questLogObjectives do
                 local objective = quest.ObjectiveData[objectiveIndex]
-                local questLogObjective = questLogObjectives[objectiveIndex]
+                local isComplete = questLogObjectives[objectiveIndex].finished == true
                 if objective.NPC then
-                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", questLogObjective)
+                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete)
                 elseif objective.GameObject then
-                    GetQuestObjectivesObject(result, objective.GameObject, "Object", questLogObjective)
+                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete)
                 elseif objective.Item then
-                    GetQuestObjectivesItem(result, objective.Item, "Item", questLogObjective)
+                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete)
                 elseif objective.Type == "monster" then
-                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", questLogObjective)
+                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete)
                 elseif objective.Type == "object" then
-                    GetQuestObjectivesObject(result, { objective.Id }, "Object", questLogObjective)
+                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete)
                 elseif objective.Type == "item" then
-                    GetQuestObjectivesItem(result, { objective.Id }, "Item", questLogObjective)
+                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete)
                 elseif objective.Type == "event" then
-                    tinsert(result, { name = objective.Text, type = "Event", isComplete = questLogObjective.finished == true })
+                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete })
                 end
             end
         end
+
+        if quest.requiredSourceItems then
+            GetQuestObjectivesItem(result, quest.requiredSourceItems, "Item")
+        end
+
         return result
     end
 end
@@ -551,6 +556,19 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
                 bestId = nearest.id
                 bestType = nearest.type
             end
+        end
+    end
+
+    if quest.requiredSourceItems then
+        local nearest = GetNearestItem(quest.requiredSourceItems, player)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
         end
     end
 
