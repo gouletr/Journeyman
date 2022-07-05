@@ -1,14 +1,16 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
 local Window = {}
 Journeyman.Window = Window
 
+local GUI = Journeyman.GUI
+local State = Journeyman.State
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local TomTom = TomTom
 
-local tinsert = table.insert
 local function round(num)
   return num + (2^52 + 2^51) - (2^52 + 2^51)
 end
@@ -133,7 +135,7 @@ function Window:Initialize()
     self.prevChapterButton = prevChapterButton
 
     -- Chapter title
-    local chapterTitle = Journeyman.GUI:CreateLabel("FRAME", nil, frame)
+    local chapterTitle = GUI:CreateLabel("FRAME", nil, frame)
     chapterTitle:SetPoint("TOPLEFT", frame, "TOPLEFT")
     chapterTitle:SetPoint("BOTTOMRIGHT", prevChapterButton, "BOTTOMLEFT")
     chapterTitle:SetJustifyH("LEFT")
@@ -191,7 +193,7 @@ function Window:Initialize()
     self.scrollChild = scrollChild
 
     -- Journey Selection Label
-    local journeySelectionLabel = Journeyman.GUI:CreateLabel("FRAME", nil, scrollChild)
+    local journeySelectionLabel = GUI:CreateLabel("FRAME", nil, scrollChild)
     journeySelectionLabel:SetPoint("CENTER", scrollChild, "CENTER", 0, Journeyman.db.profile.window.fontSize + 4)
     journeySelectionLabel:SetWordWrap(true)
     journeySelectionLabel:SetMaxLines(10)
@@ -366,26 +368,26 @@ function Window:UpdateSteps()
     -- Group steps per chronological location
     local steps = {}
     local stepShownCount = 0
-    if Journeyman.State.steps then
-        for i = 1, #Journeyman.State.steps do
-            local step = Journeyman.State.steps[i]
+    if State.steps then
+        for i = 1, #State.steps do
+            local step = State.steps[i]
             if step.isShown then
                 -- Optimization: Update step location only if we're going to show it
                 -- Also, don't need location for step type complete quest, because its meaningless here
                 if step.location == nil and step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST then
-                    step.location = Journeyman.State:GetStepLocation(step)
+                    step.location = State:GetStepLocation(step)
                 end
 
                 if step.type ~= Journeyman.STEP_TYPE_COMPLETE_QUEST and step.location and (step.location.type == "NPC" or step.location.type == "Object") then
                     local lastStep = steps[#steps]
                     if lastStep == nil or lastStep.location == nil or lastStep.location.name ~= step.location.name then
-                        tinsert(steps, { isComplete = step.isComplete, isShown = step.isShown, location = step.location, hasChildren = true, children = { step } })
+                        List:Add(steps, { isComplete = step.isComplete, isShown = step.isShown, location = step.location, hasChildren = true, children = { step } })
                     else
-                        tinsert(lastStep.children, step)
+                        List:Add(lastStep.children, step)
                         lastStep.isComplete = lastStep.isComplete and step.isComplete
                     end
                 else
-                    tinsert(steps, step)
+                    List:Add(steps, step)
                 end
 
                 if not step.isComplete then
@@ -404,8 +406,14 @@ function Window:UpdateSteps()
     self.lineIndex = 1
     self.stepsHeight = 0
     self.currentStepPosition = nil
-    for i = 1, #steps do
+    local n = #steps
+    for i = 1, n do
         self:DisplayStep(steps[i], 0)
+
+        -- Add empty line
+        if i < n and Journeyman.db.profile.window.stepSpacing > 0 then
+            self:GetNextLine():SetEmpty()
+        end
     end
 
     -- Hide other lines
@@ -432,7 +440,7 @@ function Window:DisplayStep(step, depth)
         end
         -- Display child steps
         for i = 1, #step.children do
-            self:DisplayStep(step.children[i], depth + 1)
+            self:DisplayStep(step.children[i], depth)
         end
     else
         -- Display step
@@ -467,12 +475,12 @@ function Window:DisplayStep(step, depth)
                 end
             end
             if gainXP and gainXP > 0 then
-                local gainXPText = string.format(L["STEP_TEXT_GAIN_XP"], self:GetColoredHighlightText(gainXP, step.isComplete))
+                local gainXPText = string.format(L["STEP_TEXT_GAIN_XP"], gainXP)
                 if Journeyman.player.xpGained then
                     local count = math.ceil(gainXP / Journeyman.player.xpGained)
                     gainXPText = string.format("%s (%s kill)", gainXPText, count)
                 end
-                self:GetNextLine():SetStepText(step, depth + 1, gainXPText)
+                self:GetNextLine():SetFormattedText(depth + 1, self:GetColoredHighlightText(gainXPText, step.isComplete))
             end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_BIND_HEARTHSTONE"], self:GetColoredItemText(Journeyman.ITEM_HEARTHSTONE), self:GetColoredAreaText(step.data.areaId, step.isComplete))
@@ -508,17 +516,13 @@ function Window:DisplayStep(step, depth)
         -- Display step note
         if step.note and string.len(step.note) > 0 then
             local note = Journeyman:ReplaceAllShortLinks(L[step.note], function() Window:Update() end)
-            local indent = depth
-            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_GO_TO_COORD or step.type == Journeyman.STEP_TYPE_GO_TO_ZONE or step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
-                indent = indent + 1
-            end
-            self:GetNextLine():SetStepText(step, indent, L["STEP_TEXT_NOTE"], self:GetColoredHighlightText(note, step.isComplete))
+            self:GetNextLine():SetFormattedText(depth, self:GetColoredStepText(string.format(L["STEP_TEXT_NOTE"], note), step.isComplete))
         end
     end
 end
 
 function Window:DisplayStepObjectives(step, depth)
-    Journeyman.State:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
+    State:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
         Window:DisplayStepObjective(step, depth, objective, objectiveIndex)
     end)
 end
@@ -531,84 +535,187 @@ function Window:DisplayStepObjective(step, depth, objective, objectiveIndex)
     end
 end
 
+local function CreateLine(index, parent)
+    local frame = CreateFrame("FRAME", "Line"..index, parent)
+    frame.index = index
+
+    local background = frame:CreateTexture("Background"..index, "BACKGROUND")
+    background:SetAllPoints()
+    background:SetColorTexture(1, 1, 1, 0)
+    frame.background = background
+
+    local checkBox = GUI:CreateCheckBox("FRAME", "CheckBox"..index, frame)
+    checkBox:SetPoint("TOPLEFT", frame)
+    checkBox:SetSize(Journeyman.db.profile.window.fontSize, Journeyman.db.profile.window.fontSize)
+    checkBox:SetAlpha(0.6)
+    frame.checkBox = checkBox
+
+    local label = GUI:CreateLabel("BUTTON", "Label"..index, frame)
+    label:SetPoint("TOP", checkBox)
+    label:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, Journeyman.db.profile.window.lineSpacing)
+    label:SetJustifyV("MIDDLE")
+    label:SetJustifyH("LEFT")
+    label:SetWordWrap(true)
+    label:EnableHyperlinks(true)
+    frame.label = label
+
+    frame.SetStepText = function(self, step, depth, fmt, ...)
+        self:SetPoint("LEFT", parent, "LEFT")
+        if self.index == 1 then
+            self:SetPoint("TOP", parent, "TOP", 0, -Journeyman.db.profile.window.fontSize * (self.index - 1))
+        else
+            self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM")
+        end
+        self:SetWidth(parent:GetWidth())
+        self:SetHeight(Journeyman.db.profile.window.fontSize + Journeyman.db.profile.window.lineSpacing + 1)
+
+        self.background:SetAllPoints()
+        self.background:SetColorTexture(0, 0, 0, 0)
+        self.background:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
+
+        self.checkBox:SetChecked(step.isComplete)
+        self.checkBox:SetSize(Journeyman.db.profile.window.fontSize, Journeyman.db.profile.window.fontSize)
+        self.checkBox:SetShown(not step.hasChildren and not step.objectiveIndex)
+        self.checkBox:SetScript("OnClick", function(self, button)
+            if step.isComplete then
+                State:OnStepReset(step, true)
+            else
+                State:OnStepCompleted(step, true)
+            end
+        end)
+
+        if step.hasChildren then
+            self.label:SetPoint("LEFT", self, "LEFT", depth * Journeyman.db.profile.window.indentSize, 0)
+        else
+            self.label:SetPoint("LEFT", self.checkBox, "RIGHT", 2 + (depth * Journeyman.db.profile.window.indentSize), 0)
+        end
+        self.label:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, Journeyman.db.profile.window.lineSpacing)
+        self.label:SetFontSize(Journeyman.db.profile.window.fontSize)
+        if step.isComplete then
+            self.label:SetFormattedText("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, string.format(fmt, ...))
+        else
+            self.label:SetFormattedText(fmt, ...)
+        end
+        self.label:SetScript("OnClick", function(self, button)
+            if button == "LeftButton" then
+                if not IsModifiedClick() then
+                    if Journeyman:IsStepTypeQuest(step) then
+                        Window:ShowQuest(step.data.questId)
+                    end
+                elseif IsModifiedClick("CHATLINK") then
+                    if Journeyman:IsStepTypeQuest(step) then
+                        if step.objectiveIndex then
+                            local objectives = Journeyman.DataSource:GetQuestObjectives(step.data.questId, { step.objectiveIndex })
+                            for i = 1, #objectives do
+                                local objective = objectives[i]
+                                if objective.type == "Item" then
+                                    Window:LinkItem(objective.id)
+                                    break
+                                end
+                            end
+                        else
+                            Window:LinkQuest(step.data.questId)
+                        end
+                    end
+                elseif IsControlKeyDown() then
+                    Journeyman:SetWaypoint(step, true)
+                elseif IsAltKeyDown() and not step.hasChildren and not step.ObjectiveIndex then
+                    State:OnStepCompleted(step, true)
+                end
+            end
+        end)
+
+        local lineHeight = (Journeyman.db.profile.window.fontSize * self.label:GetNumLines()) + Journeyman.db.profile.window.lineSpacing + 1
+        self:SetHeight(lineHeight)
+        self:Show()
+
+        if Window.currentStepPosition == nil and (not step.isComplete and step.isShown) then
+            Window.currentStepPosition = Window.stepsHeight
+        end
+
+        Window.stepsHeight = Window.stepsHeight + lineHeight
+    end
+
+    frame.SetFormattedText = function(self, depth, fmt, ...)
+        self:SetPoint("LEFT", parent, "LEFT")
+        if self.index == 1 then
+            self:SetPoint("TOP", parent, "TOP", 0, -Journeyman.db.profile.window.fontSize * (self.index - 1))
+        else
+            self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM")
+        end
+        self:SetWidth(parent:GetWidth())
+        self:SetHeight(Journeyman.db.profile.window.fontSize + Journeyman.db.profile.window.lineSpacing + 1)
+
+        self.background:SetAllPoints()
+        self.background:SetColorTexture(0, 0, 0, 0)
+        self.background:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
+
+        self.checkBox:SetChecked(false)
+        self.checkBox:SetSize(Journeyman.db.profile.window.fontSize, Journeyman.db.profile.window.fontSize)
+        self.checkBox:SetShown(false)
+        self.checkBox:SetScript("OnClick", nil)
+
+        self.label:SetPoint("LEFT", self.checkBox, "RIGHT", 2 + (depth * Journeyman.db.profile.window.indentSize), 0)
+        self.label:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, Journeyman.db.profile.window.lineSpacing)
+        self.label:SetFontSize(Journeyman.db.profile.window.fontSize)
+        self.label:SetFormattedText(fmt, ...)
+        self.label:SetScript("OnClick", nil)
+
+        local lineHeight = (Journeyman.db.profile.window.fontSize * self.label:GetNumLines()) + Journeyman.db.profile.window.lineSpacing + 1
+        self:SetHeight(lineHeight)
+        self:Show()
+        Window.stepsHeight = Window.stepsHeight + lineHeight
+    end
+
+    frame.SetEmpty = function(self)
+        self:SetPoint("LEFT", parent, "LEFT")
+        self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM")
+        self:SetWidth(parent:GetWidth())
+        self:SetHeight(Journeyman.db.profile.window.stepSpacing)
+
+        self.background:ClearAllPoints()
+        self.background:SetPoint("TOP", 0, -(Journeyman.db.profile.window.stepSpacing / 2) + 0.5)
+        self.background:SetPoint("LEFT")
+        self.background:SetPoint("BOTTOM", 0, (Journeyman.db.profile.window.stepSpacing / 2) - 0.5)
+        self.background:SetPoint("RIGHT")
+        self.background:SetColorTexture(1, 1, 1, 0.1)
+        self.background:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 0)
+
+        self.checkBox:SetChecked(false)
+        self.checkBox:SetSize(Journeyman.db.profile.window.fontSize, Journeyman.db.profile.window.fontSize)
+        self.checkBox:SetShown(false)
+        self.checkBox:SetScript("OnClick", nil)
+
+        self.label:SetPoint("LEFT", self, "LEFT")
+        self.label:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, Journeyman.db.profile.window.lineSpacing)
+        self.label:SetFontSize(Journeyman.db.profile.window.fontSize)
+        self.label:SetText("   ")
+        self.label:SetScript("OnClick", nil)
+
+        self:Show()
+        Window.stepsHeight = Window.stepsHeight + self:GetHeight()
+    end
+
+    return frame
+end
+
 function Window:GetNextLine()
     local line
     if self.lineIndex > #self.lines then
-        line = Journeyman.GUI:CreateLabel("BUTTON", "Line" .. self.lineIndex, self.scrollChild)
-        line:SetJustifyH("LEFT")
-        line:SetWordWrap(true)
-        line:EnableHyperlinks(true)
-        line.index = self.lineIndex
-        line.SetStepText = function(self, step, depth, fmt, ...)
-            self:SetPoint("LEFT", Window.scrollChild, "LEFT", Journeyman.db.profile.window.indentSize * depth, 0)
-            if self.index == 1 then
-                self:SetPoint("TOP", Window.scrollChild, "TOP", 0, -Journeyman.db.profile.window.fontSize * (self.index - 1))
-            else
-                self:SetPoint("TOP", Window.lines[self.index - 1], "BOTTOM", 0, 0)
-            end
-
-            if step.isComplete then
-                self:SetFormattedText("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, string.format(fmt, ...))
-            else
-                self:SetFormattedText(fmt, ...)
-            end
-
-            self:SetFontSize(Journeyman.db.profile.window.fontSize)
-            self:SetWidth(Window.scrollChild:GetWidth() - (Journeyman.db.profile.window.indentSize * depth))
-            self:SetHeight(Journeyman.db.profile.window.fontSize + Journeyman.db.profile.window.lineSpacing)
-
-            -- Recalculate height a second time, now GetNumLines will return updated value
-            local lineHeight = (Journeyman.db.profile.window.fontSize * self:GetNumLines()) + Journeyman.db.profile.window.lineSpacing
-            self:SetHeight(lineHeight)
-
-            self:SetScript("OnClick", function(self, button)
-                if button == "LeftButton" then
-                    if not IsModifiedClick() then
-                        if Journeyman:IsStepTypeQuest(step) then
-                            Window:ShowQuest(step.data.questId)
-                        end
-                    elseif IsModifiedClick("CHATLINK") then
-                        if Journeyman:IsStepTypeQuest(step) then
-                            if step.objectiveIndex then
-                                local objectives = Journeyman.DataSource:GetQuestObjectives(step.data.questId, { step.objectiveIndex })
-                                for i = 1, #objectives do
-                                    local objective = objectives[i]
-                                    if objective.type == "Item" then
-                                        Window:LinkItem(objective.id)
-                                        break
-                                    end
-                                end
-                            else
-                                Window:LinkQuest(step.data.questId)
-                            end
-                        end
-                    elseif IsControlKeyDown() then
-                        Journeyman:SetWaypoint(step, true)
-                    elseif IsAltKeyDown() and not step.hasChildren then
-                        step.isComplete = true
-                        step.isCompleteOverride = true
-                        Journeyman.State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
-                        Journeyman.State.macroNeedUpdate = true
-                        Journeyman:Update(true)
-                    end
-                end
-            end)
-            self:Show()
-
-            if Window.currentStepPosition == nil and (not step.isComplete and step.isShown) then
-                Window.currentStepPosition = Window.stepsHeight
-            end
-
-            Window.stepsHeight = Window.stepsHeight + lineHeight
-        end
-
+        line = CreateLine(self.lineIndex, self.scrollChild)
         self.lines[#self.lines + 1] = line
     else
         line = self.lines[self.lineIndex]
     end
-
     self.lineIndex = self.lineIndex + 1
     return line
+end
+
+function Window:GetColoredStepText(text, isComplete)
+    if isComplete then
+        return string.format("|c%s%s|r", TEXT_COLOR_STEP_COMPLETE, text)
+    end
+    return text
 end
 
 function Window:GetColoredHighlightText(text, isComplete)
@@ -689,7 +796,7 @@ function Window:GetColoredSpellText(spellId, isComplete)
 end
 
 function Window:ShowQuest(questId)
-    if Journeyman.State:IsQuestInQuestLog(questId) then
+    if State:IsQuestInQuestLog(questId) then
         local questLogIndex
         if C_QuestLog.GetLogIndexForQuestID then
             questLogIndex = C_QuestLog.GetLogIndexForQuestID(questId)

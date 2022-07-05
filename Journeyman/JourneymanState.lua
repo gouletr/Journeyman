@@ -378,7 +378,7 @@ function State:OnSpiritResurrection()
     end
 end
 
-function State:OnStepCompleted(step)
+function State:OnStepCompleted(step, immediate)
     self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
@@ -392,11 +392,23 @@ function State:OnStepCompleted(step)
         local journey = Journeyman.Journey:GetActiveJourney()
         if journey then
             Journeyman.Journey:AdvanceChapter(journey)
-            Journeyman:Reset()
+            Journeyman:Reset(immediate)
         end
     else
-        Journeyman:Update()
+        Journeyman:Update(immediate)
     end
+    end
+
+function State:OnStepReset(step, immediate)
+    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.macroNeedUpdate = true
+
+    -- Reset step completed state
+    step.isCompleteOverride = false
+    step.isComplete = false
+    step.isShown = true
+
+    Journeyman:Update(immediate)
 end
 
 function State:IsStepAvailable(step)

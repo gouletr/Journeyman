@@ -31,8 +31,8 @@ function GUI:CreateLabel(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
     local fontString = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    fontString:SetPoint("TOPLEFT", 2, 0)
-    fontString:SetPoint("BOTTOMRIGHT", -2, 0)
+    fontString:SetPoint("TOPLEFT", 1, 0)
+    fontString:SetPoint("BOTTOMRIGHT", -1, 0)
     fontString:SetFontObject(GameFontNormal)
     frame.fontString = fontString
 
@@ -66,6 +66,38 @@ function GUI:CreateLabel(frameType, name, parent, template, id)
             end)
         end
     end
+
+    -- local bg = frame:CreateTexture("bg", "BACKGROUND")
+    -- bg:SetAllPoints()
+    -- bg:SetColorTexture(1, 0, 0, 0.5)
+
+    return frame
+end
+
+function GUI:CreateCheckBox(frameType, name, parent, template, id)
+    local frame = CreateFrame(frameType, name, parent, template, id)
+
+    local offset = 2
+    local checkBox = CreateFrame("CHECKBUTTON", "CheckBox", frame, "UICheckButtonTemplate")
+    checkBox:SetPoint("TOPLEFT", -offset, offset + 1)
+    checkBox:SetPoint("BOTTOMRIGHT", offset + 1, -offset - 2)
+    frame.checkBox = checkBox
+
+    frame.SetAlpha = function(self, value) self.checkBox:SetAlpha(value) end
+    frame.SetChecked = function(self, value) self.checkBox:SetChecked(value) end
+    frame.GetChecked = function(self) return self.checkBox:GetChecked() end
+    frame._SetScript = frame.SetScript
+    frame.SetScript = function(self, scriptType, handler)
+        if scriptType == "OnClick" then
+            self.checkBox:SetScript(scriptType, handler)
+        else
+            self:_SetScript(scriptType, handler)
+        end
+    end
+
+    -- local bg = frame:CreateTexture("bg", "BACKGROUND")
+    -- bg:SetAllPoints()
+    -- bg:SetColorTexture(1, 0, 0, 1)
 
     return frame
 end

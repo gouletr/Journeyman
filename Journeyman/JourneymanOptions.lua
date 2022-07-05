@@ -285,15 +285,9 @@ function Journeyman:GetGeneralOptionsTable()
                 set = function(info, value)
                     if self.db.char.hardcoreMode ~= value then
                         self.db.char.hardcoreMode = value
-                        self.Window:Update(true)
+                        Journeyman:Reset(true)
                     end
                 end
-            },
-            reserved4 = {
-                order = 31,
-                type = "description",
-                name = "",
-                width = Percent(0.5)
             },
             stepsShown = {
                 order = 32,
@@ -376,8 +370,42 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
-            fontSize = {
+            stepSpacing = {
                 order = 37,
+                type = "range",
+                name = L["WINDOW_STEP_SPACING"],
+                desc = L["WINDOW_STEP_SPACING_DESC"],
+                min = 0,
+                max = 20,
+                step = 1,
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.stepSpacing end,
+                set = function(info, value)
+                    if self.db.profile.window.stepSpacing ~= value then
+                        self.db.profile.window.stepSpacing = value
+                        self.Window:Update(true)
+                    end
+                end
+            },
+            lineSpacing = {
+                order = 38,
+                type = "range",
+                name = L["LINE_SPACING"],
+                desc = L["LINE_SPACING_DESC"],
+                min = 0,
+                max = 20,
+                step = 1,
+                width = Percent(0.5),
+                get = function(info) return self.db.profile.window.lineSpacing end,
+                set = function(info, value)
+                    if self.db.profile.window.lineSpacing ~= value then
+                        self.db.profile.window.lineSpacing = value
+                        self.Window:Update(true)
+                    end
+                end
+            },
+            fontSize = {
+                order = 39,
                 type = "range",
                 name = L["FONT_SIZE"],
                 desc = L["FONT_SIZE_DESC"],
@@ -393,25 +421,8 @@ function Journeyman:GetGeneralOptionsTable()
                     end
                 end
             },
-            lineSpacing = {
-                order = 38,
-                type = "range",
-                name = L["LINE_SPACING"],
-                desc = L["LINE_SPACING_DESC"],
-                min = 0,
-                max = 24,
-                step = 1,
-                width = Percent(0.5),
-                get = function(info) return self.db.profile.window.lineSpacing end,
-                set = function(info, value)
-                    if self.db.profile.window.lineSpacing ~= value then
-                        self.db.profile.window.lineSpacing = value
-                        self.Window:Update(true)
-                    end
-                end
-            },
             indentSize = {
-                order = 39,
+                order = 40,
                 type = "range",
                 name = L["INDENT_SIZE"],
                 desc = L["INDENT_SIZE_DESC"],
@@ -426,12 +437,6 @@ function Journeyman:GetGeneralOptionsTable()
                         self.Window:Update(true)
                     end
                 end
-            },
-            reserved3 = {
-                order = 40,
-                type = "description",
-                name = "",
-                width = Percent(0.5)
             },
             windowStrata = {
                 order = 41,

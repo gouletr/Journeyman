@@ -30,8 +30,9 @@ local databaseDefaults = {
             y = 0,
             fontSize = 12,
             lineSpacing = 2,
-            indentSize = 16,
-            strata = "MEDIUM",
+            indentSize = 0,
+            stepSpacing = 8,
+            strata = "BACKGROUND",
             level = 0
         },
         autoSetWaypoint = true,
