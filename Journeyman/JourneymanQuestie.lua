@@ -528,7 +528,7 @@ function DataSourceQuestie:GetQuestObjectiveLocation(questId, objectiveIndex)
     end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
+    local player = { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }
     return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], player)
 end
 
@@ -541,7 +541,7 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
+    local player = { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }
 
     local n = #quest.ObjectiveData
     for i = 1, n do
