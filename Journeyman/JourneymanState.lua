@@ -550,12 +550,7 @@ function State:IsStepComplete(step)
         return false
     else
         if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
-            if Journeyman.player.location then
-                local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
-                if distance and distance <= 15 then
-                    return true
-                end
-            end
+            -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
             -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
