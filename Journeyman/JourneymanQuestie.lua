@@ -828,6 +828,17 @@ function DataSourceQuestie:GetNearestFlightMasterLocation()
     end
 end
 
+function DataSourceQuestie:GetObjectName(objectId, showId)
+    local obj = QuestieDB:GetObject(objectId)
+    if obj and obj.name then
+        local name = obj.name
+        if showId then
+            name = name.." ("..objectId..")"
+        end
+        return name
+    end
+end
+
 function DataSourceQuestie:ShowQuestTooltip(questId)
     local questLink = QuestieLink:GetQuestHyperLink(questId)
     ShowUIPanel(ItemRefTooltip)

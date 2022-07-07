@@ -515,7 +515,7 @@ function Window:DisplayStep(step, depth)
 
         -- Display step note
         if step.note and string.len(step.note) > 0 then
-            local note = Journeyman:ReplaceAllShortLinks(L[step.note], function() Window:Update() end)
+            local note = self:ReplaceAllShortLinks(L[step.note], step.isComplete, function() Window:Update() end)
             self:GetNextLine():SetFormattedText(depth, self:GetColoredStepText(string.format(L["STEP_TEXT_NOTE"], note), step.isComplete))
         end
     end
@@ -845,4 +845,68 @@ end
 function Window:LinkItem(itemId)
     local itemLink = Journeyman:GetItemLink(itemId)
     ChatEdit_InsertLink(itemLink)
+end
+
+function Window:ReplaceAllShortLinks(input, isComplete, callback)
+    local result = input
+    local matches = {}
+
+    -- Get all short links
+    for match, npcId in input:gmatch("(npc:(%d+))") do
+        List:Add(matches, { match = match, npcId = tonumber(npcId) })
+    end
+    for match, itemId in input:gmatch("(item:(%d+))") do
+        List:Add(matches, { match = match, itemId = tonumber(itemId) })
+    end
+    for match, objectId in input:gmatch("(object:(%d+))") do
+        List:Add(matches, { match = match, objectId = tonumber(objectId) })
+    end
+    for match, spellId in input:gmatch("(spell:(%d+))") do
+        List:Add(matches, { match = match, spellId = tonumber(spellId) })
+    end
+    for match, mapId in input:gmatch("(map:(%d+))") do
+        List:Add(matches, { match = match, mapId = tonumber(mapId) })
+    end
+    for match, mapId in input:gmatch("(zone:(%d+))") do
+        List:Add(matches, { match = match, mapId = tonumber(mapId) })
+    end
+    for match, questId in input:gmatch("(quest:(%d+))") do
+        List:Add(matches, { match = match, questId = tonumber(questId) })
+    end
+
+    -- Replace all short links we found
+    List:ForEach(matches, function(m)
+        if m.npcId then
+            local npcName = Journeyman.DataSource:GetNPCName(m.npcId)
+            if not String:IsNilOrEmpty(npcName) and npcName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(npcName, isComplete))
+            end
+        elseif m.itemId then
+            local itemLink = Journeyman:GetItemLink(m.itemId, callback)
+            if not String:IsNilOrEmpty(itemLink) and itemLink ~= m.match then
+                result = result:gsub(m.match, itemLink)
+            end
+        elseif m.objectId then
+            local objectName = Journeyman.DataSource:GetObjectName(m.objectId)
+            if not String:IsNilOrEmpty(objectName) and objectName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(objectName, isComplete))
+            end
+        elseif m.spellId then
+            local spellName = Journeyman:GetSpellName(m.spellId, callback)
+            if not String:IsNilOrEmpty(spellName) and spellName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(spellName, isComplete))
+            end
+        elseif m.mapId then
+            local mapName = Journeyman:GetMapNameById(m.mapId)
+            if not String:IsNilOrEmpty(mapName) and mapName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(mapName, isComplete))
+            end
+        elseif m.questId then
+            local questName = Journeyman.DataSource:GetQuestName(m.questId, Journeyman.db.profile.window.showQuestLevel)
+            if not String:IsNilOrEmpty(questName) and questName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredQuestText(questName, isComplete))
+            end
+        end
+    end)
+    return result
 end
