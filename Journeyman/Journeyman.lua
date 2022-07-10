@@ -299,7 +299,9 @@ function Journeyman:GetItemName(itemId, callback)
         if itemName == nil then
             if callback and type(callback) == "function" then
                 local item = Item:CreateFromItemID(itemId)
-                item:ContinueOnItemLoad(callback)
+                if not item:IsItemEmpty() then
+                    item:ContinueOnItemLoad(callback)
+                end
             end
             return "item:"..itemId
         end
@@ -313,7 +315,9 @@ function Journeyman:GetItemLink(itemId, callback)
         if itemName == nil then
             if callback and type(callback) == "function" then
                 local item = Item:CreateFromItemID(itemId)
-                item:ContinueOnItemLoad(callback)
+                if not item:IsItemEmpty() then
+                    item:ContinueOnItemLoad(callback)
+                end
             end
             return "item:"..itemId
         end
@@ -327,7 +331,9 @@ function Journeyman:GetSpellName(spellId, callback)
         if spellName == nil then
             if callback and type(callback) == "function" then
                 local spell = Spell:CreateFromSpellID(spellId)
-                spell:ContinueOnSpellLoad(callback)
+                if not spell:IsSpellEmpty() then
+                    spell:ContinueOnSpellLoad(callback)
+                end
             end
             return "spell:"..spellId
         end
