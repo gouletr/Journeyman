@@ -1,11 +1,12 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
 local Journey = {}
 Journeyman.Journey = Journey
 
-local tinsert = table.insert
-local tremove = table.remove
+local List = LibStub("LibCollections-1.0").List
+
 local function tmove(t, from, to) table.insert(t, to, table.remove(t, from)) end
 
 function Journey:Initialize()
@@ -24,7 +25,7 @@ function Journey:CreateJourney(title)
     end
 
     local journey = { guid = Journeyman.Utils:CreateGUID(), title = title, chapters = {} }
-    tinsert(Journeyman.journeys, journey)
+    List:Add(Journeyman.journeys, journey)
 
     return journey
 end
@@ -44,11 +45,7 @@ function Journey:MoveJourney(from, to)
 end
 
 function Journey:DeleteJourney(index)
-    if Journeyman.journeys and index > 0 and index <= #Journeyman.journeys then
-        tremove(Journeyman.journeys, index)
-        return true
-    end
-    return false
+    return List:RemoveAt(Journeyman.journeys, index)
 end
 
 function Journey:GetActiveJourney()
@@ -78,8 +75,9 @@ function Journey:CreateChapter(journey, title)
             title = L["NEW_CHAPTER_TITLE"]
         end
 
-        local chapter = { title = title, steps = {} }
-        tinsert(journey.chapters, chapter)
+        local chapter = { journey = journey, title = title, steps = {} }
+        List:Add(journey.chapters, chapter)
+        Journeyman:ResetJourneyState(journey)
 
         return chapter
     end
@@ -94,14 +92,15 @@ end
 function Journey:MoveChapter(journey, from, to)
     if journey and journey.chapters and from > 0 and from <= #journey.chapters and to > 0 and to <= #journey.chapters then
         tmove(journey.chapters, from, to)
+        Journeyman:ResetJourneyState(journey)
         return true
     end
     return false
 end
 
 function Journey:DeleteChapter(journey, index)
-    if journey and journey.chapters and index > 0 and index <= #journey.chapters then
-        tremove(journey.chapters, index)
+    if List:RemoveAt(journey.chapters, index) then
+        Journeyman:ResetJourneyState(journey)
         return true
     end
     return false
@@ -133,19 +132,20 @@ function Journey:GetOrCreateLastChapter(journey)
     end
 end
 
-function Journey:CreateStep(chapter, type, data, index)
-    if chapter then
+function Journey:CreateStep(journey, chapter, type, data, index)
+    if journey and chapter then
         if chapter.steps == nil then
             chapter.steps = {}
         end
 
         local step = { type = type, data = data }
         if index and index > 0 and index <= #chapter.steps then
-            tinsert(chapter.steps, index, step)
+            List:Insert(chapter.steps, index, step)
         else
-            tinsert(chapter.steps, step)
+            List:Add(chapter.steps, step)
         end
 
+        Journeyman:ResetJourneyChapterState(journey, chapter)
         return step
     end
 end
@@ -168,26 +168,27 @@ function Journey:ContainsStep(chapter, type, data)
     return false
 end
 
-function Journey:MoveStep(chapter, from, to)
-    if chapter and chapter.steps and from > 0 and from <= #chapter.steps and to > 0 and to <= #chapter.steps then
+function Journey:MoveStep(journey, chapter, from, to)
+    if journey and chapter and chapter.steps and from > 0 and from <= #chapter.steps and to > 0 and to <= #chapter.steps then
         tmove(chapter.steps, from, to)
+        Journeyman:ResetJourneyChapterState(journey, chapter)
         return true
     end
     return false
 end
 
-function Journey:DeleteStep(chapter, index)
-    if chapter and chapter.steps and index > 0 and index <= #chapter.steps then
-        tremove(chapter.steps, index)
+function Journey:DeleteStep(journey, chapter, index)
+    if journey and chapter and List:RemoveAt(chapter.steps, index) then
+        Journeyman:ResetJourneyChapterState(journey, chapter)
         return true
     end
     return false
 end
 
-local function AddStep(chapter, type, data, force)
+local function AddStep(journey, chapter, type, data, force)
     if Journeyman.db.char.updateJourney then
-        if chapter and (force or not Journey:ContainsStep(chapter, type, data)) then
-            local step = Journey:CreateStep(chapter, type, data)
+        if journey and chapter and (force or not Journey:ContainsStep(chapter, type, data)) then
+            local step = Journey:CreateStep(journey, chapter, type, data)
             if step then
                 Journeyman:Print("Step %s added.", Journeyman:GetStepText(step, true, true))
                 Journeyman.State:Reset()
@@ -200,7 +201,7 @@ function Journey:OnQuestAccepted(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_ACCEPT_QUEST, tostring(questId))
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_ACCEPT_QUEST, tostring(questId))
     end
 end
 
@@ -208,7 +209,7 @@ function Journey:OnQuestCompleted(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_COMPLETE_QUEST, tostring(questId))
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_COMPLETE_QUEST, tostring(questId))
     end
 end
 
@@ -216,7 +217,7 @@ function Journey:OnQuestTurnedIn(questId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_TURNIN_QUEST, tostring(questId))
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_TURNIN_QUEST, tostring(questId))
     end
 end
 
@@ -245,7 +246,7 @@ function Journey:OnLevelUp(level)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_REACH_LEVEL, tostring(level))
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_REACH_LEVEL, tostring(level))
     end
 end
 
@@ -253,7 +254,7 @@ function Journey:OnHearthstoneBound(areaId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_BIND_HEARTHSTONE, tostring(areaId), true)
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_BIND_HEARTHSTONE, tostring(areaId), true)
     end
 end
 
@@ -261,7 +262,7 @@ function Journey:OnHearthstoneUsed(areaId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_USE_HEARTHSTONE, tostring(areaId), true)
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_USE_HEARTHSTONE, tostring(areaId), true)
     end
 end
 
@@ -269,7 +270,7 @@ function Journey:OnLearnFlightPath(taxiNodeId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, tostring(taxiNodeId))
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, tostring(taxiNodeId))
     end
 end
 
@@ -277,7 +278,7 @@ function Journey:OnTakeFlightPath(taxiNodeId)
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_FLY_TO, tostring(taxiNodeId), true)
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_FLY_TO, tostring(taxiNodeId), true)
     end
 end
 
@@ -285,6 +286,6 @@ function Journey:OnClassTrainerClosed()
     if Journeyman.db.char.updateJourney then
         local journey = self:GetActiveJourney()
         local chapter = self:GetOrCreateLastChapter(journey)
-        AddStep(chapter, Journeyman.STEP_TYPE_TRAIN_CLASS, "", true)
+        AddStep(journey, chapter, Journeyman.STEP_TYPE_TRAIN_CLASS, "", true)
     end
 end

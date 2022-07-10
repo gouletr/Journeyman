@@ -132,37 +132,9 @@ function State:UpdateImmediate()
     self.questObjectives = {}
     self.startedQuestChains = {}
 
-    -- Clone steps
+    -- Get active steps
     if self.steps == nil then
-        self.steps = {}
-        local journey = Journeyman.Journey:GetActiveJourney()
-        local chapter = Journeyman.Journey:GetActiveChapter(journey)
-        if chapter and chapter.steps then
-            local index = 1
-            for i = 1, #chapter.steps do
-                local step = chapter.steps[i]
-                if step.type and step.type ~= Journeyman.STEP_TYPE_UNDEFINED and step.data then
-                    local data = Journeyman:GetStepData(step)
-                    if data then
-                        local clonedStep = Journeyman.Utils:Clone(step)
-                        clonedStep.data = data
-
-                        local isAvailable, reason = self:IsStepAvailable(clonedStep)
-                        if isAvailable then
-                            clonedStep.index = index
-                            clonedStep.originalIndex = i
-                            clonedStep.isComplete = false
-                            clonedStep.isCompleteOverride = false
-                            clonedStep.isShown = true
-                            self.steps[index] = clonedStep
-                            index = index + 1
-                        else
-                            --Journeyman:Debug("Step %s %s not available: %s", step.type, step.data, reason)
-                        end
-                    end
-                end
-            end
-        end
+        self.steps = self:GetActiveSteps()
     end
 
     -- Update quest log
@@ -199,7 +171,7 @@ function State:UpdateImmediate()
             local step = self.steps[i]
 
             -- Check if step is completed
-            if step.isCompleteOverride then
+            if Journeyman:IsStepComplete(step) then
                 step.isComplete = true
             else
                 local isComplete = self:IsStepComplete(step)
@@ -230,6 +202,11 @@ function State:UpdateImmediate()
                 -- Count shown steps
                 stepShownCount = stepShownCount + 1
             end
+
+            -- Check if we reached shown step count
+            if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
+                break
+            end
         end
     end
     self.needUpdate = false
@@ -253,6 +230,47 @@ function State:UpdateImmediate()
             end
         end
     end
+end
+
+function State:GetActiveSteps()
+    local steps = {}
+    local journey = Journeyman.Journey:GetActiveJourney()
+    local chapter = Journeyman.Journey:GetActiveChapter(journey)
+    if chapter and type(chapter) == "table" then
+        -- Clone active steps
+        local index = 1
+        for i = 1, #chapter.steps or {} do
+            local step = chapter.steps[i]
+            if step.type and step.type ~= Journeyman.STEP_TYPE_UNDEFINED and step.data then
+                local data = Journeyman:GetStepData(step)
+                if data then
+                    local clonedStep = Journeyman.Utils:Clone(step)
+                    clonedStep.data = data
+
+                    local isAvailable, reason = self:IsStepAvailable(clonedStep)
+                    if isAvailable then
+                        clonedStep.index = index
+                        clonedStep.indexInChapter = i
+                        clonedStep.isComplete = false
+                        clonedStep.isShown = true
+                        steps[index] = clonedStep
+                        index = index + 1
+                    else
+                        --Journeyman:Debug("Step %s %s not available: %s", step.type, step.data, reason)
+                    end
+                end
+            end
+        end
+
+        -- Initialize state
+        for i = 1, #steps do
+            local step = steps[i]
+            if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
+                Journeyman:SetStepComplete(step, true)
+            end
+        end
+    end
+    return steps
 end
 
 function State:OnQuestAccepted(questId)
@@ -294,12 +312,12 @@ function State:OnQuestTurnedIn(questId)
 end
 
 function State:OnQuestAbandoned(questId)
-    -- Reset isCompleteOverride for all steps related to this quest
+    -- Reset state for all steps related to this quest
     if self.steps then
         for i = 1, #self.steps do
             local step = self.steps[i]
             if step and Journeyman:IsStepTypeQuest(step) and step.data.questId == questId then
-                step.isCompleteOverride = false
+                Journeyman:SetStepComplete(step, false)
             end
         end
     end
@@ -383,7 +401,7 @@ function State:OnStepCompleted(step, immediate)
     self.macroNeedUpdate = true
 
     -- Mark step as completed
-    step.isCompleteOverride = true
+    Journeyman:SetStepComplete(step, true)
     step.isComplete = true
     step.isShown = false
 
@@ -397,14 +415,14 @@ function State:OnStepCompleted(step, immediate)
     else
         Journeyman:Update(immediate)
     end
-    end
+end
 
 function State:OnStepReset(step, immediate)
     self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
     -- Reset step completed state
-    step.isCompleteOverride = false
+    Journeyman:SetStepComplete(step, false)
     step.isComplete = false
     step.isShown = true
 
@@ -534,19 +552,6 @@ function State:IsStepComplete(step)
                 return true
             end
         end
-
-        -- Check if quest is repeatable
-        if Journeyman.DataSource:IsQuestRepeatable(questId) then
-            -- If next step is complete, consider this step complete
-            local nextStep = self:GetNextStep(step)
-            if nextStep then
-                return nextStep.isCompleteOverride or self:IsStepComplete(nextStep)
-            else
-                return false
-            end
-        end
-
-        -- Step is not complete
         return false
     else
         if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
@@ -556,22 +561,13 @@ function State:IsStepComplete(step)
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
             -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            if step.data.xp then
-                return Journeyman.player.level > step.data.level or (Journeyman.player.level == step.data.level and Journeyman.player.xp >= step.data.xp)
-            else
-                return Journeyman.player.level >= step.data.level
+            if Journeyman.player.level > step.data.level then
+                return true
+            elseif Journeyman.player.level == step.data.level then
+                return step.data.xp == nil or Journeyman.player.xp >= step.data.xp
             end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-            -- Check if current bind location match
-            if GetBindLocation() == Journeyman:GetAreaNameById(step.data.areaId) then
-                return true
-            end
-            -- Check if next bind step is complete
-            local nextBindStep = self:GetNextStep(step, Journeyman.STEP_TYPE_BIND_HEARTHSTONE)
-            if nextBindStep then
-                return nextBindStep.isCompleteOverride or self:IsStepComplete(nextBindStep)
-            end
-            return false
+            -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
             -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
@@ -592,16 +588,7 @@ function State:IsStepComplete(step)
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             -- Can't verify
         end
-
-        -- For step types that cannot be uniquely identified, check if next step is complete
-        if not Journeyman:IsStepTypeUnique(step) then
-            local nextStep = self:GetNextStep(step)
-            if nextStep then
-                return nextStep.isCompleteOverride or self:IsStepComplete(nextStep)
-            else
-                return false
-            end
-        end
+        return false
     end
 
     Journeyman:Error("Step type %s not implemented.", step.type)
@@ -624,15 +611,6 @@ end
 
 function State:GetCurrentStep()
     return self.currentStep
-end
-
-function State:GetNextStep(step, type)
-    for i = step.index + 1, #self.steps do
-        local nextStep = self.steps[i]
-        if nextStep and (type == nil or nextStep.type == type) then
-            return nextStep
-        end
-    end
 end
 
 function State:GetStepLocation(step)

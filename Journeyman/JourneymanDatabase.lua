@@ -1,10 +1,12 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
+local String = LibStub("LibCollections-1.0").String
+local List = LibStub("LibCollections-1.0").List
+local Dict = LibStub("LibCollections-1.0").Dictionary
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
-
-local tinsert = table.insert
 
 local databaseDefaults = {
     profile = {
@@ -48,6 +50,7 @@ local databaseDefaults = {
         },
         journey = "",
         chapter = 1,
+        state = {},
         hardcoreMode = false,
         updateJourney = false,
         taxiNodeIds = {}
@@ -94,7 +97,7 @@ function Journeyman:SerializeDatabase()
             if journey then
                 local serialized = self:ExportJourney(journey)
                 if serialized then
-                    tinsert(self.db.profile.journeys, serialized)
+                    List:Add(self.db.profile.journeys, serialized)
                 end
             end
         end
@@ -110,7 +113,7 @@ function Journeyman:DeserializeDatabase()
             if journey then
                 local deserialized = self:ImportJourney(journey)
                 if deserialized then
-                    tinsert(self.journeys, deserialized)
+                    List:Add(self.journeys, deserialized)
                 end
             end
         end
@@ -125,6 +128,15 @@ function Journeyman:DeserializeDatabase()
             self.db.char.chapter = 1
         end
     end
+
+    -- Cleanup states
+    local guids = {}
+    Dict:ForEach(self.db.char.state, function(guid, state) List:Add(guids, guid) end)
+    List:ForEach(guids, function(guid)
+        if self:GetJourney(guid) == nil or (self.db.char.state[guid] and Dict:Count(self.db.char.state[guid]) == 0) then
+            self.db.char.state[guid] = nil
+        end
+    end)
 end
 
 function Journeyman:ExportJourney(deserializedJourney)
@@ -186,11 +198,11 @@ function Journeyman:ExportJourney(deserializedJourney)
                         step.note = deserializedStep.note
                     end
 
-                    tinsert(chapter.steps, step)
+                    List:Add(chapter.steps, step)
                 end
             end
 
-            tinsert(journey.chapters, chapter)
+            List:Add(journey.chapters, chapter)
         end
     end
 
@@ -233,7 +245,7 @@ function Journeyman:ImportJourney(serializedJourney)
         for chapterIndex = 1, #deserializedJourney.chapters do
             local deserializedChapter = deserializedJourney.chapters[chapterIndex]
 
-            local chapter = { steps = {} }
+            local chapter = { journey = journey, steps = {} }
 
             if deserializedChapter.title and type(deserializedChapter.title) == "string" then
                 chapter.title = deserializedChapter.title
@@ -273,11 +285,11 @@ function Journeyman:ImportJourney(serializedJourney)
                         step.note = deserializedStep.note
                     end
 
-                    tinsert(chapter.steps, step)
+                    List:Add(chapter.steps, step)
                 end
             end
 
-            tinsert(journey.chapters, chapter)
+            List:Add(journey.chapters, chapter)
         end
     end
 
@@ -304,14 +316,18 @@ function Journeyman:Serialize(...)
 end
 
 function Journeyman:Deserialize(str)
+    if String:IsNilOrEmpty(str) then
+        return false, "Expected string, got nil or empty string."
+    end
+
     local decoded = LibDeflate:DecodeForPrint(str)
     if decoded == nil then
-        return false, "Failed to decode string."
+        return false, "Failed to decode."
     end
 
     local decompressed, extraBytes = LibDeflate:DecompressDeflate(decoded)
     if decompressed == nil or extraBytes > 0 then
-        return false, "Failed to decompress ("..extraBytes.." extra bytes)."
+        return false, string.format("Failed to decompress (%d extra bytes).", extraBytes)
     end
 
     local result, deserialized = LibAceSerializer:Deserialize(decompressed)
@@ -319,5 +335,5 @@ function Journeyman:Deserialize(str)
         return false, "Failed to deserialize."
     end
 
-    return result, deserialized
+    return true, deserialized
 end

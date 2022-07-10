@@ -499,6 +499,130 @@ function Journeyman:GetTaxiNodeFaction(taxiNodeId)
     end
 end
 
+function Journeyman:GetJourney(journey)
+    assert(type(journey) ~= "table")
+    if type(journey) == "number" then
+        return self.journeys[journey]
+    elseif type(journey) == "string" then
+        return self:GetJourney(self:GetJourneyIndex(journey))
+    end
+end
+
+function Journeyman:GetJourneyIndex(journey)
+    assert(type(journey) ~= "number")
+    if type(journey) == "table" then
+        return List:FindIndex(self.journeys, function(j) return j == journey end)
+    elseif type(journey) == "string" then
+        return List:FindIndex(self.journeys, function(j) return j.guid == journey end)
+    end
+end
+
+function Journeyman:GetJourneyState(journey)
+    if type(journey) == "table" then
+        if self.db.char.state[journey.guid] == nil then
+            self.db.char.state[journey.guid] = {}
+        end
+        return self.db.char.state[journey.guid]
+    elseif type(journey) == "number" then
+        return self:GetJourneyState(self:GetJourney(journey))
+    elseif type(journey) == "string" then
+        if self.db.char.state[journey] == nil then
+            self.db.char.state[journey] = {}
+        end
+        return self.db.char.state[journey]
+    end
+end
+
+function Journeyman:GetActiveJourney()
+    return self:GetJourney(self.db.char.journey)
+end
+
+function Journeyman:GetActiveJourneyState()
+    return self:GetJourneyState(self.db.char.journey)
+end
+
+function Journeyman:ResetJourneyState(journey)
+    if type(journey) == "table" then
+        self.db.char.state[journey.guid] = nil
+    elseif type(journey) == "number" then
+        self:ResetJourneyState(self:GetJourney(journey))
+    elseif type(journey) == "string" then
+        self.db.char.state[journey] = nil
+    end
+end
+
+function Journeyman:ResetActiveJourneyState()
+    self:ResetActiveJourneyState(self.db.char.journey)
+end
+
+function Journeyman:GetJourneyChapter(journey, chapterIndex)
+    assert(type(chapterIndex) == "number")
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if journey and journey.chapters and chapterIndex and chapterIndex > 0 and chapterIndex <= #journey.chapters then
+        return journey.chapters[chapterIndex]
+    end
+end
+
+function Journeyman:GetJourneyChapterIndex(journey, chapter)
+    assert(type(chapter) == "table")
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if journey and journey.chapters then
+        return List:IndexOf(journey.chapters, chapter)
+    end
+end
+
+function Journeyman:GetJourneyChapterState(journey, chapter)
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if type(chapter) ~= "number" then
+        chapter = self:GetJourneyChapterIndex(journey, chapter)
+    end
+    if journey and journey.chapters and chapter and chapter > 0 and chapter <= #journey.chapters then
+        local state = self:GetJourneyState(journey)
+        if state[chapter] == nil then
+            state[chapter] = {}
+        end
+        return state[chapter]
+    end
+end
+
+function Journeyman:GetActiveJourneyChapter()
+    return self:GetJourneyChapter(self.db.char.journey, self.db.char.chapter)
+end
+
+function Journeyman:GetActiveJourneyChapterState()
+    return self:GetJourneyChapterState(self.db.char.journey, self.db.char.chapter)
+end
+
+function Journeyman:ResetJourneyChapterState(journey, chapter)
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if type(chapter) ~= "number" then
+        chapter = self:GetJourneyChapterIndex(journey, chapter)
+    end
+    if journey and journey.chapters and chapter and chapter > 0 and chapter <= #journey.chapters then
+        self.db.char.state[journey.guid][chapter] = nil
+    end
+end
+
+function Journeyman:ResetActiveJourneyChapterState()
+    self:ResetJourneyChapterState(self.db.char.journey, self.db.char.chapter)
+end
+
+function Journeyman:IsStepComplete(step)
+    return self:GetActiveJourneyChapterState()[step.indexInChapter] == true
+end
+
+function Journeyman:SetStepComplete(step, isComplete)
+    self:GetActiveJourneyChapterState()[step.indexInChapter] = isComplete
+end
+
 function Journeyman:IsStepTypeQuest(step)
     return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
 end

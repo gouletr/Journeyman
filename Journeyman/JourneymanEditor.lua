@@ -7,19 +7,33 @@ local Editor = {}
 Journeyman.Editor = Editor
 
 local String = LibStub("LibCollections-1.0").String
+local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
 local HBD = LibStub("HereBeDragons-2.0")
-
-local tinsert = table.insert
 
 function Editor:Initialize()
     local frame = CreateFrame("FRAME", "Editor", UIParent)
     frame.name = "Editor"
     frame.parent = addonName
-    frame.refresh = function() Journeyman.Editor:Refresh() end
+    frame.refresh = function() Editor:Refresh() end
     frame:Hide()
     frame:SetScript("OnShow", function(self)
-        Journeyman.Editor:Refresh()
+        local journey = Journeyman:GetActiveJourney()
+        if journey then
+            local journeyIndex = Journeyman:GetJourneyIndex(journey)
+            if journeyIndex and Editor:GetSelectedJourneyIndex() == -1 then
+                Editor:SetSelectedJourneyIndex(journeyIndex)
+            end
+
+            local chapter = Journeyman:GetActiveJourneyChapter()
+            if chapter then
+                local chapterIndex = Journeyman:GetJourneyChapterIndex(journey, chapter)
+                if chapterIndex and Editor:GetSelectedChapterIndex() == -1 then
+                    Editor:SetSelectedChapterIndex(chapterIndex)
+                end
+            end
+        end
+        Editor:Refresh()
     end)
     self.frame = frame
 
@@ -48,9 +62,9 @@ function Editor:Initialize()
         return values
     end
     journeySelector.list.OnSelectionChanged = function(self)
-        Journeyman.Editor:SetSelectedChapterIndex(-1)
-        Journeyman.Editor:SetSelectedStepIndex(-1)
-        Journeyman.Editor:Refresh()
+        Editor:SetSelectedChapterIndex(-1)
+        Editor:SetSelectedStepIndex(-1)
+        Editor:Refresh()
     end
     self.journeySelector = journeySelector
 
@@ -60,7 +74,7 @@ function Editor:Initialize()
     chapterSelector:SetTitle(L["SELECT_CHAPTER"])
     chapterSelector.list.GetValues = function(self)
         local values = {}
-        local journey = Journeyman.Editor:GetSelectedJourney()
+        local journey = Editor:GetSelectedJourney()
         if journey then
             for i, v in ipairs(journey.chapters) do
                 values[i] = v.title
@@ -69,8 +83,8 @@ function Editor:Initialize()
         return values
     end
     chapterSelector.list.OnSelectionChanged = function(self)
-        Journeyman.Editor:SetSelectedStepIndex(-1)
-        Journeyman.Editor:Refresh()
+        Editor:SetSelectedStepIndex(-1)
+        Editor:Refresh()
     end
     self.chapterSelector = chapterSelector
 
@@ -80,10 +94,10 @@ function Editor:Initialize()
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
         if Journeyman.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
-            Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
-            Journeyman.Editor:SetSelectedChapterIndex(-1)
-            Journeyman.Editor:SetSelectedStepIndex(-1)
-            Journeyman.Editor:Refresh()
+            Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+            Editor:SetSelectedChapterIndex(-1)
+            Editor:SetSelectedStepIndex(-1)
+            Editor:Refresh()
         end
     end)
 
@@ -93,11 +107,11 @@ function Editor:Initialize()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            if Journeyman.Journey:DeleteJourney(Journeyman.Editor:GetSelectedJourneyIndex()) then
-                Journeyman.Editor:SetSelectedJourneyIndex(-1)
-                Journeyman.Editor:SetSelectedChapterIndex(-1)
-                Journeyman.Editor:SetSelectedStepIndex(-1)
-                Journeyman.Editor:Refresh()
+            if Journeyman.Journey:DeleteJourney(Editor:GetSelectedJourneyIndex()) then
+                Editor:SetSelectedJourneyIndex(-1)
+                Editor:SetSelectedChapterIndex(-1)
+                Editor:SetSelectedStepIndex(-1)
+                Editor:Refresh()
                 Journeyman:Reset(true)
             end
         end,
@@ -138,12 +152,12 @@ function Editor:Initialize()
             end
 
             if journey then
-                tinsert(Journeyman.journeys, journey)
+                List:Add(Journeyman.journeys, journey)
                 window:Hide()
-                Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
-                Journeyman.Editor:SetSelectedChapterIndex(1)
-                Journeyman.Editor:SetSelectedStepIndex(-1)
-                Journeyman.Editor:Refresh()
+                Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+                Editor:SetSelectedChapterIndex(1)
+                Editor:SetSelectedStepIndex(-1)
+                Editor:Refresh()
             else
                 if status == nil then
                     status = L["INVALID_JOURNEY"]
@@ -175,7 +189,7 @@ function Editor:Initialize()
         editBox.label:SetText(L["COPY_TEXT_BELOW"])
         window:AddChild(editBox)
 
-        local journey = Journeyman.Editor:GetSelectedJourney()
+        local journey = Editor:GetSelectedJourney()
         if journey then
             local serialized, status = Journeyman:ExportJourney(journey)
             if serialized then
@@ -193,11 +207,11 @@ function Editor:Initialize()
     newChapterButton:SetPoint("BOTTOMRIGHT", chapterSelector, "BOTTOM", 0, -22)
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
-        local journey = Journeyman.Editor:GetSelectedJourney()
+        local journey = Editor:GetSelectedJourney()
         if journey and Journeyman.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
-            Journeyman.Editor:SetSelectedChapterIndex(#journey.chapters)
-            Journeyman.Editor:SetSelectedStepIndex(-1)
-            Journeyman.Editor:Refresh()
+            Editor:SetSelectedChapterIndex(#journey.chapters)
+            Editor:SetSelectedStepIndex(-1)
+            Editor:Refresh()
             Journeyman:Reset(true)
         end
     end)
@@ -209,11 +223,11 @@ function Editor:Initialize()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local journey = Journeyman.Editor:GetSelectedJourney()
-            if journey and Journeyman.Journey:DeleteChapter(journey, Journeyman.Editor:GetSelectedChapterIndex()) then
-                Journeyman.Editor:SetSelectedChapterIndex(-1)
-                Journeyman.Editor:SetSelectedStepIndex(-1)
-                Journeyman.Editor:Refresh()
+            local journey = Editor:GetSelectedJourney()
+            if journey and Journeyman.Journey:DeleteChapter(journey, Editor:GetSelectedChapterIndex()) then
+                Editor:SetSelectedChapterIndex(-1)
+                Editor:SetSelectedStepIndex(-1)
+                Editor:Refresh()
                 Journeyman:Reset(true)
             end
         end,
@@ -234,11 +248,11 @@ function Editor:Initialize()
     copyChapterButton:SetPoint("BOTTOMRIGHT", newChapterButton, "BOTTOMRIGHT", 0, -22)
     copyChapterButton:SetText(L["COPY_CHAPTER"])
     copyChapterButton:SetScript("OnClick", function(self, button, down)
-        Journeyman.Editor.clipBoard = {
+        Editor.clipBoard = {
             type = "Chapter",
-            data = Journeyman.Editor:GetSelectedChapter()
+            data = Editor:GetSelectedChapter()
         }
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
     end)
     self.copyChapterButton = copyChapterButton
 
@@ -247,12 +261,14 @@ function Editor:Initialize()
     pasteChapterButton:SetPoint("BOTTOMRIGHT", deleteChapterButton, "BOTTOMRIGHT", 0, -22)
     pasteChapterButton:SetText(L["PASTE_CHAPTER"])
     pasteChapterButton:SetScript("OnClick", function(self, button, down)
-        local journey = Journeyman.Editor:GetSelectedJourney()
-        if journey and Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data then
-            local chapter = Journeyman.Utils:Clone(Journeyman.Editor.clipBoard.data)
-            tinsert(journey.chapters, chapter)
-            Journeyman.Editor:SetSelectedChapterIndex(#journey.chapters)
-            Journeyman.Editor:Refresh()
+        local journey = Editor:GetSelectedJourney()
+        if journey and Editor.clipBoard and Editor.clipBoard.type == "Chapter" and Editor.clipBoard.data then
+            Editor.clipBoard.data.journey = nil -- prevent infinite recursion
+            local chapter = Journeyman.Utils:Clone(Editor.clipBoard.data)
+            chapter.journey = journey -- restore chapter's journey after clone
+            List:Add(journey.chapters, chapter)
+            Editor:SetSelectedChapterIndex(#journey.chapters)
+            Editor:Refresh()
         end
     end)
     self.pasteChapterButton = pasteChapterButton
@@ -262,7 +278,7 @@ function Editor:Initialize()
     stepSelector:SetPoint("BOTTOMRIGHT", content, "BOTTOM", 0, 22)
     stepSelector:SetTitle(L["SELECT_STEP"])
     stepSelector.list.GetValues = function(self)
-        local chapter = Journeyman.Editor:GetSelectedChapter()
+        local chapter = Editor:GetSelectedChapter()
         if chapter then
             return chapter.steps
         end
@@ -317,7 +333,7 @@ function Editor:Initialize()
         return row
     end
     stepSelector.list.OnSelectionChanged = function(self)
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
     end
     self.stepSelector = stepSelector
 
@@ -326,9 +342,10 @@ function Editor:Initialize()
     newStepButton:SetPoint("BOTTOMRIGHT", stepSelector, "BOTTOM", 0, -22)
     newStepButton:SetText(L["NEW_STEP"])
     newStepButton:SetScript("OnClick", function(self, button, down)
-        local chapter = Journeyman.Editor:GetSelectedChapter()
-        if chapter and Journeyman.Journey:CreateStep(chapter, Journeyman.STEP_TYPE_UNDEFINED, "", Journeyman.Editor:GetSelectedStepIndex()) then
-            Journeyman.Editor:Refresh()
+        local journey = Editor:GetSelectedJourney()
+        local chapter = Editor:GetSelectedChapter()
+        if Journeyman.Journey:CreateStep(journey, chapter, Journeyman.STEP_TYPE_UNDEFINED, "", Editor:GetSelectedStepIndex()) then
+            Editor:Refresh()
             Journeyman:Reset(true)
         end
     end)
@@ -340,10 +357,11 @@ function Editor:Initialize()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            local chapter = Journeyman.Editor:GetSelectedChapter()
-            if chapter and Journeyman.Journey:DeleteStep(chapter, Journeyman.Editor:GetSelectedStepIndex()) then
-                Journeyman.Editor:SetSelectedStepIndex(-1)
-                Journeyman.Editor:Refresh()
+            local journey = Editor:GetSelectedJourney()
+            local chapter = Editor:GetSelectedChapter()
+            if Journeyman.Journey:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
+                Editor:SetSelectedStepIndex(-1)
+                Editor:Refresh()
                 Journeyman:Reset(true)
             end
         end,
@@ -367,9 +385,11 @@ function Editor:Initialize()
     self.GetSelectedJourneyIndex = function(self) return self.journeySelector.list.selectedIndex end
     self.SetSelectedJourneyIndex = function(self, index) self.journeySelector.list.selectedIndex = index end
     self.GetSelectedJourney = function(self) return Journeyman.Journey:GetJourney(self:GetSelectedJourneyIndex()) end
+    self.ResetSelectedJourneyState = function(self) Journeyman:ResetJourneyState(self:GetSelectedJourneyIndex()) end
     self.GetSelectedChapterIndex = function(self) return self.chapterSelector.list.selectedIndex end
     self.SetSelectedChapterIndex = function(self, index) self.chapterSelector.list.selectedIndex = index end
     self.GetSelectedChapter = function(self) return Journeyman.Journey:GetChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
+    self.ResetSelectedChapterState = function(self) Journeyman:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
     self.GetSelectedStep = function(self) return Journeyman.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
@@ -384,7 +404,7 @@ function Editor:Initialize()
             self.newChapterButton:SetEnabled(self:GetSelectedJourneyIndex() > 0)
             self.deleteChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
             self.copyChapterButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
-            self.pasteChapterButton:SetEnabled(Journeyman.Editor.clipBoard and Journeyman.Editor.clipBoard.type == "Chapter" and Journeyman.Editor.clipBoard.data)
+            self.pasteChapterButton:SetEnabled(Editor.clipBoard and Editor.clipBoard.type == "Chapter" and Editor.clipBoard.data)
             self.newStepButton:SetEnabled(self:GetSelectedChapterIndex() > 0)
             self.deleteStepButton:SetEnabled(self:GetSelectedStepIndex() > 0)
         end, geterrorhandler())
@@ -451,11 +471,11 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyTitle:SetPoint("BOTTOMRIGHT", scrollChild, "TOPRIGHT", 0, -40)
     journeyTitle:SetTitle(L["JOURNEY_TITLE_LABEL"])
     journeyTitle.OnEnterPressed = function(self)
-        local journey = Journeyman.Editor:GetSelectedJourney()
+        local journey = Editor:GetSelectedJourney()
         if journey then
             journey.title = self:GetText()
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.journeyTitle = journeyTitle
@@ -467,10 +487,10 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyIndex:SetNumeric(true)
     journeyIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        if index and Journeyman.Journey:MoveJourney(Journeyman.Editor:GetSelectedJourneyIndex(), index) then
-            Journeyman.Editor:SetSelectedJourneyIndex(index)
+        if index and Journeyman.Journey:MoveJourney(Editor:GetSelectedJourneyIndex(), index) then
+            Editor:SetSelectedJourneyIndex(index)
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.journeyIndex = journeyIndex
@@ -480,11 +500,11 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterTitle:SetPoint("BOTTOMRIGHT", journeyIndex, "BOTTOMRIGHT", 0, -40)
     chapterTitle:SetTitle(L["CHAPTER_TITLE_LABEL"])
     chapterTitle.OnEnterPressed = function(self)
-        local chapter = Journeyman.Editor:GetSelectedChapter()
+        local chapter = Editor:GetSelectedChapter()
         if chapter then
             chapter.title = self:GetText()
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.chapterTitle = chapterTitle
@@ -496,11 +516,11 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterIndex:SetNumeric(true)
     chapterIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        local journey = Journeyman.Editor:GetSelectedJourney()
-        if index and journey and Journeyman.Journey:MoveChapter(journey, Journeyman.Editor:GetSelectedChapterIndex(), index) then
-            Journeyman.Editor:SetSelectedChapterIndex(index)
+        local journey = Editor:GetSelectedJourney()
+        if index and journey and Journeyman.Journey:MoveChapter(journey, Editor:GetSelectedChapterIndex(), index) then
+            Editor:SetSelectedChapterIndex(index)
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.chapterIndex = chapterIndex
@@ -510,8 +530,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepType:SetPoint("BOTTOMRIGHT", chapterIndex, "BOTTOMRIGHT", 0, -40)
     stepType:SetTitle(L["STEP_TYPE_LABEL"])
     stepType.GetValue = function(self)
-        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
-            local step = Journeyman.Editor:GetSelectedStep()
+        if Editor and Editor.GetSelectedStep then
+            local step = Editor:GetSelectedStep()
             if step then
                 return step.type
             end
@@ -562,7 +582,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         }
     end
     stepType.OnValueChanged = function(self, value)
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             step.type = value
             if String:IsNilOrEmpty(step.data) then
@@ -584,7 +604,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 end
             end
         end
-        Journeyman.Editor:Refresh()
+        Editor:ResetSelectedChapterState()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     stepType:Initialize()
@@ -595,11 +616,12 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepData:SetPoint("BOTTOMRIGHT", stepType, "BOTTOMRIGHT", 0, -40)
     stepData:SetTitle(L["STEP_DATA_LABEL"])
     stepData.OnEnterPressed = function(self)
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             step.data = self:GetText()
         end
-        Journeyman.Editor:Refresh()
+        Editor:ResetSelectedChapterState()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.stepData = stepData
@@ -610,12 +632,13 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepIndex:SetTitle(L["STEP_INDEX_LABEL"])
     stepIndex:SetNumeric(true)
     stepIndex.OnEnterPressed = function(self)
+        local journey = Editor:GetSelectedJourney()
+        local chapter = Editor:GetSelectedChapter()
         local index = self:GetNumber()
-        local chapter = Journeyman.Editor:GetSelectedChapter()
-        if index and chapter and Journeyman.Journey:MoveStep(chapter, Journeyman.Editor:GetSelectedStepIndex(), index) then
-            Journeyman.Editor:SetSelectedStepIndex(index)
+        if Journeyman.Journey:MoveStep(journey, chapter, Editor:GetSelectedStepIndex(), index) then
+            Editor:SetSelectedStepIndex(index)
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.stepIndex = stepIndex
@@ -625,8 +648,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepRequiredRaces:SetPoint("BOTTOMRIGHT", stepIndex, "BOTTOMRIGHT", 0, -40)
     stepRequiredRaces:SetTitle(L["STEP_REQUIRED_RACES_LABEL"])
     stepRequiredRaces.GetValue = function(self)
-        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
-            local step = Journeyman.Editor:GetSelectedStep()
+        if Editor and Editor.GetSelectedStep then
+            local step = Editor:GetSelectedStep()
             if step then
                 return step.requiredRaces
             end
@@ -648,7 +671,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         }
     end
     stepRequiredRaces.OnValueChanged = function(self, value)
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             if value > 0 then
                 step.requiredRaces = value
@@ -656,7 +679,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 step.requiredRaces = nil
             end
         end
-        Journeyman.Editor:Refresh()
+        Editor:ResetSelectedChapterState()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     stepRequiredRaces:Initialize()
@@ -667,8 +691,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepRequiredClasses:SetPoint("BOTTOMRIGHT", stepRequiredRaces, "BOTTOMRIGHT", 0, -40)
     stepRequiredClasses:SetTitle(L["STEP_REQUIRED_CLASSES_LABEL"])
     stepRequiredClasses.GetValue = function(self)
-        if Journeyman.Editor and Journeyman.Editor.GetSelectedStep then
-            local step = Journeyman.Editor:GetSelectedStep()
+        if Editor and Editor.GetSelectedStep then
+            local step = Editor:GetSelectedStep()
             if step then
                 return step.requiredClasses
             end
@@ -691,7 +715,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         }
     end
     stepRequiredClasses.OnValueChanged = function(self, value)
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             if value > 0 then
                 step.requiredClasses = value
@@ -699,7 +723,8 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 step.requiredClasses = nil
             end
         end
-        Journeyman.Editor:Refresh()
+        Editor:ResetSelectedChapterState()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     stepRequiredClasses:Initialize()
@@ -710,14 +735,14 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     stepNote:SetPoint("BOTTOMRIGHT", stepRequiredClasses, "BOTTOMRIGHT", 0, -40)
     stepNote:SetTitle(L["STEP_NOTE_LABEL"])
     stepNote.OnEnterPressed = function(self)
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             step.note = self:GetText()
             if step.note and string.len(step.note) == 0 then
                 step.note = nil
             end
         end
-        Journeyman.Editor:Refresh()
+        Editor:Refresh()
         Journeyman:Reset(true)
     end
     frame.stepNote = stepNote
@@ -725,12 +750,12 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     frame.Refresh = function(self)
         self.scrollChild:SetSize(self.scrollFrame:GetWidth(), self.scrollFrame:GetHeight())
 
-        local journey = Journeyman.Editor:GetSelectedJourney()
+        local journey = Editor:GetSelectedJourney()
         if journey then
             self.journeyTitle:SetEnabled(true)
             self.journeyTitle:SetText(journey.title)
             self.journeyIndex:SetEnabled(true)
-            self.journeyIndex:SetText(Journeyman.Editor:GetSelectedJourneyIndex())
+            self.journeyIndex:SetText(Editor:GetSelectedJourneyIndex())
         else
             self.journeyTitle:SetEnabled(false)
             self.journeyTitle:SetText("")
@@ -738,12 +763,12 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             self.journeyIndex:SetText("")
         end
 
-        local chapter = Journeyman.Editor:GetSelectedChapter()
+        local chapter = Editor:GetSelectedChapter()
         if chapter then
             self.chapterTitle:SetEnabled(true)
             self.chapterTitle:SetText(chapter.title)
             self.chapterIndex:SetEnabled(true)
-            self.chapterIndex:SetText(Journeyman.Editor:GetSelectedChapterIndex())
+            self.chapterIndex:SetText(Editor:GetSelectedChapterIndex())
         else
             self.chapterTitle:SetEnabled(false)
             self.chapterTitle:SetText("")
@@ -754,7 +779,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         self.stepType:SetWidth(self.scrollFrame:GetWidth())
         self.stepRequiredRaces:SetWidth(self.scrollFrame:GetWidth())
         self.stepRequiredClasses:SetWidth(self.scrollFrame:GetWidth())
-        local step = Journeyman.Editor:GetSelectedStep()
+        local step = Editor:GetSelectedStep()
         if step then
             self.stepType:SetValue(step.type)
             self.stepType:SetEnabled(true)
@@ -764,7 +789,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 self.stepData:SetText("")
             end
             self.stepData:SetEnabled(true)
-            self.stepIndex:SetText(Journeyman.Editor:GetSelectedStepIndex())
+            self.stepIndex:SetText(Editor:GetSelectedStepIndex())
             self.stepIndex:SetEnabled(true)
             self.stepRequiredRaces:SetValue(step.requiredRaces)
             self.stepRequiredRaces:SetEnabled(true)

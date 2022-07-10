@@ -104,7 +104,7 @@ function List:Contains(list, item)
     return false
 end
 
--- Returns the number of items that satisfies a specified predicate or the number of items in the list.
+-- Returns the number of items that satisfies a predicate or the number of items in the list.
 function List:Count(list, predicate)
     local n = #list
     if predicate == nil then
@@ -119,7 +119,17 @@ function List:Count(list, predicate)
     return c
 end
 
--- Returns the first item that satisfies a specified predicate.
+-- Find the index of the first occurrence of an item that satisfies a predicate, if found; otherwise, nil.
+function List:FindIndex(list, predicate)
+    local n = #list
+    for i = 1, n do
+        if predicate(list[i]) == true then
+            return i
+        end
+    end
+end
+
+-- Returns the first item that satisfies a predicate.
 function List:First(list, predicate)
     local n = #list
     for i = 1, n do
@@ -165,7 +175,7 @@ function List:InsertRange(list, index, items)
     end
 end
 
--- Returns the last item that satisfies a specified predicate.
+-- Returns the last item that satisfies a predicate.
 function List:Last(list, predicate)
     local n = #list
     for i = n, 1, -1 do
@@ -211,11 +221,13 @@ function List:RemoveAll(list, predicate)
     return c
 end
 
--- Removes the item at the specified index of the list.
+-- Removes the item at the specified index of the list. Returns true if the item was removed, false otherwise.
 function List:RemoveAt(list, index)
     if index >= 1 and index <= #list then
         tremove(list, index)
+        return true
     end
+    return false
 end
 
 -- Removes a range of items from the list.
@@ -336,7 +348,7 @@ function Dictionary:ContainsValue(dict, value)
     return false
 end
 
--- Returns the number of items that satisfies a specified predicate or the number of items in the dictionary.
+-- Returns the number of items that satisfies a predicate or the number of items in the dictionary.
 function Dictionary:Count(dict, predicate)
     local c = 0
     for k, v in pairs(dict) do
@@ -496,6 +508,17 @@ LibCollections.RunTests = function()
             assert(List:Count(list, function(v) return v == 4 end) == 1)
             assert(List:Count({}) == 0)
             assert(List:Count({}, function(v) return v == 1 end) == 0)
+        end,
+
+        TestListFindIndex = function()
+            local list = {1, 1, 2, 3, 3, 4, 5, 5}
+            assert(List:FindIndex(list, function(v) return v == 1 end) == 1)
+            assert(List:FindIndex(list, function(v) return v == 2 end) == 3)
+            assert(List:FindIndex(list, function(v) return v == 3 end) == 4)
+            assert(List:FindIndex(list, function(v) return v == 4 end) == 6)
+            assert(List:FindIndex(list, function(v) return v == 5 end) == 7)
+            assert(List:FindIndex(list, function(v) return v == 6 end) == nil)
+            assert(List:FindIndex({}, function(v) return v == 1 end) == nil)
         end,
 
         TestListFirst = function()
@@ -671,25 +694,25 @@ LibCollections.RunTests = function()
 
         TestListRemoveAt = function()
             local list = {1, 2, 3, 4, 5}
-            List:RemoveAt(list, 1)
+            assert(List:RemoveAt(list, 1) == true)
             assert(List:SequenceEqual(list, {2, 3, 4, 5}) == true)
-            List:RemoveAt(list, 4)
+            assert(List:RemoveAt(list, 4) == true)
             assert(List:SequenceEqual(list, {2, 3, 4}) == true)
-            List:RemoveAt(list, 2)
+            assert(List:RemoveAt(list, 2) == true)
             assert(List:SequenceEqual(list, {2, 4}) == true)
-            List:RemoveAt(list, 0)
+            assert(List:RemoveAt(list, 0) == false)
             assert(List:SequenceEqual(list, {2, 4}) == true)
-            List:RemoveAt(list, -1)
+            assert(List:RemoveAt(list, -1) == false)
             assert(List:SequenceEqual(list, {2, 4}) == true)
-            List:RemoveAt(list, 3)
+            assert(List:RemoveAt(list, 3) == false)
             assert(List:SequenceEqual(list, {2, 4}) == true)
 
             local empty = {}
-            List:RemoveAt(empty, 1)
+            assert(List:RemoveAt(empty, 1) == false)
             assert(List:SequenceEqual(empty, {}) == true)
-            List:RemoveAt(empty, 0)
+            assert(List:RemoveAt(empty, 0) == false)
             assert(List:SequenceEqual(empty, {}) == true)
-            List:RemoveAt(empty, -1)
+            assert(List:RemoveAt(empty, -1) == false)
             assert(List:SequenceEqual(empty, {}) == true)
         end,
 
