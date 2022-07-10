@@ -451,7 +451,23 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
         end
 
         if quest.requiredSourceItems then
-            GetQuestObjectivesItem(result, quest.requiredSourceItems, "Item")
+            GetQuestObjectivesItem(result, quest.requiredSourceItems, "Item", false)
+        end
+
+        if quest.extraObjectives then
+            List:ForEach(quest.extraObjectives, function(extraObjective)
+                List:ForEach(extraObjective[5], function(entity)
+                    local type = entity[1]
+                    local id = entity[2]
+                    if type == "monster" then
+                        GetQuestObjectivesNPC(result, { id }, "NPC", false)
+                    elseif type == "object" then
+                        GetQuestObjectivesObject(result, { id }, "Object", false)
+                    elseif type == "item" then
+                        GetQuestObjectivesItem(result, { id }, "Item", false)
+                    end
+                end)
+            end)
         end
 
         return result
@@ -570,6 +586,23 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
             bestId = nearest.id
             bestType = nearest.type
         end
+    end
+
+    if quest.extraObjectives then
+        List:ForEach(quest.extraObjectives, function(extraObjective)
+            List:ForEach(extraObjective[5], function(entity)
+                local nearest = GetNearestEntityLocation({ Type = entity[1], Id = entity[2] }, player)
+                if nearest and nearest.distance < bestDistance then
+                    bestDistance = nearest.distance
+                    bestX = nearest.x
+                    bestY = nearest.y
+                    bestMapId = nearest.mapId
+                    bestName = nearest.name
+                    bestId = nearest.id
+                    bestType = nearest.type
+                end
+            end)
+        end)
     end
 
     if bestX and bestY and bestMapId then
