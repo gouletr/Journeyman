@@ -675,6 +675,14 @@ function State:GetStepLocation(step)
             return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_IRONFORGE_PORTAL_TRAINER)
         elseif spellId == Journeyman.SPELL_TELEPORT_TO_DARNASSUS or spellId == Journeyman.SPELL_PORTAL_TO_DARNASSUS then
             return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_DARNASSUS_PORTAL_TRAINER)
+        elseif spellId == Journeyman.SPELL_HORSE_RIDING then
+            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_HORSE_RIDING_INSTRUCTOR)
+        elseif spellId == Journeyman.SPELL_RAM_RIDING then
+            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_RAM_RIDING_INSTRUCTOR)
+        elseif spellId == Journeyman.SPELL_TIGER_RIDING then
+            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_NIGHTSABER_RIDING_INSTRUCTOR)
+        elseif spellId == Journeyman.SPELL_MECHANOSTRIDER_PILOTING then
+            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_MECHANOSTRIDER_PILOT)
         end
         return Journeyman.DataSource:GetNearestClassTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
