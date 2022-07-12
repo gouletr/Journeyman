@@ -621,7 +621,9 @@ function Journeyman:ResetJourneyChapterState(journey, chapter)
         chapter = self:GetJourneyChapterIndex(journey, chapter)
     end
     if journey and journey.chapters and chapter and chapter > 0 and chapter <= #journey.chapters then
-        self.db.char.state[journey.guid][chapter] = nil
+        if self.db.char.state[journey.guid] then
+            self.db.char.state[journey.guid][chapter] = nil
+        end
     end
 end
 
