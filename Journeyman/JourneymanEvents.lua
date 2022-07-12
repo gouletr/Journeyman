@@ -1,6 +1,9 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
+local State = Journeyman.State
+local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 
 function Journeyman:InitializeEvents()
@@ -51,7 +54,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
-        Journeyman:SetMacro(Journeyman.State.currentStep)
+        Journeyman:SetMacro(State.currentStep)
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
@@ -76,7 +79,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("PLAYER_XP_UPDATE", function(event, unit)
-        if not Journeyman.db.char.window.show or Journeyman.State.steps == nil then
+        if not Journeyman.db.char.window.show or State.steps == nil then
             return
         end
 
@@ -87,9 +90,8 @@ function Journeyman:InitializeEvents()
         Journeyman.player.maxXP = UnitXPMax("player")
         Journeyman.player.greenRange = GetQuestGreenRange("player")
 
-        for i = 1, #Journeyman.State.steps do
-            local step = Journeyman.State.steps[i]
-            if step and step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
+        List:ForEach(State.steps, function(step)
+            if step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
                 if Journeyman.player.level == step.data.level and step.data.xp then
                     if Journeyman.player.xp >= step.data.xp then
                         self:OnLevelXPReached(step)
@@ -100,7 +102,7 @@ function Journeyman:InitializeEvents()
                     Journeyman:Update()
                 end
             end
-        end
+        end)
     end)
 
     self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, arg1)
@@ -173,8 +175,8 @@ function Journeyman:InitializeEvents()
             if not UnitOnTaxi("player") then
                 Journeyman.flyingTo = nil
             end
-            Journeyman.State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
-            Journeyman.State.macroNeedUpdate = true
+            State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+            State.macroNeedUpdate = true
             Journeyman:Update()
         end
     end)
@@ -258,7 +260,7 @@ end
 
 function Journeyman:OnLocationChanged()
     if self.db.char.window.show then
-        if Journeyman.State.steps == nil then
+        if State.steps == nil then
             return
         end
 
@@ -272,7 +274,7 @@ function Journeyman:OnLocationChanged()
         end
 
         local playerAreaId = nil
-        local step = Journeyman.State.currentStep
+        local step = State.currentStep
         if step and not step.isComplete and step.isShown then
             if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
                 local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
