@@ -357,8 +357,8 @@ function State:OnLearnFlightPath(taxiNodeId)
 end
 
 function State:OnTakeFlightPath(taxiNodeId)
-    local step = FindStep(Journeyman.STEP_TYPE_FLY_TO, { taxiNodeId = taxiNodeId })
-    if step then
+    local step = self.currentStep
+    if step and CompareStepData(step, { taxiNodeId = taxiNodeId }) then
         self:OnStepCompleted(step)
     end
 end
