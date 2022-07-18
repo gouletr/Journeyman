@@ -489,8 +489,10 @@ function State:IsStepShown(step)
                                 if List:Any(objective.sources, function(source) return source.type == "Vendor" end) then
                                     return true
                                 end
-                                -- Check if this is NOT a quest item
-                                return objective.class ~= 12
+                                -- Check if we can get item without active quest (not a quest item)
+                                if not Journeyman:IsItemQuestItem(objective.id) then
+                                    return true
+                                end
                             end
                             return false
                         end)

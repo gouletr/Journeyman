@@ -59,6 +59,13 @@ Journeyman.SPELL_MECHANOSTRIDER_PILOTING = 10907
 
 Journeyman.ICON_HUNTERS_MARK = 132212
 
+Journeyman.FalseQuestItems = {
+    2799,  -- Gorilla Fang
+    12840, -- Minion's Scourgestone
+    12841, -- Invader's Scourgestone
+    12843, -- Corruptor's Scourgestone
+}
+
 -- Store races info
 Journeyman.raceName = {}
 Journeyman.raceNameLocal = {}
@@ -331,6 +338,21 @@ function Journeyman:GetItemLink(itemId, callback)
             return "item:"..itemId
         end
         return itemLink
+    end
+end
+
+function Journeyman:IsItemQuestItem(itemId)
+    if type(itemId) == "number" then
+        -- Database correction: some items are falsely reported as quest items
+        if List:Contains(self.FalseQuestItems, itemId) then
+            return false
+        end
+        -- Check if this is a quest item
+        local classId = select(6, GetItemInfoInstant(itemId))
+        if classId then
+            return classId == Enum.ItemClass.Questitem
+        end
+        return false
     end
 end
 
