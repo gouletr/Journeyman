@@ -1000,18 +1000,39 @@ function Journeyman:SetMacro(step)
 
     -- Update macro body
     local body = ""
-    local suffix = "/cleartarget [noexists][dead][help]\n/tm [exists] 8\n"
-    if step and step.type == self.STEP_TYPE_COMPLETE_QUEST then
-        local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
-        if objectives then
-            local names = GetNPCNamesRecurse(objectives)
-            local n = #names
-            for i = 1, n do
-                local target = string.format("/tar [noexists][dead][help] %s\n", names[i])
-                if body:len() + target:len() + suffix:len() <= 255 then
-                    body = body..target
-                else
-                    break
+    local suffix = "/cleartarget [noexists][dead]\n/tm [exists] 8\n"
+    if step then
+        if step.type == self.STEP_TYPE_ACCEPT_QUEST then
+            local location = self.DataSource:GetNearestQuestStarter(step.data.questId)
+            if location and not String:IsNilOrEmpty(location.name) then
+                local command = string.format("/tar [noexists][dead] %s\n", location.name)
+                if body:len() + command:len() + suffix:len() <= 255 then
+                    body = body..command
+                end
+            end
+        elseif step.type == self.STEP_TYPE_COMPLETE_QUEST then
+            local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
+            if objectives then
+                local names = GetNPCNamesRecurse(objectives)
+                local n = #names
+                for i = 1, n do
+                    local name = names[i]
+                    if name and not String:IsNilOrEmpty(name) then
+                        local command = string.format("/tar [noexists][dead] %s\n", name)
+                        if body:len() + command:len() + suffix:len() <= 255 then
+                            body = body..command
+                        else
+                            break
+                        end
+                    end
+                end
+            end
+        elseif step.type == self.STEP_TYPE_TURNIN_QUEST then
+            local location = self.DataSource:GetNearestQuestFinisher(step.data.questId)
+            if location and not String:IsNilOrEmpty(location.name) then
+                local command = string.format("/tar [noexists][dead] %s\n", location.name)
+                if body:len() + command:len() + suffix:len() <= 255 then
+                    body = body..command
                 end
             end
         end
