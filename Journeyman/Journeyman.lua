@@ -19,6 +19,7 @@ Journeyman.STEP_TYPE_GO_TO_COORD = "GOTO"
 Journeyman.STEP_TYPE_GO_TO_AREA = "GOTOAREA"
 Journeyman.STEP_TYPE_GO_TO_ZONE = "GOTOZONE"
 Journeyman.STEP_TYPE_REACH_LEVEL = "LEVEL"
+Journeyman.STEP_TYPE_REACH_REPUTATION = "REPUTATION"
 Journeyman.STEP_TYPE_BIND_HEARTHSTONE = "BIND"
 Journeyman.STEP_TYPE_USE_HEARTHSTONE = "HEARTH"
 Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH = "LEARNFP"
@@ -351,6 +352,28 @@ end
 
 function Journeyman:IsSpellKnown(spellId)
     return IsPlayerSpell(spellId) or IsSpellKnown(spellId) or IsSpellKnown(spellId, true)
+end
+
+function Journeyman:GetFactionName(factionId)
+    if factionId and type(factionId) == "number" then
+        if factionId > 0 then
+            local factionName = GetFactionInfoByID(factionId)
+            if not String:IsNilOrEmpty(factionName) then
+                return factionName
+            end
+        end
+        return "faction:"..factionId
+    end
+end
+
+function Journeyman:GetStandingLabel(standingId)
+    if standingId and type(standingId) == "number" then
+        local standingLabel = getglobal("FACTION_STANDING_LABEL"..standingId)
+        if not String:IsNilOrEmpty(standingLabel) then
+            return standingLabel
+        end
+        return "standing:"..standingId
+    end
 end
 
 function Journeyman:GetMapName(showId)
@@ -723,6 +746,13 @@ function Journeyman:GetStepData(step)
                     data.xp = xp
                 end
             end
+        elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+            local values = String:Split(step.data, ",")
+            local factionId = tonumber(values[1])
+            local standingId = tonumber(values[2])
+            if factionId and standingId then
+                data = { factionId = factionId, standingId = standingId }
+            end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
             local areaId = tonumber(step.data)
             if areaId then
@@ -833,6 +863,13 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
             text = text..string.format(" +%s xp", data.xp)
         end
         return text
+
+    elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+        local factionId = data and data.factionId or 0
+        local factionName = self:GetFactionName(factionId)
+        local standingId = data and data.standingId or 0
+        local standingLabel = self:GetStandingLabel(standingId)
+        return string.format(L["STEP_TEXT_REACH_REPUTATION"], standingLabel, factionName)
 
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)

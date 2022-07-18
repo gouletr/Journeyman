@@ -112,6 +112,21 @@ function Journeyman:InitializeEvents()
         end
     end)
 
+    self:RegisterEvent("UPDATE_FACTION", function(event)
+        if not Journeyman.db.char.window.show or State.steps == nil then
+            return
+        end
+
+        List:ForEach(State.steps, function(step)
+            if step.type == Journeyman.STEP_TYPE_REACH_REPUTATION and not step.isComplete then
+                local name, _, standingId = GetFactionInfoByID(step.data.factionId)
+                if name and standingId and standingId >= step.data.standingId then
+                    self:OnReputationReached(step)
+                end
+            end
+        end)
+    end)
+
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
         local areaId = Journeyman:GetAreaIdFromLocalizedName(location)
         if areaId then
@@ -307,6 +322,12 @@ end
 function Journeyman:OnLevelXPReached(step)
     if self.db.char.window.show then
         self.State:OnLevelXPReached(step)
+    end
+end
+
+function Journeyman:OnReputationReached(step)
+    if self.db.char.window.show then
+        self.State:OnReputationReached(step)
     end
 end
 

@@ -41,6 +41,8 @@ local function CompareStepData(step, data)
             end
         end
         return false
+    elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+        return step.data.factionId == data.factionId and step.data.standingId == data.standingId
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return step.data.areaId == data.areaId
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
@@ -335,6 +337,10 @@ function State:OnLevelXPReached(step)
     self:OnStepCompleted(step)
 end
 
+function State:OnReputationReached(step)
+    self:OnStepCompleted(step)
+end
+
 function State:OnHearthstoneBound(areaId)
     local step = FindStep(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, { areaId = areaId })
     if step then
@@ -566,6 +572,11 @@ function State:IsStepComplete(step)
             elseif Journeyman.player.level == step.data.level then
                 return step.data.xp == nil or Journeyman.player.xp >= step.data.xp
             end
+        elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+            local name, _, standingId = GetFactionInfoByID(step.data.factionId)
+            if name and standingId and standingId >= step.data.standingId then
+                return true
+            end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
             -- Can't verify
         elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
@@ -656,6 +667,8 @@ function State:GetStepLocation(step)
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
         return nil -- todo
     elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+        return nil
+    elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
         return nil
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
         return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId)
