@@ -475,12 +475,12 @@ function Window:DisplayStep(step, depth)
                 end
             end
             if gainXP and gainXP > 0 then
-                local gainXPText = string.format(L["STEP_TEXT_GAIN_XP"], gainXP)
+                local objectiveText = string.format(L["STEP_TEXT_GAIN_XP"], gainXP)
                 if Journeyman.player.xpGained then
                     local count = math.ceil(gainXP / Journeyman.player.xpGained)
-                    gainXPText = string.format("%s (%s kill)", gainXPText, count)
+                    objectiveText = string.format("%s (%s kill)", objectiveText, count)
                 end
-                self:GetNextLine():SetFormattedText(depth + 1, self:GetColoredHighlightText(gainXPText, step.isComplete))
+                self:GetNextLine():SetFormattedText(depth + 1, self:GetColoredHighlightText(objectiveText, step.isComplete))
             end
         elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
             -- Step text
