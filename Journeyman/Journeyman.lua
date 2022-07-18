@@ -655,10 +655,18 @@ function Journeyman:ResetActiveJourneyChapterState()
 end
 
 function Journeyman:IsStepComplete(step)
+    -- Complete quest steps shall not be remembered in state
+    if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+        return false
+    end
     return self:GetActiveJourneyChapterState()[step.indexInChapter] == true
 end
 
 function Journeyman:SetStepComplete(step, isComplete)
+    -- Complete quest steps shall not be remembered in state
+    if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+        return
+    end
     self:GetActiveJourneyChapterState()[step.indexInChapter] = isComplete
 end
 
