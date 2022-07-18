@@ -450,6 +450,8 @@ function State:IsStepAvailable(step)
 
     if Journeyman:IsStepTypeQuest(step) then
         return self:IsQuestAvailable(step.data.questId)
+    elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
     end
 
     return true
@@ -463,7 +465,7 @@ function State:IsStepDoable(step)
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
         return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId) and Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
+        return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
     end
     return true
 end
