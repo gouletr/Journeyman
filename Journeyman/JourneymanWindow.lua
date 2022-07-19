@@ -875,6 +875,9 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
     for match, mapId in input:gmatch("(zone:(%d+))") do
         List:Add(matches, { match = match, mapId = tonumber(mapId) })
     end
+    for match, areaId in input:gmatch("(area:(%d+))") do
+        List:Add(matches, { match = match, areaId = tonumber(areaId) })
+    end
     for match, questId in input:gmatch("(quest:(%d+))") do
         List:Add(matches, { match = match, questId = tonumber(questId) })
     end
@@ -905,6 +908,11 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
             local mapName = Journeyman:GetMapNameById(m.mapId)
             if not String:IsNilOrEmpty(mapName) and mapName ~= m.match then
                 result = result:gsub(m.match, self:GetColoredHighlightText(mapName, isComplete))
+            end
+        elseif m.areaId then
+            local areaName = Journeyman:GetAreaNameById(m.areaId)
+            if not String:IsNilOrEmpty(areaName) and areaName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(areaName, isComplete))
             end
         elseif m.questId then
             local questName = Journeyman.DataSource:GetQuestName(m.questId, Journeyman.db.profile.window.showQuestLevel)
