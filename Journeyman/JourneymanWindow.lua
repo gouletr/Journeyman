@@ -426,15 +426,7 @@ function Window:DisplayStep(step, depth)
     if step.hasChildren then
         -- Display step prefix
         if step.location then
-            local prefix
-            if step.location.type == "NPC" then
-                prefix = L["STEP_PREFIX_GO_TALK_TO"]
-            elseif step.location.type == "Object" or step.location.type == "Item" then
-                prefix = L["STEP_PREFIX_GO_TO"]
-            end
-            if prefix then
-                self:GetNextLine():SetStepText(step, depth, "%s %s", prefix, self:GetColoredHighlightText(step.location.name, step.isComplete))
-            end
+            self:GetNextLine():SetStepText(step, depth, "%s %s", L["STEP_PREFIX_GO_TO"], self:GetColoredHighlightText(step.location.name, step.isComplete))
         else
             Journeyman:Error("Unknown location for step %s", dump(step))
         end
