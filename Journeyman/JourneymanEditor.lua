@@ -344,7 +344,11 @@ function Editor:Initialize()
     newStepButton:SetScript("OnClick", function(self, button, down)
         local journey = Editor:GetSelectedJourney()
         local chapter = Editor:GetSelectedChapter()
-        if Journeyman.Journey:CreateStep(journey, chapter, Journeyman.STEP_TYPE_UNDEFINED, "", Editor:GetSelectedStepIndex()) then
+        local stepIndex = Editor:GetSelectedStepIndex()
+        if IsControlKeyDown() then
+            stepIndex = nil
+        end
+        if Journeyman.Journey:CreateStep(journey, chapter, Journeyman.STEP_TYPE_UNDEFINED, "", stepIndex) then
             Editor:Refresh()
             Journeyman:Reset(true)
         end
@@ -393,6 +397,7 @@ function Editor:Initialize()
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
     self.GetSelectedStep = function(self) return Journeyman.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
+    self.IsSelectedStepLast = function(self) return self.stepSelector.list.selectedIndex == #self:GetSelectedChapter().steps end
     self.Refresh = function(self)
         xpcall(function()
             self.journeySelector:Refresh()
@@ -606,7 +611,9 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 end
             end
         end
-        Editor:ResetSelectedChapterState()
+        if not Editor:IsSelectedStepLast() then
+            Editor:ResetSelectedChapterState()
+        end
         Editor:Refresh()
         Journeyman:Reset(true)
     end
@@ -622,7 +629,9 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         if step then
             step.data = self:GetText()
         end
-        Editor:ResetSelectedChapterState()
+        if not Editor:IsSelectedStepLast() then
+            Editor:ResetSelectedChapterState()
+        end
         Editor:Refresh()
         Journeyman:Reset(true)
     end
@@ -681,7 +690,9 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 step.requiredRaces = nil
             end
         end
-        Editor:ResetSelectedChapterState()
+        if not Editor:IsSelectedStepLast() then
+            Editor:ResetSelectedChapterState()
+        end
         Editor:Refresh()
         Journeyman:Reset(true)
     end
@@ -725,7 +736,9 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                 step.requiredClasses = nil
             end
         end
-        Editor:ResetSelectedChapterState()
+        if not Editor:IsSelectedStepLast() then
+            Editor:ResetSelectedChapterState()
+        end
         Editor:Refresh()
         Journeyman:Reset(true)
     end

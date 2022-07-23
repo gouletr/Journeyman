@@ -141,11 +141,11 @@ function Journey:CreateStep(journey, chapter, type, data, index)
         local step = { type = type, data = data }
         if index and index > 0 and index <= #chapter.steps then
             List:Insert(chapter.steps, index, step)
+            Journeyman:ResetJourneyChapterState(journey, chapter)
         else
             List:Add(chapter.steps, step)
         end
 
-        Journeyman:ResetJourneyChapterState(journey, chapter)
         return step
     end
 end
