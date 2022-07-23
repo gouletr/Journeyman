@@ -91,6 +91,7 @@ local function FindStep(type, data)
 end
 
 function State:Initialize()
+    self.questsTurnedIn = {}
 end
 
 function State:Shutdown()
@@ -270,6 +271,9 @@ function State:GetActiveSteps()
             if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
                 Journeyman:SetStepComplete(step, true)
             end
+            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and Journeyman:IsStepComplete(step) then
+                self.questsTurnedIn[step.data.questId] = true
+            end
         end
     end
     return steps
@@ -305,10 +309,6 @@ end
 function State:OnQuestTurnedIn(questId)
     local step = FindStep(Journeyman.STEP_TYPE_TURNIN_QUEST, { questId = questId })
     if step then
-        if self.questsTurnedIn == nil then
-            self.questsTurnedIn = {}
-        end
-        self.questsTurnedIn[questId] = true
         self:OnStepCompleted(step)
     end
 end
@@ -410,6 +410,9 @@ function State:OnStepCompleted(step, immediate)
     Journeyman:SetStepComplete(step, true)
     step.isComplete = true
     step.isShown = false
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        self.questsTurnedIn[step.data.questId] = true
+    end
 
     if self:IsChapterComplete() then
         -- Advance chapter and reset state
@@ -503,7 +506,7 @@ function State:IsStepShown(step)
                         end
                     end
                 elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                    if Journeyman.DataSource:IsQuestRepeatable(questId) then
+                    if Journeyman.DataSource:IsQuestRepeatable(questId) or Journeyman.DataSource:IsQuestAutoComplete(questId) then
                         if not self:IsQuestObjectivesComplete(questId) then
                             doable, reason = false, string.format("Quest %s is not complete", questId)
                         end
@@ -867,16 +870,11 @@ function State:IsQuestInQuestLogOrTurnedIn(questId)
 end
 
 function State:IsQuestTurnedIn(questId)
-    if self.questsTurnedIn == nil then
-        self.questsTurnedIn = {}
-    end
-
     local isQuestTurnedIn = self.questsTurnedIn[questId]
     if not isQuestTurnedIn then -- Update if nil or false
         isQuestTurnedIn = C_QuestLog.IsQuestFlaggedCompleted(questId) == true
         self.questsTurnedIn[questId] = isQuestTurnedIn
     end
-
     return isQuestTurnedIn
 end
 

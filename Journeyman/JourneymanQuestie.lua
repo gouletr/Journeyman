@@ -666,6 +666,11 @@ function DataSourceQuestie:IsQuestRepeatable(questId)
     return QuestieDB:IsRepeatable(questId)
 end
 
+function DataSourceQuestie:IsQuestAutoComplete(questId)
+    local objectivesText = QuestieDB.QueryQuestSingle(questId, "objectivesText")
+    return objectivesText == nil or next(objectivesText) == nil
+end
+
 function DataSourceQuestie:GetNPCName(npcId, showId)
     local npc = QuestieDB:GetNPC(npcId)
     if npc and npc.name then

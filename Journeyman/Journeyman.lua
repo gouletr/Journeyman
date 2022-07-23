@@ -62,6 +62,8 @@ Journeyman.ICON_HUNTERS_MARK = 132212
 Journeyman.FalseQuestItems = {
     2799,  -- Gorilla Fang
     11242, -- Evoroot
+    12738, -- Dalson Outhouse Key
+    12739, -- Dalson Cabinet Key
     12840, -- Minion's Scourgestone
     12841, -- Invader's Scourgestone
     12843, -- Corruptor's Scourgestone
