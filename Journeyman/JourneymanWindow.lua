@@ -597,7 +597,7 @@ local function CreateLine(index, parent)
             if step.isComplete then
                 State:OnStepReset(step, true)
             else
-                State:OnStepCompleted(step, true)
+                State:OnStepSkipped(step, true)
             end
         end)
 
@@ -645,7 +645,7 @@ local function CreateLine(index, parent)
                 elseif IsControlKeyDown() then
                     Journeyman:SetWaypoint(step, true)
                 elseif IsAltKeyDown() and not step.hasChildren and not step.ObjectiveIndex then
-                    State:OnStepCompleted(step, true)
+                    State:OnStepSkipped(step, true)
                 end
             end
         end)

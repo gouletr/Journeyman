@@ -176,7 +176,7 @@ function State:UpdateImmediate()
             local step = self.steps[i]
 
             -- Check if step is completed
-            if Journeyman:IsStepComplete(step) then
+            if Journeyman:IsStepComplete(step) or Journeyman:IsStepSkipped(step) then
                 step.isComplete = true
             else
                 local isComplete = self:IsStepComplete(step)
@@ -185,6 +185,7 @@ function State:UpdateImmediate()
                     self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
                     self.macroNeedUpdate = true
                 end
+                Journeyman:SetStepStateCompleted(step)
                 step.isComplete = isComplete
             end
 
@@ -271,7 +272,7 @@ function State:GetActiveSteps()
         for i = 1, #steps do
             local step = steps[i]
             if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
-                Journeyman:SetStepComplete(step, true)
+                Journeyman:SetStepStateCompleted(step, true)
             end
             if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and Journeyman:IsStepComplete(step) then
                 self.questsTurnedIn[step.data.questId] = true
@@ -321,7 +322,7 @@ function State:OnQuestAbandoned(questId)
         for i = 1, #self.steps do
             local step = self.steps[i]
             if step and Journeyman:IsStepTypeQuest(step) and step.data.questId == questId then
-                Journeyman:SetStepComplete(step, false)
+                Journeyman:SetStepStateCompleted(step, false)
             end
         end
     end
@@ -409,7 +410,31 @@ function State:OnStepCompleted(step, immediate)
     self.macroNeedUpdate = true
 
     -- Mark step as completed
-    Journeyman:SetStepComplete(step, true)
+    Journeyman:SetStepStateCompleted(step, true)
+    step.isComplete = true
+    step.isShown = false
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        self.questsTurnedIn[step.data.questId] = true
+    end
+
+    if self:IsChapterComplete() then
+        -- Advance chapter and reset state
+        local journey = Journeyman.Journey:GetActiveJourney()
+        if journey then
+            Journeyman.Journey:AdvanceChapter(journey)
+            Journeyman:Reset(immediate)
+        end
+    else
+        Journeyman:Update(immediate)
+    end
+end
+
+function State:OnStepSkipped(step, immediate)
+    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.macroNeedUpdate = true
+
+    -- Mark step as skipped
+    Journeyman:SetStepStateSkipped(step, true)
     step.isComplete = true
     step.isShown = false
     if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
@@ -433,7 +458,7 @@ function State:OnStepReset(step, immediate)
     self.macroNeedUpdate = true
 
     -- Reset step completed state
-    Journeyman:SetStepComplete(step, false)
+    Journeyman:ResetStepState(step)
     step.isComplete = false
     step.isShown = true
 

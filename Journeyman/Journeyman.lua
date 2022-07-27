@@ -32,6 +32,10 @@ Journeyman.STEP_TYPE_LEARN_FISHING = "LEARNFISHING"
 Journeyman.STEP_TYPE_ACQUIRE_ITEMS = "ACQUIREITEM"
 Journeyman.STEP_TYPE_DIE_AND_RES = "DIE"
 
+Journeyman.STEP_STATE_NONE = 0
+Journeyman.STEP_STATE_COMPLETED = 1
+Journeyman.STEP_STATE_SKIPPED = 2
+
 Journeyman.ITEM_HEARTHSTONE = 6948
 
 Journeyman.NPC_STORMWIND_PORTAL_TRAINER = 2485
@@ -714,19 +718,55 @@ function Journeyman:ResetActiveJourneyChapterState()
 end
 
 function Journeyman:IsStepComplete(step)
-    -- Complete quest steps shall not be remembered in state
+    -- Some step type never store completed state (so they can be reverted at any moment)
     if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
         return false
     end
-    return self:GetActiveJourneyChapterState()[step.indexInChapter] == true
+
+    local state = self:GetActiveJourneyChapterState()[step.indexInChapter] or Journeyman.STEP_STATE_NONE
+    return bit.band(state, Journeyman.STEP_STATE_COMPLETED) == Journeyman.STEP_STATE_COMPLETED
 end
 
-function Journeyman:SetStepComplete(step, isComplete)
-    -- Complete quest steps shall not be remembered in state
+function Journeyman:IsStepSkipped(step)
+    local state = self:GetActiveJourneyChapterState()[step.indexInChapter] or Journeyman.STEP_STATE_NONE
+    return bit.band(state, Journeyman.STEP_STATE_SKIPPED) == Journeyman.STEP_STATE_SKIPPED
+end
+
+function Journeyman:SetStepState(step, state)
+    if state == Journeyman.STEP_STATE_NONE then
+        self:GetActiveJourneyChapterState()[step.indexInChapter] = nil
+    else
+        self:GetActiveJourneyChapterState()[step.indexInChapter] = state
+    end
+end
+
+function Journeyman:ResetStepState(step)
+    self:GetActiveJourneyChapterState()[step.indexInChapter] = nil
+end
+
+function Journeyman:SetStepStateCompleted(step, value)
+    -- Do not store completed state for some step type (so they can be reverted at any moment)
     if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
         return
     end
-    self:GetActiveJourneyChapterState()[step.indexInChapter] = isComplete
+
+    local state = self:GetActiveJourneyChapterState()[step.indexInChapter] or Journeyman.STEP_STATE_NONE
+    if value == true then
+        state = bit.bor(state, Journeyman.STEP_STATE_COMPLETED)
+    elseif value == false then
+        state = bit.band(state, bit.bnot(Journeyman.STEP_STATE_COMPLETED))
+    end
+    self:SetStepState(step, state)
+end
+
+function Journeyman:SetStepStateSkipped(step, value)
+    local state = self:GetActiveJourneyChapterState()[step.indexInChapter] or Journeyman.STEP_STATE_NONE
+    if value == true then
+        state = bit.bor(state, Journeyman.STEP_STATE_SKIPPED)
+    elseif value == false then
+        state = bit.band(state, bit.bnot(Journeyman.STEP_STATE_SKIPPED))
+    end
+    self:SetStepState(step, state)
 end
 
 function Journeyman:IsStepTypeQuest(step)
