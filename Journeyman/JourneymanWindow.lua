@@ -950,9 +950,9 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
                 result = result:gsub(m.match, self:GetColoredHighlightText(areaName, isComplete))
             end
         elseif m.questId then
-            local questName = Journeyman.DataSource:GetQuestName(m.questId, Journeyman.db.profile.window.showQuestLevel)
+            local questName = self:GetColoredQuestText(m.questId, isComplete)
             if not String:IsNilOrEmpty(questName) and questName ~= m.match then
-                result = result:gsub(m.match, self:GetColoredQuestText(questName, isComplete))
+                result = result:gsub(m.match, questName)
             end
         end
     end)
