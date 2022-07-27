@@ -562,6 +562,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             [Journeyman.STEP_TYPE_LEARN_FIRST_AID] = L["DROPDOWN_LEARN_FIRST_AID"],
             [Journeyman.STEP_TYPE_LEARN_COOKING] = L["DROPDOWN_LEARN_COOKING"],
             [Journeyman.STEP_TYPE_LEARN_FISHING] = L["DROPDOWN_LEARN_FISHING"],
+            [Journeyman.STEP_TYPE_ACQUIRE_ITEMS] = L["DROPDOWN_ACQUIRE_ITEMS"],
             [Journeyman.STEP_TYPE_DIE_AND_RES] = L["DROPDOWN_DIE_AND_RES"],
         }
     end
@@ -585,6 +586,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Journeyman.STEP_TYPE_LEARN_COOKING,
             Journeyman.STEP_TYPE_LEARN_FISHING,
             Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
+            Journeyman.STEP_TYPE_ACQUIRE_ITEMS,
             Journeyman.STEP_TYPE_DIE_AND_RES,
         }
     end

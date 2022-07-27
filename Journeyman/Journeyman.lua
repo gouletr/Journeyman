@@ -29,6 +29,7 @@ Journeyman.STEP_TYPE_TRAIN_SPELLS = "TRAINSPELL"
 Journeyman.STEP_TYPE_LEARN_FIRST_AID = "LEARNFIRSTAID"
 Journeyman.STEP_TYPE_LEARN_COOKING = "LEARNCOOKING"
 Journeyman.STEP_TYPE_LEARN_FISHING = "LEARNFISHING"
+Journeyman.STEP_TYPE_ACQUIRE_ITEMS = "ACQUIREITEM"
 Journeyman.STEP_TYPE_DIE_AND_RES = "DIE"
 
 Journeyman.ITEM_HEARTHSTONE = 6948
@@ -341,6 +342,39 @@ function Journeyman:GetItemLink(itemId, callback)
             return "item:"..itemId
         end
         return itemLink
+    end
+end
+
+function Journeyman:GetItemCountInBags(itemId)
+    if itemId and type(itemId) == "number" then
+        local counter = 0
+        for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+            for slot = 1, GetContainerNumSlots(bag) do
+                local _, count, _, _, _, _, _, _, _, id = GetContainerItemInfo(bag, slot)
+                if id == itemId then
+                    counter = counter + count
+                end
+            end
+        end
+        return counter
+    end
+end
+
+function Journeyman:IsItemInBags(itemId, itemCount)
+    if itemId and type(itemId) == "number" then
+        if not itemCount or type(itemCount) ~= "number" then
+            itemCount = 1
+        end
+        local counter = 0
+        for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+            for slot = 1, GetContainerNumSlots(bag) do
+                local _, count, _, _, _, _, _, _, _, id = GetContainerItemInfo(bag, slot)
+                if id == itemId then
+                    counter = counter + count
+                end
+            end
+        end
+        return counter == itemCount
     end
 end
 
@@ -816,6 +850,21 @@ function Journeyman:GetStepData(step)
             data = {}
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
             data = {}
+        elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+            local values = String:Split(step.data, ",")
+            local items = {}
+            if math.fmod(#values, 2) == 0 then
+                for i = 1, #values, 2 do
+                    local id = tonumber(values[i])
+                    local count = math.max(tonumber(values[i + 1]), 1)
+                    if id and count and GetItemInfoInstant(id) ~= nil then
+                        List:Add(items, { id = id, count = count })
+                    end
+                end
+            end
+            if #items > 0 then
+                data = { items = items }
+            end
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             data = {}
         else
@@ -959,6 +1008,17 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
         return L["STEP_TEXT_LEARN_FISHING"]
+
+    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+        local items = ""
+        if data and data.items then
+            local itemNames = {}
+            List:ForEach(data.items, function(item)
+                List:Add(itemNames, self:GetItemLink(item.id, callback).."x"..item.count)
+            end)
+            items = String:Join(", ", itemNames)
+        end
+        return string.format(L["STEP_TEXT_ACQUIRE_ITEMS"], items)
 
     elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return L["STEP_TEXT_DIE_AND_RES"]

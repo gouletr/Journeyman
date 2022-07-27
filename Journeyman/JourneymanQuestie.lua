@@ -618,6 +618,11 @@ function DataSourceQuestie:GetNearestQuestFinisher(questId)
     end
 end
 
+function DataSourceQuestie:GetNearestItemLocation(items)
+    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
+    return GetNearestItem(items, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+end
+
 function DataSourceQuestie:GetQuestChainStartQuest(questId)
     if self.questChainStartQuest == nil then
         self.questChainStartQuest = {}

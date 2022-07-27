@@ -57,6 +57,8 @@ local function CompareStepData(step, data)
         return true
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
         return true
+    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+        return List:Any(step.data.items, function(item) return item.id == data.id and item.count == data.count end)
     elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return true
     else
@@ -603,6 +605,8 @@ function State:IsStepComplete(step)
             return Journeyman:IsSpellKnown(Journeyman.SPELL_COOKING_APPRENTICE)
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
             return Journeyman:IsSpellKnown(Journeyman.SPELL_FISHING_APPRENTICE)
+        elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+            return List:All(step.data.items, function(item) return Journeyman:IsItemInBags(item.id, item.count) end)
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             -- Can't verify
         end
@@ -711,6 +715,15 @@ function State:GetStepLocation(step)
         return Journeyman.DataSource:GetNearestCookingTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
         return Journeyman.DataSource:GetNearestFishingTrainerLocation()
+    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+        local items = {}
+        local hasAll = List:All(step.data.items, function(item) return Journeyman:IsItemInBags(item.id, item.count) end)
+        local items = List:Select(step.data.items, function(item)
+            if hasAll or not Journeyman:IsItemInBags(item.id, item.count) then
+                return item.id
+            end
+        end)
+        return Journeyman.DataSource:GetNearestItemLocation(items)
     elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return nil
     else

@@ -512,6 +512,18 @@ function Window:DisplayStep(step, depth)
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_COOKING"])
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_LEARN_FISHING"])
+        elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+            self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACQUIRE_ITEMS"], "")
+            List:ForEach(step.data.items, function(item)
+                local isComplete = Journeyman:IsItemInBags(item.id, item.count)
+                if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
+                    local itemName = Journeyman:GetItemName(item.id, function() Window:Update() end)
+                    local itemCount = math.min(Journeyman:GetItemCountInBags(item.id), item.count)
+                    local objectiveStep = { type = step.type, data = step.data, isComplete = isComplete, isShown = step.isShown, itemId = item.id }
+                    local objectiveText = itemName..": "..itemCount.."/"..item.count
+                    self:GetNextLine():SetStepText(objectiveStep, depth + 1, self:GetColoredHighlightText(objectiveText, isComplete))
+                end
+            end)
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_DIE_AND_RES"])
         else
@@ -580,7 +592,7 @@ local function CreateLine(index, parent)
 
         self.checkBox:SetChecked(step.isComplete)
         self.checkBox:SetSize(Journeyman.db.profile.window.fontSize, Journeyman.db.profile.window.fontSize)
-        self.checkBox:SetShown(not step.hasChildren and not step.objectiveIndex)
+        self.checkBox:SetShown(not step.hasChildren and not step.objectiveIndex and not step.itemId)
         self.checkBox:SetScript("OnClick", function(self, button)
             if step.isComplete then
                 State:OnStepReset(step, true)
@@ -606,6 +618,10 @@ local function CreateLine(index, parent)
                 if not IsModifiedClick() then
                     if Journeyman:IsStepTypeQuest(step) then
                         Window:ShowQuest(step.data.questId)
+                    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+                        if step.itemId then
+                            Window:ShowItem(step.itemId)
+                        end
                     end
                 elseif IsModifiedClick("CHATLINK") then
                     if Journeyman:IsStepTypeQuest(step) then
@@ -620,6 +636,10 @@ local function CreateLine(index, parent)
                             end
                         else
                             Window:LinkQuest(step.data.questId)
+                        end
+                    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+                        if step.itemId then
+                            Window:LinkItem(step.itemId)
                         end
                     end
                 elseif IsControlKeyDown() then
@@ -845,6 +865,21 @@ function Window:LinkQuest(questId)
     local questName = Journeyman.DataSource:GetQuestName(questId, Journeyman.db.profile.window.showQuestLevel)
     local questLink = string.format("[%s (%d)]", questName, questId)
     ChatEdit_InsertLink(questLink)
+end
+
+function Window:ShowItem(itemId)
+    local itemLink = select(2, GetItemInfo(itemId))
+    if String:IsNilOrEmpty(itemLink) then
+        local item = Item:CreateFromItemID(itemId)
+        if not item:IsItemEmpty() then
+            item:ContinueOnItemLoad(function() Window:ShowItem(itemId) end)
+        end
+        return
+    end
+    ShowUIPanel(ItemRefTooltip)
+    ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
+    ItemRefTooltip:SetHyperlink(itemLink)
+    ItemRefTooltip:Show()
 end
 
 function Window:LinkItem(itemId)
