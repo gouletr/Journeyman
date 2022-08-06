@@ -161,6 +161,7 @@ function Journeyman:InitializeEvents()
             end
             self.lastSpellCast = nil
         end
+        Journeyman:Update()
     end)
 
     self:RegisterEvent("TAXIMAP_OPENED", function(event, uiMapSystem)
