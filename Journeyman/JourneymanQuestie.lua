@@ -168,7 +168,7 @@ local function GetNearestItem(items, player, zoneFilter, sameContinent)
                         bestMapId = nearest.mapId
                         bestName = nearest.name
                         bestId = nearest.id
-                        bestType = "NPC Drop"
+                        bestType = "NPC"
                     end
                 end
                 if item.objectDrops then
@@ -180,7 +180,7 @@ local function GetNearestItem(items, player, zoneFilter, sameContinent)
                         bestMapId = nearest.mapId
                         bestName = nearest.name
                         bestId = nearest.id
-                        bestType = "Object Drop"
+                        bestType = "Object"
                     end
                 end
                 if item.itemDrops then
@@ -192,7 +192,7 @@ local function GetNearestItem(items, player, zoneFilter, sameContinent)
                         bestMapId = nearest.mapId
                         bestName = nearest.name
                         bestId = nearest.id
-                        bestType = "Item Drop"
+                        bestType = "Item"
                     end
                 end
             end
@@ -388,13 +388,13 @@ local function GetQuestObjectivesItem(result, items, type, isComplete)
                     GetQuestObjectivesNPC(sources, item.vendors, "Vendor", isComplete)
                 end
                 if item.npcDrops then
-                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC Drop", isComplete)
+                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC", isComplete)
                 end
                 if item.objectDrops then
-                    GetQuestObjectivesObject(sources, item.objectDrops, "Object Drop", isComplete)
+                    GetQuestObjectivesObject(sources, item.objectDrops, "Object", isComplete)
                 end
                 if item.itemDrops then
-                    GetQuestObjectivesItem(sources, item.itemDrops, "Item Drop", isComplete)
+                    GetQuestObjectivesItem(sources, item.itemDrops, "Item", isComplete)
                 end
                 objective.sources = sources
                 tinsert(result, objective)
@@ -897,7 +897,7 @@ function DataSourceQuestie:_IsQuestStartedFromNPCDrop(questId)
     end
 
     local location = self:GetNearestQuestStarter(questId)
-    if location and location.type == "NPC Drop" then
+    if location and location.type == "NPC" then
         return true
     end
 

@@ -630,7 +630,7 @@ function State:IsStepComplete(step)
         elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
             return Journeyman:IsSpellKnown(Journeyman.SPELL_FISHING_APPRENTICE)
         elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
-            return List:All(step.data.items, function(item) return Journeyman:IsItemInBags(item.id, item.count) end)
+            return List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             -- Can't verify
         end
@@ -741,9 +741,9 @@ function State:GetStepLocation(step)
         return Journeyman.DataSource:GetNearestFishingTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
         local items = {}
-        local hasAll = List:All(step.data.items, function(item) return Journeyman:IsItemInBags(item.id, item.count) end)
+        local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
         local items = List:Select(step.data.items, function(item)
-            if hasAll or not Journeyman:IsItemInBags(item.id, item.count) then
+            if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
                 return item.id
             end
         end)

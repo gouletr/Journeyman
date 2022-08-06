@@ -510,7 +510,7 @@ function Window:DisplayStep(step, depth)
         elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_ACQUIRE_ITEMS"], "")
             List:ForEach(step.data.items, function(item)
-                local isComplete = Journeyman:IsItemInBags(item.id, item.count)
+                local isComplete = Journeyman:GetItemCountInBags(item.id) >= item.count
                 if not isComplete or Journeyman.db.profile.window.showCompletedSteps then
                     local itemName = Journeyman:GetItemName(item.id, function() Window:Update() end)
                     local itemCount = math.min(Journeyman:GetItemCountInBags(item.id), item.count)

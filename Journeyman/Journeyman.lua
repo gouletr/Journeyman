@@ -400,24 +400,6 @@ function Journeyman:GetItemCountInBags(itemId)
     end
 end
 
-function Journeyman:IsItemInBags(itemId, itemCount)
-    if itemId and type(itemId) == "number" then
-        if not itemCount or type(itemCount) ~= "number" then
-            itemCount = 1
-        end
-        local counter = 0
-        for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-            for slot = 1, GetContainerNumSlots(bag) do
-                local _, count, _, _, _, _, _, _, _, id = GetContainerItemInfo(bag, slot)
-                if id == itemId then
-                    counter = counter + count
-                end
-            end
-        end
-        return counter == itemCount
-    end
-end
-
 function Journeyman:IsItemQuestItem(itemId)
     if type(itemId) == "number" then
         -- Database correction: some items are falsely reported as quest items
@@ -1143,7 +1125,7 @@ function Journeyman:SetWaypoint(step, force)
     local clearDistance = 0
     local arrivalDistance = 5
     if step.type == self.STEP_TYPE_COMPLETE_QUEST then
-        if location.type == "NPC" or location.type == "NPC Drop" then
+        if location.type == "NPC" then
             minDistance = 15
             clearDistance = 15
             arrivalDistance = 30
@@ -1171,7 +1153,7 @@ local function GetNPCNamesRecurse(objectives)
     local result = {}
     List:ForEach(objectives, function(objective)
         if not objective.isComplete then
-            if String:Contains(objective.type, "NPC") then
+            if objective.type == "NPC" then
                 List:Add(result, objective.name)
             end
             if objective.sources then
@@ -1219,7 +1201,7 @@ function Journeyman:SetMacro(step)
     local body = ""
     local suffix = "/cleartarget [noexists][dead]\n/tm [exists] 8\n"
     if step then
-        if step.type == self.STEP_TYPE_ACCEPT_QUEST then
+        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
             local location = self.DataSource:GetNearestQuestStarter(step.data.questId)
             if location and not String:IsNilOrEmpty(location.name) then
                 local command = string.format("/tar [noexists][dead] %s\n", location.name)
@@ -1227,7 +1209,7 @@ function Journeyman:SetMacro(step)
                     body = body..command
                 end
             end
-        elseif step.type == self.STEP_TYPE_COMPLETE_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
             if objectives then
                 local names = GetNPCNamesRecurse(objectives)
@@ -1244,7 +1226,7 @@ function Journeyman:SetMacro(step)
                     end
                 end
             end
-        elseif step.type == self.STEP_TYPE_TURNIN_QUEST then
+        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             local location = self.DataSource:GetNearestQuestFinisher(step.data.questId)
             if location and not String:IsNilOrEmpty(location.name) then
                 local command = string.format("/tar [noexists][dead] %s\n", location.name)
