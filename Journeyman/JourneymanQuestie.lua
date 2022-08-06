@@ -450,23 +450,29 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
             end
         end
 
-        if quest.requiredSourceItems then
+        if quest.sourceItemId then -- Item provided by quest starter
+            GetQuestObjectivesItem(result, { quest.sourceItemId }, "Item", false)
+        end
+
+        if quest.requiredSourceItems then -- Items that are not an objective but still needed for the quest
             GetQuestObjectivesItem(result, quest.requiredSourceItems, "Item", false)
         end
 
-        if quest.extraObjectives then
+        if quest.extraObjectives then -- Extra custom objectives needed for the quest
             List:ForEach(quest.extraObjectives, function(extraObjective)
-                List:ForEach(extraObjective[5], function(entity)
-                    local type = entity[1]
-                    local id = entity[2]
-                    if type == "monster" then
-                        GetQuestObjectivesNPC(result, { id }, "NPC", false)
-                    elseif type == "object" then
-                        GetQuestObjectivesObject(result, { id }, "Object", false)
-                    elseif type == "item" then
-                        GetQuestObjectivesItem(result, { id }, "Item", false)
-                    end
-                end)
+                if extraObjective and extraObjective[5] then
+                    List:ForEach(extraObjective[5], function(entity)
+                        local type = entity[1]
+                        local id = entity[2]
+                        if type == "monster" then
+                            GetQuestObjectivesNPC(result, { id }, "NPC", false)
+                        elseif type == "object" then
+                            GetQuestObjectivesObject(result, { id }, "Object", false)
+                        elseif type == "item" then
+                            GetQuestObjectivesItem(result, { id }, "Item", false)
+                        end
+                    end)
+                end
             end)
         end
 
@@ -575,7 +581,7 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
         end
     end
 
-    if quest.requiredSourceItems then
+    if quest.requiredSourceItems then -- Items that are not an objective but still needed for the quest
         local nearest = GetNearestItem(quest.requiredSourceItems, player)
         if nearest and nearest.distance < bestDistance then
             bestDistance = nearest.distance
@@ -588,20 +594,22 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
         end
     end
 
-    if quest.extraObjectives then
+    if quest.extraObjectives then -- Extra custom objectives needed for the quest
         List:ForEach(quest.extraObjectives, function(extraObjective)
-            List:ForEach(extraObjective[5], function(entity)
-                local nearest = GetNearestEntityLocation({ Type = entity[1], Id = entity[2] }, player)
-                if nearest and nearest.distance < bestDistance then
-                    bestDistance = nearest.distance
-                    bestX = nearest.x
-                    bestY = nearest.y
-                    bestMapId = nearest.mapId
-                    bestName = nearest.name
-                    bestId = nearest.id
-                    bestType = nearest.type
-                end
-            end)
+            if extraObjective and extraObjective[5] then
+                List:ForEach(extraObjective[5], function(entity)
+                    local nearest = GetNearestEntityLocation({ Type = entity[1], Id = entity[2] }, player)
+                    if nearest and nearest.distance < bestDistance then
+                        bestDistance = nearest.distance
+                        bestX = nearest.x
+                        bestY = nearest.y
+                        bestMapId = nearest.mapId
+                        bestName = nearest.name
+                        bestId = nearest.id
+                        bestType = nearest.type
+                    end
+                end)
+            end
         end)
     end
 
