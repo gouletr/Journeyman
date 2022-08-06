@@ -91,13 +91,13 @@ end
 function Journeyman:SerializeDatabase()
     -- Serialize journeys
     if self.journeys and type(self.journeys) == "table" then
-        self.db.profile.journeys = {}
+        self.db.global.journeys = {}
         for i = 1, #self.journeys do
             local journey = self.journeys[i]
             if journey then
                 local serialized = self:ExportJourney(journey)
                 if serialized then
-                    List:Add(self.db.profile.journeys, serialized)
+                    List:Add(self.db.global.journeys, serialized)
                 end
             end
         end
@@ -106,17 +106,23 @@ end
 
 function Journeyman:DeserializeDatabase()
     -- Deserialize journeys
-    if self.db.profile.journeys and type(self.db.profile.journeys) == "table" then
-        self.journeys = {}
-        for i = 1, #self.db.profile.journeys do
-            local journey = self.db.profile.journeys[i]
-            if journey then
-                local deserialized = self:ImportJourney(journey)
-                if deserialized then
-                    List:Add(self.journeys, deserialized)
-                end
-            end
+    if self.db.global.journeys and type(self.db.global.journeys) == "table" then
+        -- Migrate from profile db
+        if self.db.profile.journeys and type(self.db.profile.journeys) == "table" then
+            List:ForEach(self.db.profile.journeys, function(journey)
+                List:Add(self.db.global.journeys, journey)
+            end)
+            self.db.profile.journeys = nil
         end
+
+        -- Import journeys
+        self.journeys = {}
+        List:ForEach(self.db.global.journeys, function(journey)
+            local deserialized = self:ImportJourney(journey)
+            if deserialized then
+                List:Add(self.journeys, deserialized)
+            end
+        end)
     end
 
     -- Validate active chapter
