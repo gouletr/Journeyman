@@ -240,8 +240,7 @@ end
 
 function State:GetActiveSteps()
     local steps = {}
-    local journey = Journeyman.Journey:GetActiveJourney()
-    local chapter = Journeyman.Journey:GetActiveChapter(journey)
+    local chapter = Journeyman:GetActiveJourneyChapter()
     if chapter and type(chapter) == "table" then
         -- Clone active steps
         local index = 1

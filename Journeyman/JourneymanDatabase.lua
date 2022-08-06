@@ -120,7 +120,7 @@ function Journeyman:DeserializeDatabase()
     end
 
     -- Validate active chapter
-    local journey = Journeyman.Journey:GetActiveJourney()
+    local journey = Journeyman:GetActiveJourney()
     if journey then
         if #journey.chapters <= 0 then
             self.db.char.chapter = -1

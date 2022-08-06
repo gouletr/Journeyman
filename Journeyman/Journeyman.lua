@@ -209,6 +209,8 @@ function Journeyman:OnDisable()
 end
 
 function Journeyman:Reset(immediate)
+    self.activeJourney = nil
+    self.activeJourneyChapter = nil
     if self.db.char.window.show then
         self.State:Reset(immediate)
     end
@@ -601,19 +603,23 @@ end
 
 function Journeyman:GetJourney(journey)
     assert(type(journey) ~= "table")
-    if type(journey) == "number" then
-        return self.journeys[journey]
-    elseif type(journey) == "string" then
-        return self:GetJourney(self:GetJourneyIndex(journey))
+    if self.journeys then
+        if type(journey) == "number" then
+            return self.journeys[journey]
+        elseif type(journey) == "string" then
+            return self:GetJourney(self:GetJourneyIndex(journey))
+        end
     end
 end
 
 function Journeyman:GetJourneyIndex(journey)
     assert(type(journey) ~= "number")
-    if type(journey) == "table" then
-        return List:FindIndex(self.journeys, function(j) return j == journey end)
-    elseif type(journey) == "string" then
-        return List:FindIndex(self.journeys, function(j) return j.guid == journey end)
+    if self.journeys then
+        if type(journey) == "table" then
+            return List:FindIndex(self.journeys, function(j) return j == journey end)
+        elseif type(journey) == "string" then
+            return List:FindIndex(self.journeys, function(j) return j.guid == journey end)
+        end
     end
 end
 
@@ -634,11 +640,14 @@ function Journeyman:GetJourneyState(journey)
 end
 
 function Journeyman:GetActiveJourney()
-    return self:GetJourney(self.db.char.journey)
+    if self.activeJourney == nil then
+        self.activeJourney = self:GetJourney(self.db.char.journey)
+    end
+    return self.activeJourney
 end
 
 function Journeyman:GetActiveJourneyState()
-    return self:GetJourneyState(self.db.char.journey)
+    return self:GetJourneyState(self:GetActiveJourney())
 end
 
 function Journeyman:ResetJourneyState(journey)
@@ -652,7 +661,7 @@ function Journeyman:ResetJourneyState(journey)
 end
 
 function Journeyman:ResetActiveJourneyState()
-    self:ResetActiveJourneyState(self.db.char.journey)
+    self:ResetActiveJourneyState(self:GetActiveJourney())
 end
 
 function Journeyman:GetJourneyChapter(journey, chapterIndex)
@@ -692,11 +701,14 @@ function Journeyman:GetJourneyChapterState(journey, chapter)
 end
 
 function Journeyman:GetActiveJourneyChapter()
-    return self:GetJourneyChapter(self.db.char.journey, self.db.char.chapter)
+    if self.activeJourneyChapter == nil then
+        self.activeJourneyChapter = self:GetJourneyChapter(self:GetActiveJourney(), self.db.char.chapter)
+    end
+    return self.activeJourneyChapter
 end
 
 function Journeyman:GetActiveJourneyChapterState()
-    return self:GetJourneyChapterState(self.db.char.journey, self.db.char.chapter)
+    return self:GetJourneyChapterState(self:GetActiveJourney(), self:GetActiveJourneyChapter())
 end
 
 function Journeyman:ResetJourneyChapterState(journey, chapter)
@@ -714,7 +726,8 @@ function Journeyman:ResetJourneyChapterState(journey, chapter)
 end
 
 function Journeyman:ResetActiveJourneyChapterState()
-    self:ResetJourneyChapterState(self.db.char.journey, self.db.char.chapter)
+    self:ResetJourneyChapterState(self:GetActiveJourney(), self:GetActiveJourneyChapter())
+end
 end
 
 function Journeyman:IsStepComplete(step)
