@@ -352,49 +352,49 @@ function DataSourceQuestie:GetQuestLevel(questId)
     return QuestieLib:GetTbcLevel(questId)
 end
 
-local function GetQuestObjectivesNPC(result, npcs, type, isComplete)
+local function GetQuestObjectivesNPC(result, npcs, type, isComplete, objectiveIndex)
     for i = 1, #npcs do
         local npcId = npcs[i]
         if npcId then
             local npc = QuestieDB:GetNPC(npcId)
             if npc then
-                tinsert(result, { name = npc.name, id = npcId, type = type, isComplete = isComplete })
+                tinsert(result, { name = npc.name, id = npcId, type = type, isComplete = isComplete, objectiveIndex = objectiveIndex })
             end
         end
     end
 end
 
-local function GetQuestObjectivesObject(result, objects, type, isComplete)
+local function GetQuestObjectivesObject(result, objects, type, isComplete, objectiveIndex)
     for i = 1, #objects do
         local objectId = objects[i]
         if objectId then
             local obj = QuestieDB:GetObject(objectId)
             if obj then
-                tinsert(result, { name = obj.name, id = objectId, type = type, isComplete = isComplete })
+                tinsert(result, { name = obj.name, id = objectId, type = type, isComplete = isComplete, objectiveIndex = objectiveIndex })
             end
         end
     end
 end
 
-local function GetQuestObjectivesItem(result, items, type, isComplete)
+local function GetQuestObjectivesItem(result, items, type, isComplete, objectiveIndex)
     for i = 1, #items do
         local itemId = items[i]
         if itemId then
             local item = QuestieDB:GetItem(itemId)
             if item then
-                local objective = { name = item.name, id = itemId, type = type, class = item.class, subClass = item.subClass, isComplete = isComplete }
+                local objective = { name = item.name, id = itemId, type = type, class = item.class, subClass = item.subClass, isComplete = isComplete, objectiveIndex = objectiveIndex }
                 local sources = {}
                 if item.vendors then
-                    GetQuestObjectivesNPC(sources, item.vendors, "Vendor", isComplete)
+                    GetQuestObjectivesNPC(sources, item.vendors, "Vendor", isComplete, objectiveIndex)
                 end
                 if item.npcDrops then
-                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC", isComplete)
+                    GetQuestObjectivesNPC(sources, item.npcDrops, "NPC", isComplete, objectiveIndex)
                 end
                 if item.objectDrops then
-                    GetQuestObjectivesObject(sources, item.objectDrops, "Object", isComplete)
+                    GetQuestObjectivesObject(sources, item.objectDrops, "Object", isComplete, objectiveIndex)
                 end
                 if item.itemDrops then
-                    GetQuestObjectivesItem(sources, item.itemDrops, "Item", isComplete)
+                    GetQuestObjectivesItem(sources, item.itemDrops, "Item", isComplete, objectiveIndex)
                 end
                 objective.sources = sources
                 tinsert(result, objective)
@@ -413,19 +413,19 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
                 local objective = quest.ObjectiveData[objectiveIndex]
                 local isComplete = questLogObjectives[objectiveIndex].finished == true
                 if objective.NPC then
-                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete)
+                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete, objectiveIndex)
                 elseif objective.GameObject then
-                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete)
+                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete, objectiveIndex)
                 elseif objective.Item then
-                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete)
+                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete, objectiveIndex)
                 elseif objective.Type == "monster" then
-                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete)
+                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete, objectiveIndex)
                 elseif objective.Type == "object" then
-                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete)
+                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete, objectiveIndex)
                 elseif objective.Type == "item" then
-                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete)
+                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete, objectiveIndex)
                 elseif objective.Type == "event" then
-                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete })
+                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete, objectiveIndex = objectiveIndex })
                 end
             end
         else
@@ -433,19 +433,19 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
                 local objective = quest.ObjectiveData[objectiveIndex]
                 local isComplete = questLogObjectives[objectiveIndex].finished == true
                 if objective.NPC then
-                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete)
+                    GetQuestObjectivesNPC(result, objective.NPC, "NPC", isComplete, objectiveIndex)
                 elseif objective.GameObject then
-                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete)
+                    GetQuestObjectivesObject(result, objective.GameObject, "Object", isComplete, objectiveIndex)
                 elseif objective.Item then
-                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete)
+                    GetQuestObjectivesItem(result, objective.Item, "Item", isComplete, objectiveIndex)
                 elseif objective.Type == "monster" then
-                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete)
+                    GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete, objectiveIndex)
                 elseif objective.Type == "object" then
-                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete)
+                    GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete, objectiveIndex)
                 elseif objective.Type == "item" then
-                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete)
+                    GetQuestObjectivesItem(result, { objective.Id }, "Item", isComplete, objectiveIndex)
                 elseif objective.Type == "event" then
-                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete })
+                    tinsert(result, { name = objective.Text, type = "Event", isComplete = isComplete, objectiveIndex = objectiveIndex })
                 end
             end
         end

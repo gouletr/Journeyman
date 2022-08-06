@@ -39,6 +39,7 @@ JourneymanHooks.lua
 JourneymanEvents.lua
 JourneymanJourneys.lua
 JourneymanWindow.lua
+JourneymanTooltips.lua
 
 # Data sources
 JourneymanQuestie.lua
