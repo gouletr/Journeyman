@@ -528,6 +528,7 @@ function Window:DisplayStep(step, depth)
         -- Display step note
         if step.note and string.len(step.note) > 0 then
             local note = self:ReplaceAllShortLinks(L[step.note], step.isComplete, function() Window:Update() end)
+            note = note:gsub("%%", "%%%%") -- Escape percent sign
             self:GetNextLine():SetFormattedText(depth, self:GetColoredStepText(string.format(L["STEP_TEXT_NOTE"], note), step.isComplete))
         end
     end
