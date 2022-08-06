@@ -1406,6 +1406,21 @@ function Journeyman:SetMacro(step)
                     body = body..command
                 end
             end
+        elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+            local items = {}
+            local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
+            local items = List:Select(step.data.items, function(item)
+                if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
+                    return item.id
+                end
+            end)
+            local location = Journeyman.DataSource:GetNearestItemLocation(items)
+            if location and not String:IsNilOrEmpty(location.name) then
+                local command = string.format("/tar [noexists][dead] %s\n", location.name)
+                if body:len() + command:len() + suffix:len() <= 255 then
+                    body = body..command
+                end
+            end
         end
     end
 
