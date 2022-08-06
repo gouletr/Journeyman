@@ -11,18 +11,13 @@ local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local TomTom = TomTom
 
-local function round(num)
-  return num + (2^52 + 2^51) - (2^52 + 2^51)
-end
-
 local HEADER_HEIGHT = 24
 local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
 local TEXT_COLOR_HIGHLIGHT = "FFFFFFFF"
-local QUEST_COLOR_RED = "FFFF1A1A"
-local QUEST_COLOR_ORANGE = "FFFF8040"
-local QUEST_COLOR_YELLOW = "FFFFFF00"
-local QUEST_COLOR_GREEN = "FF40C040"
-local QUEST_COLOR_GREY = "FFC0C0C0"
+
+local function round(num)
+  return num + (2^52 + 2^51) - (2^52 + 2^51)
+end
 
 function Window:Initialize()
     self.lines = {}
@@ -780,23 +775,8 @@ function Window:GetColoredQuestText(questId, isComplete)
     if questName == nil then return string.format("quest:%s", questId) end
 
     if not isComplete then
-        local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
-        if questLevel ~= nil then
-            local colorHex
-            local levelDiff = questLevel - Journeyman.player.level
-            if levelDiff >= 5 then
-                colorHex = QUEST_COLOR_RED
-            elseif levelDiff >= 3 then
-                colorHex = QUEST_COLOR_ORANGE
-            elseif levelDiff >= -2 then
-                colorHex = QUEST_COLOR_YELLOW
-            elseif -levelDiff <= Journeyman.player.greenRange then
-                colorHex = QUEST_COLOR_GREEN
-            else
-                colorHex = QUEST_COLOR_GREY
-            end
-            return string.format("|c%s%s|r", colorHex, questName)
-        end
+        local questColor = Journeyman:GetQuestColor(questId)
+        return string.format("|c%s%s|r", questColor, questName)
     end
 
     return questName

@@ -10,6 +10,12 @@ local List = LibStub("LibCollections-1.0").List
 local Dict = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
 
+local QUEST_COLOR_RED = "FFFF1A1A"
+local QUEST_COLOR_ORANGE = "FFFF8040"
+local QUEST_COLOR_YELLOW = "FFFFFF00"
+local QUEST_COLOR_GREEN = "FF40C040"
+local QUEST_COLOR_GREY = "FFC0C0C0"
+
 Journeyman.BYTE_ORDER_MARK = "!JM1"
 Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
@@ -317,6 +323,34 @@ function Journeyman:GetQuestLog()
         end
     end
     return questLog
+end
+
+function Journeyman:GetQuestName(questId, showLevel, showId)
+    local questName = Journeyman.DataSource:GetQuestName(questId, showLevel, showId)
+    if not String:IsNilOrEmpty(questName) then
+        return questName
+    end
+    return string.format("quest:%s", questId)
+end
+
+function Journeyman:GetQuestColor(questId)
+    local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
+    if questLevel then
+        local colorHex
+        local levelDiff = questLevel - Journeyman.player.level
+        if levelDiff >= 5 then
+            return QUEST_COLOR_RED
+        elseif levelDiff >= 3 then
+            return QUEST_COLOR_ORANGE
+        elseif levelDiff >= -2 then
+            return QUEST_COLOR_YELLOW
+        elseif -levelDiff <= Journeyman.player.greenRange then
+            return QUEST_COLOR_GREEN
+        else
+            return QUEST_COLOR_GREY
+        end
+    end
+    return "FFFFFFFF"
 end
 
 function Journeyman:GetItemName(itemId, callback)
@@ -935,7 +969,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
     local data = self:GetStepData(step)
     if self:IsStepTypeQuest(step) then
         local questId = data and data.questId or 0
-        local questName = self.DataSource:GetQuestName(questId, showQuestLevel, showId)
+        local questName = self:GetQuestName(questId, showQuestLevel, showId)
         if questName == nil then
             questName = string.format("quest:%d", questId)
         end
