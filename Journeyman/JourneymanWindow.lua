@@ -885,6 +885,9 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
     for match, spellId in input:gmatch("(spell:(%d+))") do
         List:Add(matches, { match = match, spellId = tonumber(spellId) })
     end
+    for match, questId in input:gmatch("(quest:(%d+))") do
+        List:Add(matches, { match = match, questId = tonumber(questId) })
+    end
     for match, mapId in input:gmatch("(map:(%d+))") do
         List:Add(matches, { match = match, mapId = tonumber(mapId) })
     end
@@ -894,8 +897,8 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
     for match, areaId in input:gmatch("(area:(%d+))") do
         List:Add(matches, { match = match, areaId = tonumber(areaId) })
     end
-    for match, questId in input:gmatch("(quest:(%d+))") do
-        List:Add(matches, { match = match, questId = tonumber(questId) })
+    for match, taxiNodeId in input:gmatch("(taxi:(%d+))") do
+        List:Add(matches, { match = match, taxiNodeId = tonumber(taxiNodeId) })
     end
 
     -- Replace all short links we found
@@ -920,6 +923,11 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
             if not String:IsNilOrEmpty(spellName) and spellName ~= m.match then
                 result = result:gsub(m.match, self:GetColoredHighlightText(spellName, isComplete))
             end
+        elseif m.questId then
+            local questName = self:GetColoredQuestText(m.questId, isComplete)
+            if not String:IsNilOrEmpty(questName) and questName ~= m.match then
+                result = result:gsub(m.match, questName)
+            end
         elseif m.mapId then
             local mapName = Journeyman:GetMapNameById(m.mapId)
             if not String:IsNilOrEmpty(mapName) and mapName ~= m.match then
@@ -930,10 +938,10 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
             if not String:IsNilOrEmpty(areaName) and areaName ~= m.match then
                 result = result:gsub(m.match, self:GetColoredHighlightText(areaName, isComplete))
             end
-        elseif m.questId then
-            local questName = self:GetColoredQuestText(m.questId, isComplete)
-            if not String:IsNilOrEmpty(questName) and questName ~= m.match then
-                result = result:gsub(m.match, questName)
+        elseif m.taxiNodeId then
+            local taxiNodeName = Journeyman:GetTaxiNodeName(m.taxiNodeId)
+            if not String:IsNilOrEmpty(taxiNodeName) and taxiNodeName ~= m.match then
+                result = result:gsub(m.match, self:GetColoredHighlightText(taxiNodeName, isComplete))
             end
         end
     end)
