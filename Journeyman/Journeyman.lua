@@ -217,6 +217,7 @@ end
 function Journeyman:Reset(immediate)
     self.activeJourney = nil
     self.activeJourneyChapter = nil
+    self.loadJourneyDataTask = nil
     if self.db.char.window.show then
         self.State:Reset(immediate)
     end
@@ -744,6 +745,177 @@ end
 function Journeyman:ResetActiveJourneyChapterState()
     self:ResetJourneyChapterState(self:GetActiveJourney(), self:GetActiveJourneyChapter())
 end
+
+local function AddJourneyQuestObjectiveData(journey, questId, questData, objective, parentObjective)
+    if objective.type == "NPC" or objective.type == "Vendor" then
+        local npcId = objective.id
+        local npcData = journey.npcs[npcId]
+        if npcData == nil then
+            npcData = { quests = {} }
+            journey.npcs[npcId] = npcData
+        end
+        local quest = { id = questId, objectiveType = objective.type, objectiveIndex = objective.objectiveIndex }
+        if parentObjective then
+            if parentObjective.type == "NPC" or parentObjective.type == "Vendor" then
+                quest.npcId = parentObjective.id
+            elseif parentObjective.type == "Item" then
+                quest.itemId = parentObjective.id
+            end
+        end
+        List:Add(npcData.quests, quest)
+        List:Add(questData.npcs, npcId)
+    elseif objective.type == "Item" then
+        local itemId = objective.id
+        local itemData = journey.items[itemId]
+        if itemData == nil then
+            itemData = { quests = {} }
+            journey.items[itemId] = itemData
+        end
+        local quest = { id = questId, objectiveType = objective.type, objectiveIndex = objective.objectiveIndex }
+        if parentObjective then
+            if parentObjective.type == "NPC" or parentObjective.type == "Vendor" then
+                quest.npcId = parentObjective.id
+            elseif parentObjective.type == "Item" then
+                quest.itemId = parentObjective.id
+            end
+        end
+        List:Add(itemData.quests, quest)
+        List:Add(questData.items, itemId)
+    end
+
+    if objective.sources then
+        List:ForEach(objective.sources, function(source)
+            AddJourneyQuestObjectiveData(journey, questId, questData, source, objective)
+        end)
+    end
+end
+
+local function AddJourneyQuestData(journey, questId)
+    local questData = journey.quests[questId]
+    if questData == nil then
+        questData = { npcs = {}, items = {} }
+        journey.quests[questId] = questData
+
+        local objectives = Journeyman.DataSource:GetQuestObjectives(questId)
+        if objectives then
+            List:ForEach(objectives, function(objective)
+                AddJourneyQuestObjectiveData(journey, questId, questData, objective)
+            end)
+        end
+    end
+end
+
+local function LoadJourneyData(journey, callback)
+    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then
+        coroutine.yield()
+    end
+
+    journey.quests = {}
+    journey.npcs = {}
+    journey.items = {}
+
+    -- Get quest and item data for entire journey
+    List:ForEach(journey.chapters, function(chapter)
+        List:ForEach(chapter.steps, function(step)
+            -- Only consider 'complete quest' step type
+            if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+                local data = Journeyman:GetStepData(step)
+                if data and data.questId then
+                    AddJourneyQuestData(journey, data.questId)
+                end
+            end
+        end)
+        coroutine.yield() -- Yield after every chapter
+    end)
+
+    -- Execute callback after loading is finished
+    if callback and type(callback) == "function" then
+        callback()
+    end
+end
+
+function Journeyman:GetJourneyQuestData(journey, questId, callback)
+    -- If data is loading, return nil
+    if self.loadJourneyDataTask then
+        return nil
+    end
+
+    -- Get journey
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if journey == nil then
+        return nil
+    end
+
+    -- If data is not loaded, start task
+    if journey.quests == nil then
+        self.loadJourneyDataTask = coroutine.create(LoadJourneyData)
+        coroutine.resume(self.loadJourneyDataTask, journey, callback)
+        return nil
+    end
+
+    return journey.quests[questId]
+end
+
+function Journeyman:GetActiveJourneyQuestData(questId, callback)
+    return self:GetJourneyQuestData(self:GetActiveJourney(), questId, callback)
+end
+
+function Journeyman:GetJourneyItemData(journey, itemId, callback)
+    -- If data is loading, return nil
+    if self.loadJourneyDataTask then
+        return nil
+    end
+
+    -- Get journey
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if journey == nil then
+        return nil
+    end
+
+    -- If data is not loaded, start task
+    if journey.items == nil then
+        self.loadJourneyDataTask = coroutine.create(LoadJourneyData)
+        coroutine.resume(self.loadJourneyDataTask, journey, callback)
+        return nil
+    end
+
+    return journey.items[itemId]
+end
+
+function Journeyman:GetActiveJourneyItemData(itemId, callback)
+    return self:GetJourneyItemData(self:GetActiveJourney(), itemId, callback)
+end
+
+function Journeyman:GetJourneyNPCData(journey, npcId, callback)
+    -- If data is loading, return nil
+    if self.loadJourneyDataTask then
+        return nil
+    end
+
+    -- Get journey
+    if type(journey) ~= "table" then
+        journey = self:GetJourney(journey)
+    end
+    if journey == nil then
+        return nil
+    end
+
+    -- If data is not loaded, start task
+    if journey.npcs == nil then
+        self.loadJourneyDataTask = coroutine.create(LoadJourneyData)
+        coroutine.resume(self.loadJourneyDataTask, journey, callback)
+        return nil
+    end
+
+    return journey.npcs[npcId]
+end
+
+function Journeyman:GetActiveJourneyNPCData(npcId, callback)
+    return self:GetJourneyNPCData(self:GetActiveJourney(), npcId, callback)
 end
 
 function Journeyman:IsStepComplete(step)

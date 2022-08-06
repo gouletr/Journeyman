@@ -211,6 +211,20 @@ function Window:Initialize()
         InterfaceOptionsFrame_OpenToCategory(Journeyman.generalPanel)
     end)
     self.journeySelectionButton = journeySelectionButton
+
+    -- Hook OnUpdate for coroutines
+    frame:HookScript("OnUpdate", function()
+        if Journeyman.loadJourneyDataTask then
+            local status = coroutine.status(Journeyman.loadJourneyDataTask)
+            if status == "suspended" then
+                coroutine.resume(Journeyman.loadJourneyDataTask)
+            elseif status == "running" then
+            elseif status == "normal" then
+            elseif status == "dead" then
+                Journeyman.loadJourneyDataTask = nil
+            end
+        end
+    end)
 end
 
 function Window:Shutdown()
