@@ -154,11 +154,14 @@ for i = 1, #taxiNodeIdsToSkip do
 end
 
 function Journeyman:OnInitialize()
+    self.factionNameLocalToFactionId = {}
+
     self.player = {}
 
     local factionName, factionNameLocal = UnitFactionGroup("player")
     self.player.factionName = factionName
     self.player.factionNameLocal = factionNameLocal
+    self.player.factionGained = {}
 
     local raceNameLocal, raceName, raceId = UnitRace("player")
     self.player.raceName = raceName
@@ -446,6 +449,22 @@ function Journeyman:GetFactionName(factionId)
         end
         return "faction:"..factionId
     end
+end
+
+function Journeyman:GetFactionId(factionNameLocal)
+    if self.factionNameLocalToFactionId[factionNameLocal] == nil then
+        local n = GetNumFactions()
+        for i = 1, n do
+            local name, _, _, _, _, _, _, _, isHeader, _, hasRep, _, _, id = GetFactionInfo(i)
+            if hasRep or not isHeader then
+                name = String:Trim(name)
+                if self.factionNameLocalToFactionId[name] == nil then
+                    self.factionNameLocalToFactionId[name] = id
+                end
+            end
+        end
+    end
+    return self.factionNameLocalToFactionId[factionNameLocal]
 end
 
 function Journeyman:GetStandingLabel(standingId)

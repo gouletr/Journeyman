@@ -3,6 +3,7 @@ local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local State = Journeyman.State
+local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 
@@ -105,10 +106,26 @@ function Journeyman:InitializeEvents()
         end)
     end)
 
-    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, arg1)
-        local xpGained = tonumber(string.match(arg1, "dies, you gain (%d+) experience"))
-        if xpGained and xpGained > 0 then
-            Journeyman.player.xpGained = xpGained
+    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, supressRaidIcons)
+        local npcName, xpGained = string.match(text, L["REGEX_COMBAT_XP_GAIN"])
+        if npcName and xpGained then
+            npcName = String:Trim(npcName)
+            xpGained = tonumber(xpGained)
+            if xpGained and xpGained > 0 then
+                Journeyman.player.xpGained = xpGained
+            end
+        end
+    end)
+
+    self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", function(event, text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, supressRaidIcons)
+        local factionName, factionGained = string.match(text, L["REGEX_COMBAT_FACTION_CHANGE"])
+        if factionName and factionGained then
+            factionName = String:Trim(factionName)
+            factionGained = tonumber(factionGained)
+            local factionId = Journeyman:GetFactionId(factionName)
+            if factionId and factionGained > 0 then
+                Journeyman.player.factionGained[factionId] = factionGained
+            end
         end
     end)
 

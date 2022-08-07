@@ -479,7 +479,8 @@ function Window:DisplayStep(step, depth)
                 local objectiveText = string.format(L["STEP_TEXT_GAIN_XP"], gainXP)
                 if Journeyman.player.xpGained then
                     local count = math.ceil(gainXP / Journeyman.player.xpGained)
-                    objectiveText = string.format("%s (%s kill)", objectiveText, count)
+                    local countText = string.format(L["NUMBER_OF_KILL"], count)
+                    objectiveText = string.format("%s (%s)", objectiveText, countText)
                 end
                 self:GetNextLine():SetFormattedText(depth + 1, self:GetColoredHighlightText(objectiveText, step.isComplete))
             end
@@ -491,9 +492,15 @@ function Window:DisplayStep(step, depth)
             local standingLabel = Journeyman:GetStandingLabel(standingId)
             self:GetNextLine():SetStepText(step, depth, L["STEP_TEXT_REACH_REPUTATION"], self:GetColoredHighlightText(standingLabel, step.isComplete), self:GetColoredHighlightText(factionName, step.isComplete))
             -- Step objective text
-            local name, _, currentStandingId, barMin, barMax, barValue = GetFactionInfoByID(factionId)
-            if name and currentStandingId then
-                local objectiveText = string.format("Gain %s %s reputation", barMax - barValue, factionName)
+            local _, _, currentStandingId, barMin, barMax, barValue = GetFactionInfoByID(factionId)
+            if currentStandingId < standingId then
+                local gainFaction = barMax - barValue
+                local objectiveText = string.format(L["STEP_TEXT_GAIN_REP"], gainFaction)
+                if Journeyman.player.factionGained[factionId] then
+                    local count = math.ceil(gainFaction / Journeyman.player.factionGained[factionId])
+                    local countText = string.format(L["NUMBER_OF_KILL"], count)
+                    objectiveText = string.format("%s (%s)", objectiveText, countText)
+                end
                 self:GetNextLine():SetFormattedText(depth + 1, self:GetColoredHighlightText(objectiveText, step.isComplete))
             end
         elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then

@@ -16,7 +16,7 @@ LibCollections.Dictionary = Dictionary
 
 -- Lua APIs
 local tinsert, tremove, tsort = table.insert, table.remove, table.sort
-local slen, sfind, sgmatch = string.len, string.find, string.gmatch
+local slen, sfind, smatch, sgmatch = string.len, string.find, string.match, string.gmatch
 
 -- Returns a value indicating whether a specified substring occurs within this string.
 function String:Contains(value, substring)
@@ -48,6 +48,11 @@ function String:Split(value, separator)
         tinsert(result, match)
     end
     return result
+end
+
+-- Returns a new string in which all leading and trailing spaces are removed.
+function String:Trim(value)
+    return smatch(value, "^%s*(.-)%s*$")
 end
 
 -- Adds the item to the end of the list.
@@ -448,6 +453,12 @@ LibCollections.RunTests = function()
             assert(List:SequenceEqual(String:Split("1,2,3,4,5", ";"), {"1,2,3,4,5"}) == true)
             assert(List:SequenceEqual(String:Split("1,2,3,4,5", ","), {}) == false)
             assert(List:SequenceEqual(String:Split("", ";"), {}) == true)
+        end,
+
+        TestStringTrim = function()
+            assert(String:Trim("aa bb  ") == "aa bb")
+            assert(String:Trim("  aa bb  ") == "aa bb")
+            assert(String:Trim("  aa bb") == "aa bb")
         end,
 
         TestListAdd = function()
