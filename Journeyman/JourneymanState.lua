@@ -181,11 +181,8 @@ function State:UpdateImmediate()
             else
                 local isComplete = self:IsStepComplete(step)
                 if isComplete and not step.isComplete then
-                    -- Step got completed without OnStepCompleted called
-                    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
-                    self.macroNeedUpdate = true
+                    self:OnStepCompleted(step) -- Step got completed without OnStepCompleted called
                 end
-                Journeyman:SetStepStateCompleted(step)
                 step.isComplete = isComplete
             end
 
