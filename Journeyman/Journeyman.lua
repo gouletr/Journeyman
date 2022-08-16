@@ -71,7 +71,9 @@ Journeyman.SPELL_MECHANOSTRIDER_PILOTING = 10907
 Journeyman.ICON_HUNTERS_MARK = 132212
 
 Journeyman.FalseQuestItems = {
+    737,   -- Holy Spring Water
     2799,  -- Gorilla Fang
+    8564,  -- Hippogryph Egg
     11242, -- Evoroot
     12738, -- Dalson Outhouse Key
     12739, -- Dalson Cabinet Key
