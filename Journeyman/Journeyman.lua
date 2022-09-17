@@ -80,6 +80,7 @@ Journeyman.FalseQuestItems = {
     12840, -- Minion's Scourgestone
     12841, -- Invader's Scourgestone
     12843, -- Corruptor's Scourgestone
+    21377, -- Deadwood Headdress Feather
 }
 
 -- Store races info
