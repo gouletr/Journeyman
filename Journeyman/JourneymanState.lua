@@ -7,6 +7,7 @@ Journeyman.State = State
 
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
+local DataSource = Journeyman.DataSource
 
 local function CompareStepData(step, data)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
@@ -93,6 +94,7 @@ local function FindStep(type, data)
 end
 
 function State:Initialize()
+    DataSource = Journeyman.DataSource
     self.questsTurnedIn = {}
 end
 
@@ -120,7 +122,7 @@ function State:Update(immediate)
 end
 
 function State:UpdateImmediate()
-    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then
+    if not Journeyman.worldLoaded or not DataSource:IsInitialized() then
         return
     end
 
@@ -487,7 +489,7 @@ function State:IsStepDoable(step)
     if Journeyman:IsStepTypeQuest(step) then
         return self:IsQuestDoable(step.data.questId, step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST)
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-        return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
+        return DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
         return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
@@ -510,7 +512,7 @@ function State:IsStepShown(step)
                 if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
                     if not self:IsQuestInQuestLog(questId) then
                         -- Check if there's any objectives that can be completed even if quest is not in quest log
-                        local objectives = Journeyman.DataSource:GetQuestObjectives(questId, step.data.objectives)
+                        local objectives = DataSource:GetQuestObjectives(questId, step.data.objectives)
                         doable = List:Any(objectives, function(objective)
                             if not objective.isComplete and objective.type == "Item" then
                                 -- Check if we can get item from vendors
@@ -529,7 +531,7 @@ function State:IsStepShown(step)
                         end
                     end
                 elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-                    if Journeyman.DataSource:IsQuestRepeatable(questId) or Journeyman.DataSource:IsQuestAutoComplete(questId) then
+                    if DataSource:IsQuestRepeatable(questId) or DataSource:IsQuestAutoComplete(questId) then
                         if not self:IsQuestObjectivesComplete(questId) then
                             doable, reason = false, string.format("Quest %s is not complete", questId)
                         end
@@ -562,7 +564,7 @@ function State:IsStepComplete(step)
         end
 
         -- Check if quest is exclusive to some other quests
-        local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(questId)
+        local exclusiveToQuestIds = DataSource:GetQuestExclusiveTo(questId)
         if exclusiveToQuestIds ~= nil then
             -- Check if exclusive quest is in quest log or already turned-in
             if List:Any(exclusiveToQuestIds, function(exclusiveQuestId) return self:IsQuestInQuestLogOrTurnedIn(exclusiveQuestId) end) then
@@ -658,10 +660,10 @@ end
 
 function State:GetStepLocation(step)
     if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-        return Journeyman.DataSource:GetNearestQuestStarter(step.data.questId)
+        return DataSource:GetNearestQuestStarter(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
         if step.objectiveIndex then
-            return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, step.objectiveIndex)
+            return DataSource:GetQuestObjectiveLocation(step.data.questId, step.objectiveIndex)
         else
             local objectives = self:GetQuestObjectives(step.data.questId)
             if step.data.objectives then
@@ -669,19 +671,19 @@ function State:GetStepLocation(step)
                 for i = 1, n do
                     local objectiveIndex = step.data.objectives[i]
                     if not objectives[objectiveIndex].finished then
-                        return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, objectiveIndex)
+                        return DataSource:GetQuestObjectiveLocation(step.data.questId, objectiveIndex)
                     end
                 end
-                return Journeyman.DataSource:GetQuestObjectiveLocation(step.data.questId, step.data.objectives[1])
+                return DataSource:GetQuestObjectiveLocation(step.data.questId, step.data.objectives[1])
             else
                 if self:IsQuestTurnedIn(step.data.questId) or List:All(objectives, function(objective) return objective.finished end) then
-                    return Journeyman.DataSource:GetNearestQuestObjectiveLocation(step.data.questId)
+                    return DataSource:GetNearestQuestObjectiveLocation(step.data.questId)
                 end
-                return Journeyman.DataSource:GetNearestQuestObjectiveLocation(step.data.questId, objectives)
+                return DataSource:GetNearestQuestObjectiveLocation(step.data.questId, objectives)
             end
         end
     elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-        return Journeyman.DataSource:GetNearestQuestFinisher(step.data.questId)
+        return DataSource:GetNearestQuestFinisher(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
         if Journeyman.player.location then
             local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
@@ -703,39 +705,39 @@ function State:GetStepLocation(step)
     elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
         return nil
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
-        return Journeyman.DataSource:GetNearestInnkeeperLocation(step.data.areaId)
+        return DataSource:GetNearestInnkeeperLocation(step.data.areaId)
     elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-        return Journeyman.DataSource:GetFlightMasterLocation(step.data.taxiNodeId)
+        return DataSource:GetFlightMasterLocation(step.data.taxiNodeId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return Journeyman.DataSource:GetNearestFlightMasterLocation()
+        return DataSource:GetNearestFlightMasterLocation()
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
-        return Journeyman.DataSource:GetNearestClassTrainerLocation()
+        return DataSource:GetNearestClassTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
         local spellId = step.data.spells[1] -- Always use trainer location of first spell in list
         if spellId == Journeyman.SPELL_TELEPORT_TO_STORMWIND or spellId == Journeyman.SPELL_PORTAL_TO_STORMWIND then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_STORMWIND_PORTAL_TRAINER)
+            return DataSource:GetNPCLocation(Journeyman.NPC_STORMWIND_PORTAL_TRAINER)
         elseif spellId == Journeyman.SPELL_TELEPORT_TO_IRONFORGE or spellId == Journeyman.SPELL_PORTAL_TO_IRONFORGE then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_IRONFORGE_PORTAL_TRAINER)
+            return DataSource:GetNPCLocation(Journeyman.NPC_IRONFORGE_PORTAL_TRAINER)
         elseif spellId == Journeyman.SPELL_TELEPORT_TO_DARNASSUS or spellId == Journeyman.SPELL_PORTAL_TO_DARNASSUS then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_DARNASSUS_PORTAL_TRAINER)
+            return DataSource:GetNPCLocation(Journeyman.NPC_DARNASSUS_PORTAL_TRAINER)
         elseif spellId == Journeyman.SPELL_HORSE_RIDING then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_HORSE_RIDING_INSTRUCTOR)
+            return DataSource:GetNPCLocation(Journeyman.NPC_HORSE_RIDING_INSTRUCTOR)
         elseif spellId == Journeyman.SPELL_RAM_RIDING then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_RAM_RIDING_INSTRUCTOR)
+            return DataSource:GetNPCLocation(Journeyman.NPC_RAM_RIDING_INSTRUCTOR)
         elseif spellId == Journeyman.SPELL_TIGER_RIDING then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_NIGHTSABER_RIDING_INSTRUCTOR)
+            return DataSource:GetNPCLocation(Journeyman.NPC_NIGHTSABER_RIDING_INSTRUCTOR)
         elseif spellId == Journeyman.SPELL_MECHANOSTRIDER_PILOTING then
-            return Journeyman.DataSource:GetNPCLocation(Journeyman.NPC_MECHANOSTRIDER_PILOT)
+            return DataSource:GetNPCLocation(Journeyman.NPC_MECHANOSTRIDER_PILOT)
         end
-        return Journeyman.DataSource:GetNearestClassTrainerLocation()
+        return DataSource:GetNearestClassTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
-        return Journeyman.DataSource:GetNearestFirstAidTrainerLocation()
+        return DataSource:GetNearestFirstAidTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
-        return Journeyman.DataSource:GetNearestCookingTrainerLocation()
+        return DataSource:GetNearestCookingTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
-        return Journeyman.DataSource:GetNearestFishingTrainerLocation()
+        return DataSource:GetNearestFishingTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
         local items = {}
         local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
@@ -744,7 +746,7 @@ function State:GetStepLocation(step)
                 return item.id
             end
         end)
-        return Journeyman.DataSource:GetNearestItemLocation(items)
+        return DataSource:GetNearestItemLocation(items)
     elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return nil
     else
@@ -754,17 +756,17 @@ end
 
 function State:IsQuestAvailable(questId)
     -- Check if quest exists in game
-    if not Journeyman.DataSource:IsQuestAvailable(questId) then
+    if not DataSource:IsQuestAvailable(questId) then
         return false, "Invalid quest ID"
     end
 
     -- Check if player has required race
-    if not Journeyman.DataSource:GetQuestHasRequiredRace(questId) then
+    if not DataSource:GetQuestHasRequiredRace(questId) then
         return false, "Missing race requirement"
     end
 
     -- Check if player has required class
-    if not Journeyman.DataSource:GetQuestHasRequiredClass(questId) then
+    if not DataSource:GetQuestHasRequiredClass(questId) then
         return false, "Missing class requirement"
     end
 
@@ -774,17 +776,17 @@ end
 
 function State:IsQuestDoable(questId, isStepTypeComplete)
     -- Check if player has required level
-    if Journeyman.player.level < Journeyman.DataSource:GetQuestRequiredLevel(questId) then
+    if Journeyman.player.level < DataSource:GetQuestRequiredLevel(questId) then
         return false, "Missing level requirement"
     end
 
     -- Check if player has required profession and skill level
-    if not Journeyman.DataSource:GetQuestHasProfessionAndSkillLevel(questId) then
+    if not DataSource:GetQuestHasProfessionAndSkillLevel(questId) then
         return false, "Missing profession or skill level requirement"
     end
 
     -- Check if player has required reputation
-    if not Journeyman.DataSource:GetQuestHasReputation(questId) then
+    if not DataSource:GetQuestHasReputation(questId) then
         return false, "Missing reputation requirement"
     end
 
@@ -794,13 +796,13 @@ function State:IsQuestDoable(questId, isStepTypeComplete)
     end
 
     -- Check if quest next quest in chain is complete or in quest log
-    local nextInChainQuestId = Journeyman.DataSource:GetQuestNextQuestInChain(questId)
+    local nextInChainQuestId = DataSource:GetQuestNextQuestInChain(questId)
     if nextInChainQuestId and State:IsQuestInQuestLogOrTurnedIn(nextInChainQuestId) then
         return false, string.format("Next quest in chain %s is in quest log or has been turned-in", nextInChainQuestId)
     end
 
     -- Check if quest has exclusive quests completed or in quest log
-    local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(questId)
+    local exclusiveToQuestIds = DataSource:GetQuestExclusiveTo(questId)
     if exclusiveToQuestIds then
         if List:Any(exclusiveToQuestIds, function(exclusiveQuestId) return exclusiveQuestId and State:IsQuestInQuestLogOrTurnedIn(exclusiveQuestId) end) then
             return false, string.format("Exclusive quest %s is in quest log or has been turned-in", exclusiveQuestId)
@@ -808,19 +810,19 @@ function State:IsQuestDoable(questId, isStepTypeComplete)
     end
 
     -- Check if quest has parent quest and is in quest log
-    local parentQuestId = Journeyman.DataSource:GetQuestParentQuest(questId)
+    local parentQuestId = DataSource:GetQuestParentQuest(questId)
     if parentQuestId and not State:IsQuestInQuestLog(parentQuestId) then
         return false, string.format("Parent quest %s is not in quest log", parentQuestId)
     end
 
     -- Check if all pre quests are complete
-    local preQuestGroup = Journeyman.DataSource:GetQuestPreQuestGroup(questId)
+    local preQuestGroup = DataSource:GetQuestPreQuestGroup(questId)
     if preQuestGroup then
         return self:IsQuestPreQuestGroupFulfilled(preQuestGroup)
     end
 
     -- Check if single pre quest are complete
-    local preQuestSingle = Journeyman.DataSource:GetQuestPreQuestSingle(questId)
+    local preQuestSingle = DataSource:GetQuestPreQuestSingle(questId)
     if preQuestSingle then
         return self:IsPreQuestSingleFulfilled(preQuestSingle)
     end
@@ -833,7 +835,7 @@ function State:IsQuestPreQuestGroupFulfilled(preQuestGroup)
     -- If a quest is not complete and no exlusive quest is complete, the requirement is not fulfilled
     for _, preQuestId in pairs(preQuestGroup) do
         if not self:IsQuestTurnedIn(preQuestId) then
-            local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
+            local exclusiveToQuestIds = DataSource:GetQuestExclusiveTo(preQuestId)
             if exclusiveToQuestIds == nil then
                 return false, string.format("Pre quest %s is not turned-in and there is no exclusive quests", preQuestId)
             end
@@ -855,7 +857,7 @@ function State:IsPreQuestSingleFulfilled(preQuestSingle)
         end
 
         -- If one of the quests in the exclusive group is complete, the requirement is fulfilled
-        local exclusiveToQuestIds = Journeyman.DataSource:GetQuestExclusiveTo(preQuestId)
+        local exclusiveToQuestIds = DataSource:GetQuestExclusiveTo(preQuestId)
         if exclusiveToQuestIds then
             if List:Any(exclusiveToQuestIds, function(exclusiveQuestId) return exclusiveQuestId and self:IsQuestTurnedIn(exclusiveQuestId) end) then
                 return true
