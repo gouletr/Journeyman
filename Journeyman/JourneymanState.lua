@@ -272,7 +272,7 @@ function State:GetActiveSteps()
             if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
                 Journeyman:SetStepStateCompleted(step, true)
             end
-            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and Journeyman:IsStepComplete(step) then
+            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) and Journeyman:IsStepComplete(step) then
                 self.questsTurnedIn[step.data.questId] = true
             end
         end
@@ -411,7 +411,7 @@ function State:OnStepCompleted(step, immediate)
     Journeyman:SetStepStateCompleted(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) then
         self.questsTurnedIn[step.data.questId] = true
     end
 
@@ -435,7 +435,7 @@ function State:OnStepSkipped(step, immediate)
     Journeyman:SetStepStateSkipped(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) then
         self.questsTurnedIn[step.data.questId] = true
     end
 
