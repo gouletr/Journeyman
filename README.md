@@ -11,20 +11,22 @@ Also please note that this addon **does not include any journeys**. The intentio
 ### Automatic Step Completion
 Steps are automatically completed when you do them. Step types currently includes:
 - **Accept Quest** `questId`: Instruct the player to accept a quest.
-- **Complete Quest** `questId,[objectiveId,...]`: Instruct the player to complete a quest objectives. Objective IDs are optional, but they are useful to specify the order in which objectives must be completed, or if only specific objectives must be completed.
+- **Complete Quest** `questId[,objectiveId,...]`: Instruct the player to complete a quest objectives. Objective IDs are optional, but they are useful to specify the order in which objectives must be completed, or if only specific objectives must be completed.
 - **Turn-in Quest** `questId`: Instruct the player to turn-in a quest.
-- **Go to Coordinates** `mapId,x,y,[description]`: Instruct the player to go to a specific location. Description is optional, coordinates will be used if not provided.
-- **Travel to Zone** `mapId,[x,y]`: Instruct the player to travel to a specific zone. Player does not need to reach specific coordinates, just enter the zone. Optional coordinates can be provided to help direction.
-- **Reach Level** `level,[xp]`: Instruct the player to gain xp to reach the specified level. Optional specific xp within that level can be specified.
+- **Go to Coordinates** `mapId,x,y[,description]`: Instruct the player to go to a specific location. Description is optional, coordinates will be used if not provided.
+- **Travel to Zone** `mapId[,x,y]`: Instruct the player to travel to a specific zone. Player does not need to reach specific coordinates, just enter the zone. Optional coordinates can be provided to help direction.
+- **Reach Level** `level[,xp]`: Instruct the player to gain xp to reach the specified level. Optional specific xp within that level can be specified.
+- **Reach Reputation** `factionId,standingId`: Instruct the player to gain repuration with a faction to the specified standing.
 - **Bind Hearthstone** `areaId`: Instruct the player to bind their hearthstone to the specified area ID.
 - **Use Hearthstone** `areaId`: Instruct the player to use their hearthstone to the specified area ID.
 - **Learn Flight Path** `taxiNodeId`: Instruct the player to learn the specified flight path node.
 - **Fly To** `taxiNodeId`: Instruct the player to fly to the specified flight path node.
 - **Train Class**: Instruct the player to train their class skills.
-- **Train Spells** `spellId,...`: Instruct the player to train specific spells.
+- **Train Spells** `spellId[,...]`: Instruct the player to train specific spells.
 - **Learn Cooking**: Instruct the player to learn the Cooking secondary profession.
 - **Learn First Aid**: Instruct the player to learn the First Aid secondary profession.
 - **Learn Fishing**: Instruct the player to learn the Fishing secondary profession.
+- **Acquire Items** `itemId,itemCount[,...]`: Instruct the player to acquire the specified item count.
 - **Die and Spirit Res**: Instruct the player to die and use spirit resurrection.
 
 ### In-Game Editor
