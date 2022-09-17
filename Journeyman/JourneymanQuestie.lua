@@ -337,7 +337,7 @@ function DataSourceQuestie:GetQuestName(questId, showLevel, showId)
     if questId == nil or type(questId) ~= "number" then return nil end
     local name = QuestieDB.QueryQuestSingle(questId, "name");
     if name then
-        local level, _ = QuestieLib:GetTbcLevel(questId)
+        local level, _ = QuestieLib.GetTbcLevel(questId)
         if showLevel then
             name = QuestieLib:GetQuestString(questId, name, level, true)
         end
@@ -349,7 +349,7 @@ function DataSourceQuestie:GetQuestName(questId, showLevel, showId)
 end
 
 function DataSourceQuestie:GetQuestLevel(questId)
-    return QuestieLib:GetTbcLevel(questId)
+    return QuestieLib.GetTbcLevel(questId)
 end
 
 local function GetQuestObjectivesNPC(result, npcs, type, isComplete, objectiveIndex)
