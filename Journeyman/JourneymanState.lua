@@ -739,14 +739,18 @@ function State:GetStepLocation(step)
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
         return DataSource:GetNearestFishingTrainerLocation()
     elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
-        local items = {}
-        local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
-        local items = List:Select(step.data.items, function(item)
-            if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
-                return item.id
-            end
-        end)
-        return DataSource:GetNearestItemLocation(items)
+        if step.itemId then
+            return DataSource:GetNearestItemLocation({ step.itemId })
+        else
+            local items = {}
+            local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
+            local items = List:Select(step.data.items, function(item)
+                if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
+                    return item.id
+                end
+            end)
+            return DataSource:GetNearestItemLocation(items)
+        end
     elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         return nil
     else
