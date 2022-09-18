@@ -5,6 +5,7 @@ local L = addon.Locale
 local State = {}
 Journeyman.State = State
 
+local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 local DataSource = Journeyman.DataSource
@@ -925,8 +926,11 @@ function State:GetQuestObjectives(questId)
 
     local questObjectives = self.questObjectives[questId]
     if questObjectives == nil then
-        questObjectives = C_QuestLog.GetQuestObjectives(questId)
-        self.questObjectives[questId] = questObjectives
+        local objectives = C_QuestLog.GetQuestObjectives(questId)
+        if objectives then
+            questObjectives = List:Where(objectives, function(objective) return not String:IsNilOrEmpty(objective.text) end)
+            self.questObjectives[questId] = questObjectives
+        end
     end
 
     return questObjectives

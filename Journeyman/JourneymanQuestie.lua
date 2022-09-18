@@ -405,7 +405,7 @@ end
 
 function DataSourceQuestie:GetQuestObjectives(questId, objectives)
     local quest = QuestieDB:GetQuest(questId)
-    local questLogObjectives = C_QuestLog.GetQuestObjectives(questId)
+    local questLogObjectives = Journeyman.State:GetQuestObjectives(questId)
     if quest and quest.ObjectiveData and questLogObjectives then
         local result = {}
         if objectives then
