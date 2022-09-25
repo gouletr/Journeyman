@@ -1,0 +1,29 @@
+<Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
+    <Script file="areatable-enUS.lua"/>
+    <Script file="areatable-deDE.lua"/>
+    <Script file="areatable-enGB.lua"/>
+    <Script file="areatable-esES.lua"/>
+    <Script file="areatable-esMX.lua"/>
+    <Script file="areatable-frFR.lua"/>
+    <Script file="areatable-itIT.lua"/>
+    <Script file="areatable-koKR.lua"/>
+    <Script file="areatable-ptBR.lua"/>
+    <Script file="areatable-ptPT.lua"/>
+    <Script file="areatable-ruRU.lua"/>
+    <Script file="areatable-zhCN.lua"/>
+    <Script file="areatable-zhTW.lua"/>
+
+    <Script file="taxinodes-enUS.lua"/>
+    <Script file="taxinodes-deDE.lua"/>
+    <Script file="taxinodes-enGB.lua"/>
+    <Script file="taxinodes-esES.lua"/>
+    <Script file="taxinodes-esMX.lua"/>
+    <Script file="taxinodes-frFR.lua"/>
+    <Script file="taxinodes-itIT.lua"/>
+    <Script file="taxinodes-koKR.lua"/>
+    <Script file="taxinodes-ptBR.lua"/>
+    <Script file="taxinodes-ptPT.lua"/>
+    <Script file="taxinodes-ruRU.lua"/>
+    <Script file="taxinodes-zhCN.lua"/>
+    <Script file="taxinodes-zhTW.lua"/>
+</Ui>

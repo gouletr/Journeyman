@@ -1,0 +1,1 @@
+Exported from https://wow.tools/dbc/

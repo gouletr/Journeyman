@@ -66,22 +66,60 @@ function Journeyman:InitializeDatabase()
 
     -- Initialize known taxi node ids per race
     if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-        if Journeyman.player.raceName == "Human" then
+        if Journeyman.player.raceName == "HUMAN" then
             Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
-        elseif Journeyman.player.raceName == "Orc" or Journeyman.player.raceName == "Troll" then
+        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
             Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
-        elseif Journeyman.player.raceName == "Dwarf" or Journeyman.player.raceName == "Gnome" then
+        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
             Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
-        elseif Journeyman.player.raceName == "NightElf" then
+        elseif Journeyman.player.raceName == "NIGHTELF" then
             Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
             Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
-        elseif Journeyman.player.raceName == "Scourge" then
+        elseif Journeyman.player.raceName == "SCOURGE" then
             Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
-        elseif Journeyman.player.raceName == "Tauren" then
+        elseif Journeyman.player.raceName == "TAUREN" then
             Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
         end
+    elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+        if Journeyman.player.raceName == "HUMAN" then
+            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
+            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
+            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif Journeyman.player.raceName == "NIGHTELF" then
+            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif Journeyman.player.raceName == "SCOURGE" then
+            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif Journeyman.player.raceName == "TAUREN" then
+            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        elseif Journeyman.player.raceName == "BLOODELF" then
+            Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
+        elseif Journeyman.player.raceName == "DRANEI" then
+            Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
+        end
+    elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
+        if Journeyman.player.raceName == "HUMAN" then
+            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
+            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
+            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif Journeyman.player.raceName == "NIGHTELF" then
+            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif Journeyman.player.raceName == "SCOURGE" then
+            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif Journeyman.player.raceName == "TAUREN" then
+            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        elseif Journeyman.player.raceName == "BLOODELF" then
+            Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
+        elseif Journeyman.player.raceName == "DRANEI" then
+            Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
+        end
     else
-        Journeyman:Error("Unsupported version of WoW. (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
+        Journeyman:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
     end
 
     -- Deserialize database

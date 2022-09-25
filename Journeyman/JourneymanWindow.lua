@@ -5,6 +5,7 @@ local L = addon.Locale
 local Window = {}
 Journeyman.Window = Window
 
+local TaxiNodes = Journeyman.TaxiNodes
 local GUI = Journeyman.GUI
 local State = Journeyman.State
 local String = LibStub("LibCollections-1.0").String
@@ -782,7 +783,7 @@ function Window:GetColoredAreaText(areaId, isComplete)
 end
 
 function Window:GetColoredTaxiNodeText(taxiNodeId, isComplete)
-    local taxiNodeName = Journeyman:GetTaxiNodeName(taxiNodeId)
+    local taxiNodeName = TaxiNodes:GetLocalizedName(taxiNodeId)
     if taxiNodeName == nil then return string.format("taxiNode:%s", taxiNodeId) end
 
     if not isComplete then
@@ -960,7 +961,7 @@ function Window:ReplaceAllShortLinks(input, isComplete, callback)
                 result = result:gsub(m.match, self:GetColoredHighlightText(areaName, isComplete))
             end
         elseif m.taxiNodeId then
-            local taxiNodeName = Journeyman:GetTaxiNodeName(m.taxiNodeId)
+            local taxiNodeName = TaxiNodes:GetLocalizedName(m.taxiNodeId)
             if not String:IsNilOrEmpty(taxiNodeName) and taxiNodeName ~= m.match then
                 result = result:gsub(m.match, self:GetColoredHighlightText(taxiNodeName, isComplete))
             end

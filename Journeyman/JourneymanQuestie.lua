@@ -1,9 +1,11 @@
 local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
+
 local DataSourceQuestie = {}
 Journeyman.DataSource = DataSourceQuestie
 
+local TaxiNodes = Journeyman.TaxiNodes
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 local QuestieDB = QuestieLoader and QuestieLoader:ImportModule("QuestieDB")
@@ -795,9 +797,9 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
         local bestDistance = 999999999
         local bestNPCId
 
-        if Journeyman:IsTaxiNodeAvailable(taxiNodeId) then
+        if TaxiNodes:IsAvailable(taxiNodeId) then
             local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
-            local taxiNodeWorldCoords = Journeyman:GetTaxiNodeWorldCoordinates(taxiNodeId)
+            local taxiNodeWorldCoords = TaxiNodes:GetWorldCoordinates(taxiNodeId)
             if npcs and taxiNodeWorldCoords then
                 for i = 1, #npcs do
                     local npcId = npcs[i]
@@ -856,7 +858,7 @@ function DataSourceQuestie:GetNPCTaxiNodeId(npcId)
 
     if self.npcIdToTaxiNodeId[npcId] == nil then
         for taxiNodeId, _ in pairs(L.taxiNodes) do
-            if Journeyman:IsTaxiNodeAvailable(taxiNodeId) then
+            if TaxiNodes:IsAvailable(taxiNodeId) then
                 if self:GetTaxiNodeNPCId(taxiNodeId) == npcId then
                     return taxiNodeId
                 end

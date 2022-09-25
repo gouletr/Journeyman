@@ -5,6 +5,7 @@ local L = addon.Locale
 local State = {}
 Journeyman.State = State
 
+local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
@@ -480,7 +481,7 @@ function State:IsStepAvailable(step)
     if Journeyman:IsStepTypeQuest(step) then
         return self:IsQuestAvailable(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId)
     end
 
     return true
@@ -492,7 +493,7 @@ function State:IsStepDoable(step)
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-        return Journeyman:IsTaxiNodeAvailable(step.data.taxiNodeId)
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
         return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
     end

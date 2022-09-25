@@ -5,6 +5,7 @@ addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dict = LibStub("LibCollections-1.0").Dictionary
@@ -137,6 +138,9 @@ local function LocationEquals(current, previous)
     if current == nil or previous == nil then
         return false
     end
+    if current.instanceId ~= previous.instanceId then
+        return false
+    end
     if current.mapId ~= previous.mapId then
         return false
     end
@@ -149,14 +153,9 @@ local function LocationEquals(current, previous)
     return true
 end
 
--- Some taxi nodes were never implemented in game, or are innacessible, or don't need to be considered (e.g. battlegrounds)
-local taxiNodeIdsToSkip = {1, 3, 9, 15, 24, 34, 35, 36, 46, 47, 50, 51, 54, 57, 59, 60, 78, 84, 85, 86, 87}
-local skipTaxiNodeIds = {}
-for i = 1, #taxiNodeIdsToSkip do
-    skipTaxiNodeIds[taxiNodeIdsToSkip[i]] = true
-end
-
 function Journeyman:OnInitialize()
+    TaxiNodes = Journeyman.TaxiNodes
+
     self.factionNameLocalToFactionId = {}
 
     self.player = {}
@@ -243,8 +242,9 @@ function Journeyman:UpdatePosition()
     -- Get player location
     local location = nil
     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
-    if playerMapId and playerX and playerY then
-        location = { mapId = playerMapId, x = playerX, y = playerY }
+    local instanceId = select(8, GetInstanceInfo())
+    if instanceId and playerMapId and playerX and playerY then
+        location = { instanceId = instanceId, mapId = playerMapId, x = playerX, y = playerY }
     end
 
     -- Check if location changed
@@ -562,79 +562,6 @@ function Journeyman:GetAreaParentId(areaId)
                 return info.ParentAreaID
             else
                 return areaId
-            end
-        end
-    end
-end
-
-function Journeyman:GetTaxiNodeId(slot)
-    local name = TaxiNodeName(slot)
-    if name then
-        return Journeyman:GetTaxiNodeIdFromLocalizedName(name)
-    end
-end
-
-function Journeyman:GetTaxiNodeIdFromLocalizedName(name)
-    if self.taxiNodeNameToTaxiNodeId == nil then
-        self.taxiNodeNameToTaxiNodeId = {}
-        for k, v in pairs(L.taxiNodes) do
-            if self:IsTaxiNodeAvailable(k) then
-                if self.taxiNodeNameToTaxiNodeId[v.Name_lang] == nil then
-                    self.taxiNodeNameToTaxiNodeId[v.Name_lang] = k
-                else
-                    --Journeyman:Debug("taxiNodeNameToTaxiNodeId table already contains key pair ('%s', %d), when trying to add ('%s', %d)", v.Name_lang, self.taxiNodeNameToTaxiNodeId[v.Name_lang], v.Name_lang, k)
-                end
-            end
-        end
-    end
-    return self.taxiNodeNameToTaxiNodeId[name]
-end
-
-function Journeyman:IsTaxiNodeAvailable(taxiNodeId)
-    if skipTaxiNodeIds[taxiNodeId] then
-        return false
-    end
-
-    local taxiNodeFaction = Journeyman:GetTaxiNodeFaction(taxiNodeId)
-    if self.player.factionName ~= taxiNodeFaction and taxiNodeFaction ~= "Neutral" then
-        return false
-    end
-
-    return true
-end
-
-function Journeyman:GetTaxiNodeName(taxiNodeId, showId)
-    if taxiNodeId and type(taxiNodeId) == "number" then
-        local info = L.taxiNodes[taxiNodeId]
-        if info then
-            local taxiNodeName = info.Name_lang
-            if showId then
-                taxiNodeName = taxiNodeName.." ("..taxiNodeId..")"
-            end
-            return taxiNodeName
-        end
-    end
-end
-
-function Journeyman:GetTaxiNodeWorldCoordinates(taxiNodeId)
-    if taxiNodeId and type(taxiNodeId) == "number" then
-        local info = L.taxiNodes[taxiNodeId]
-        if info then
-            return { instanceId = info.ContinentID, x = info.Pos[2], y = info.Pos[1] }
-        end
-    end
-end
-
-function Journeyman:GetTaxiNodeFaction(taxiNodeId)
-    if taxiNodeId and type(taxiNodeId) == "number" then
-        local info = L.taxiNodes[taxiNodeId]
-        if info then
-            if info.Flags == 1 then
-                return "Alliance"
-            elseif info.Flags == 2 then
-                return "Horde"
-            elseif info.Flags == 3 then
-                return "Neutral"
             end
         end
     end
@@ -1238,7 +1165,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
         local taxiNodeId = data and data.taxiNodeId or 0
-        local taxiNodeName = self:GetTaxiNodeName(taxiNodeId, showId)
+        local taxiNodeName = TaxiNodes:GetLocalizedName(taxiNodeId, showId)
         if taxiNodeName == nil then
             taxiNodeName = string.format("taxi:%d", taxiNodeId)
         end
