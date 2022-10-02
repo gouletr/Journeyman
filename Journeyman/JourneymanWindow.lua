@@ -21,6 +21,7 @@ local function round(num)
 end
 
 function Window:Initialize()
+    self.questLogScrollBar = QuestLogListScrollFrame.ScrollBar or QuestLogListScrollFrameScrollBar
     self.lines = {}
     self.verticalScrollRange = 0
 
@@ -840,8 +841,8 @@ function Window:ShowQuest(questId)
             end
 
             -- Scroll to the quest in the quest log
-            local scrollSteps = QuestLogListScrollFrame.ScrollBar:GetValueStep()
-            QuestLogListScrollFrame.ScrollBar:SetValue(questLogIndex * scrollSteps - scrollSteps * 3)
+            local scrollSteps = self.questLogScrollBar:GetValueStep()
+            self.questLogScrollBar:SetValue(questLogIndex * scrollSteps - scrollSteps * 3)
         end
 
         -- Priority order first check if addon exist otherwise default to original
