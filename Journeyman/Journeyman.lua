@@ -421,7 +421,8 @@ end
 function Journeyman:GetSpellName(spellId, callback)
     if spellId and type(spellId) == "number" then
         local spellName = GetSpellInfo(spellId)
-        if spellName == nil then
+        local spellSubText = GetSpellSubtext(spellId)
+        if spellName == nil or spellSubText == nil then
             if callback and type(callback) == "function" then
                 local spell = Spell:CreateFromSpellID(spellId)
                 if not spell:IsSpellEmpty() then
@@ -429,6 +430,9 @@ function Journeyman:GetSpellName(spellId, callback)
                 end
             end
             return "spell:"..spellId
+        end
+        if not String:IsNilOrEmpty(spellSubText) then
+            spellName = string.format("%s (%s)", spellName, spellSubText)
         end
         return spellName
     end
