@@ -124,6 +124,19 @@ function List:Count(list, predicate)
     return c
 end
 
+-- Returns distinct items from the list.
+function List:Distinct(list)
+    local result = {}
+    local n = #list
+    for i = 1, n do
+        local item = list[i]
+        if not List:Contains(result, item) then
+            List:Add(result, item)
+        end
+    end
+    return result
+end
+
 -- Find the index of the first occurrence of an item that satisfies a predicate, if found; otherwise, nil.
 function List:FindIndex(list, predicate)
     local n = #list
@@ -371,7 +384,7 @@ function Dictionary:ForEach(dict, action)
     end
 end
 
--- Removes the value with the specified key from the dictionary. Returns true if the element is successfully removed, false otherwise.
+-- Removes the value with the specified key from the dictionary. Returns true if the item is successfully removed, false otherwise.
 function Dictionary:Remove(dict, key)
     if dict[key] == nil then
         return false
@@ -519,6 +532,11 @@ LibCollections.RunTests = function()
             assert(List:Count(list, function(v) return v == 4 end) == 1)
             assert(List:Count({}) == 0)
             assert(List:Count({}, function(v) return v == 1 end) == 0)
+        end,
+
+        TestListDistinct = function()
+            assert(List:SequenceEqual(List:Distinct({1, 1, 2, 2, 3, 3, 11, 12, 13, 1, 2, 3}), {1, 2, 3, 11, 12, 13}) == true)
+            assert(List:SequenceEqual(List:Distinct({"a", "ab", "abc"}), {"a", "ab", "abc"}) == true)
         end,
 
         TestListFindIndex = function()
