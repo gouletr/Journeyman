@@ -3,6 +3,8 @@ local addonVersion = GetAddOnMetadata(addonName, "version")
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local List = LibStub("LibCollections-1.0").List
+
 local function Percent(value)
     local windowWidth = 600 - 20
     local widthMultiplier = 170
@@ -14,6 +16,7 @@ function Journeyman:InitializeOptions()
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
     self.generalPanel = aceConfigDialog:AddToBlizOptions(addonName, addonName, nil, "general")
+    self.myJourneyPanel = aceConfigDialog:AddToBlizOptions(addonName, "My Journey", addonName, "myjourney")
     self.editorPanel = self:GetEditorPanel()
     self.advancedPanel = aceConfigDialog:AddToBlizOptions(addonName, "Advanced", addonName, "advanced")
     self.profilePanel = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
@@ -25,6 +28,7 @@ function Journeyman:GetOptionsTable()
         name = string.format("%s v%s", addonName, addonVersion),
         args = {
             general = self:GetGeneralOptionsTable(),
+            myjourney = self:GetMyJourneyOptionsTable(),
             advanced = self:GetAdvancedOptionsTable(),
             profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
         }
@@ -47,9 +51,7 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SELECT_JOURNEY"] .. "*",
                 desc = L["SELECT_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
-                disabled = function()
-                    return #self.journeys <= 0
-                end,
+                disabled = function() return #self.journeys <= 0 end,
                 values = function(info)
                     local values = {}
                     if self.journeys then
@@ -74,10 +76,10 @@ function Journeyman:GetGeneralOptionsTable()
                     if self.db.char.journey ~= value then
                         self.db.char.journey = value
                         self.db.char.chapter = 1
-                        if self.db.char.updateJourney then
-                            self.db.char.updateJourney = false
-                            Journeyman:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
-                        end
+                        -- if self.db.char.updateJourney then
+                            -- self.db.char.updateJourney = false
+                            -- Journeyman:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
+                        -- end
                         Journeyman:Reset(true)
                     end
                 end,
@@ -90,9 +92,9 @@ function Journeyman:GetGeneralOptionsTable()
                 desc = L["CREATE_NEW_JOURNEY_DESC"],
                 width = Percent(0.5),
                 func = function()
-                    local journey = Journeyman.Journey:CreateJourney()
+                    local journey = Journeyman.Journey:AddNewJourney()
                     if journey then
-                        local chapter = Journeyman.Journey:CreateChapter(journey)
+                        local chapter = Journeyman.Journey:AddNewChapter(journey)
                         if chapter then
                             InterfaceOptionsFrame_OpenToCategory(Journeyman.Editor.frame)
                             Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
@@ -485,37 +487,271 @@ function Journeyman:GetGeneralOptionsTable()
     }
 end
 
+function Journeyman:GetMyJourneyOptionsTable()
+    return {
+        name = "My Journey",
+        type = "group",
+        args = {
+            headerOptions = {
+                order = 0,
+                type = "header",
+                name = L["MY_JOURNEY_HEADER_OPTIONS"]
+            },
+            enabled = {
+                order = 1,
+                type = "toggle",
+                name = L["MY_JOURNEY_ENABLE"],
+                desc = L["MY_JOURNEY_ENABLE_DESC"],
+                width = Percent(1.0),
+                get = function(info) return self.db.profile.myJourney.enabled end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.enabled ~= value then
+                        self.db.profile.myJourney.enabled = value
+                    end
+                end
+            },
+            atMaxLevel = {
+                order = 2,
+                type = "toggle",
+                name = L["MY_JOURNEY_AT_MAX_LEVEL"],
+                desc = L["MY_JOURNEY_AT_MAX_LEVEL_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.atMaxLevel end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.atMaxLevel ~= value then
+                        self.db.profile.myJourney.atMaxLevel = value
+                    end
+                end
+            },
+            abandonedQuests = {
+                order = 3,
+                type = "toggle",
+                name = L["MY_JOURNEY_ABANDONED_QUESTS"],
+                desc = L["MY_JOURNEY_ABANDONED_QUESTS_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.abandonedQuests end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.abandonedQuests ~= value then
+                        self.db.profile.myJourney.abandonedQuests = value
+                    end
+                end
+            },
+            headerStepTypes = {
+                order = 4,
+                type = "header",
+                name = L["MY_JOURNEY_HEADER_STEP_TYPES"]
+            },
+            stepTypeAcceptQuest = {
+                order = 5,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_ACCEPT_QUEST"],
+                desc = L["MY_JOURNEY_STEP_ACCEPT_QUEST_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeAcceptQuest end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeAcceptQuest ~= value then
+                        self.db.profile.myJourney.stepTypeAcceptQuest = value
+                    end
+                end
+            },
+            stepTypeCompleteQuest = {
+                order = 6,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_COMPLETE_QUEST"],
+                desc = L["MY_JOURNEY_STEP_COMPLETE_QUEST_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeCompleteQuest end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeCompleteQuest ~= value then
+                        self.db.profile.myJourney.stepTypeCompleteQuest = value
+                    end
+                end
+            },
+            stepTypeTurnInQuest = {
+                order = 7,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_TURNIN_QUEST"],
+                desc = L["MY_JOURNEY_STEP_TURNIN_QUEST_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeTurnInQuest end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeTurnInQuest ~= value then
+                        self.db.profile.myJourney.stepTypeTurnInQuest = value
+                    end
+                end
+            },
+            stepTypeGoToZone = {
+                order = 8,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_GO_TO_ZONE"],
+                desc = L["MY_JOURNEY_STEP_GO_TO_ZONE_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeGoToZone end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeGoToZone ~= value then
+                        self.db.profile.myJourney.stepTypeGoToZone = value
+                    end
+                end
+            },
+            stepTypeReachLevel = {
+                order = 9,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_REACH_LEVEL"],
+                desc = L["MY_JOURNEY_STEP_REACH_LEVEL_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeReachLevel end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeReachLevel ~= value then
+                        self.db.profile.myJourney.stepTypeReachLevel = value
+                    end
+                end
+            },
+            stepTypeBindHearthstone = {
+                order = 10,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE"],
+                desc = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeBindHearthstone end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeBindHearthstone ~= value then
+                        self.db.profile.myJourney.stepTypeBindHearthstone = value
+                    end
+                end
+            },
+            stepTypeUseHearthstone = {
+                order = 11,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_USE_HEARTHSTONE"],
+                desc = L["MY_JOURNEY_STEP_USE_HEARTHSTONE_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeUseHearthstone end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeUseHearthstone ~= value then
+                        self.db.profile.myJourney.stepTypeUseHearthstone = value
+                    end
+                end
+            },
+            stepTypeLearnFlightPath = {
+                order = 12,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH"],
+                desc = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeLearnFlightPath end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeLearnFlightPath ~= value then
+                        self.db.profile.myJourney.stepTypeLearnFlightPath = value
+                    end
+                end
+            },
+            stepTypeFlyTo = {
+                order = 13,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_FLY_TO"],
+                desc = L["MY_JOURNEY_STEP_FLY_TO_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeFlyTo end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeFlyTo ~= value then
+                        self.db.profile.myJourney.stepTypeFlyTo = value
+                    end
+                end
+            },
+            stepTypeTrainClass = {
+                order = 14,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_TRAIN_CLASS"],
+                desc = L["MY_JOURNEY_STEP_TRAIN_CLASS_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeTrainClass end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeTrainClass ~= value then
+                        self.db.profile.myJourney.stepTypeTrainClass = value
+                        if value then
+                            self.db.profile.myJourney.stepTypeTrainSpells = false
+                        end
+                    end
+                end
+            },
+            stepTypeTrainSpells = {
+                order = 15,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_TRAIN_SPELLS"],
+                desc = L["MY_JOURNEY_STEP_TRAIN_SPELLS_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeTrainSpells end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeTrainSpells ~= value then
+                        self.db.profile.myJourney.stepTypeTrainSpells = value
+                        if value then
+                            self.db.profile.myJourney.stepTypeTrainClass = false
+                        end
+                    end
+                end
+            },
+            stepTypeDieAndRes = {
+                order = 16,
+                type = "toggle",
+                name = L["MY_JOURNEY_STEP_DIE_AND_RES"],
+                desc = L["MY_JOURNEY_STEP_DIE_AND_RES_DESC"],
+                width = Percent(0.5),
+                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.profile.myJourney.stepTypeDieAndRes end,
+                set = function(info, value)
+                    if self.db.profile.myJourney.stepTypeDieAndRes ~= value then
+                        self.db.profile.myJourney.stepTypeDieAndRes = value
+                    end
+                end
+            }
+        }
+    }
+end
+
 function Journeyman:GetAdvancedOptionsTable()
     return {
         name = "Advanced",
         type = "group",
         args = {
-            journeyHeader = {
-                order = 0,
-                type = "header",
-                name = L["JOURNEY_OPTIONS"]
-            },
-            updateJourney = {
-                order = 1,
-                type = "toggle",
-                name = L["UPDATE_ACTIVE_JOURNEY"] .. "*",
-                desc = L["UPDATE_ACTIVE_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
-                width = Percent(1.0),
-                confirm = true,
-                confirmText = L["UPDATE_ACTIVE_JOURNEY_CONFIRM"],
-                get = function(info) return self.db.char.updateJourney end,
-                set = function(info, value)
-                    if self.db.char.updateJourney ~= value then
-                        self.db.char.updateJourney = value
-                    end
-                end
-            },
-            updateJourneyDesc = {
-                order = 2,
-                type = "description",
-                name = L["UPDATE_ACTIVE_JOURNEY_TEXT"],
-                width = Percent(1.0)
-            },
+            -- journeyHeader = {
+                -- order = 0,
+                -- type = "header",
+                -- name = L["JOURNEY_OPTIONS"]
+            -- },
+            -- updateJourney = {
+                -- order = 1,
+                -- type = "toggle",
+                -- name = L["UPDATE_ACTIVE_JOURNEY"] .. "*",
+                -- desc = L["UPDATE_ACTIVE_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
+                -- width = Percent(1.0),
+                -- confirm = true,
+                -- confirmText = L["UPDATE_ACTIVE_JOURNEY_CONFIRM"],
+                -- get = function(info) return self.db.char.updateJourney end,
+                -- set = function(info, value)
+                    -- if self.db.char.updateJourney ~= value then
+                        -- self.db.char.updateJourney = value
+                    -- end
+                -- end
+            -- },
+            -- updateJourneyDesc = {
+                -- order = 2,
+                -- type = "description",
+                -- name = L["UPDATE_ACTIVE_JOURNEY_TEXT"],
+                -- width = Percent(1.0)
+            -- },
             updateHeader = {
                 order = 10,
                 type = "header",

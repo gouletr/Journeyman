@@ -102,7 +102,7 @@ function Window:Initialize()
     nextChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Down")
     nextChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-NextPage-Disabled")
     nextChapterButton:SetScript("OnClick", function()
-        local journey = Journeyman.Journey:GetActiveJourney()
+        local journey = Journeyman:GetActiveJourney()
         if journey ~= nil then
             if Journeyman.db.char.chapter < #journey.chapters then
                 Journeyman.db.char.chapter = Journeyman.db.char.chapter + 1
@@ -121,7 +121,7 @@ function Window:Initialize()
     prevChapterButton:SetPushedTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Down")
     prevChapterButton:SetDisabledTexture("Interface/Buttons/UI-SpellbookIcon-PrevPage-Disabled")
     prevChapterButton:SetScript("OnClick", function()
-        local journey = Journeyman.Journey:GetActiveJourney()
+        local journey = Journeyman:GetActiveJourney()
         if journey ~= nil then
             if Journeyman.db.char.chapter > 1 then
                 Journeyman.db.char.chapter = Journeyman.db.char.chapter - 1
@@ -303,7 +303,7 @@ end
 
 function Window:UpdateNextChapterButton()
     local enabled = false
-    local journey = Journeyman.Journey:GetActiveJourney()
+    local journey = Journeyman:GetActiveJourney()
     if journey ~= nil then
         local index = Journeyman.db.char.chapter
         enabled = index >= 1 and index < #journey.chapters
@@ -313,7 +313,7 @@ end
 
 function Window:UpdatePreviousChapterButton()
     local enabled = false
-    local journey = Journeyman.Journey:GetActiveJourney()
+    local journey = Journeyman:GetActiveJourney()
     if journey ~= nil then
         local index = Journeyman.db.char.chapter
         enabled = index > 1 and index <= #journey.chapters
@@ -322,8 +322,8 @@ function Window:UpdatePreviousChapterButton()
 end
 
 function Window:UpdateChapterTitle()
-    local journey = Journeyman.Journey:GetActiveJourney()
-    local chapter = Journeyman.Journey:GetActiveChapter(journey)
+    local journey = Journeyman:GetActiveJourney()
+    local chapter = Journeyman:GetActiveJourneyChapter()
 
     local title
     if chapter then
@@ -350,7 +350,7 @@ function Window:UpdateScrollFrame()
 end
 
 function Window:UpdateJourneySelection()
-    local shown = Journeyman.Journey:GetActiveJourney() == nil
+    local shown = Journeyman:GetActiveJourney() == nil
     if shown then
         self.journeySelectionLabel:SetFontSize(12)
         self.journeySelectionLabel:SetWidth(self.scrollChild:GetWidth() - 48)

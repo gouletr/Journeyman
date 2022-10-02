@@ -37,6 +37,23 @@ local databaseDefaults = {
             strata = "BACKGROUND",
             level = 0
         },
+        myJourney = {
+            enabled = true,
+            atMaxLevel = false,
+            abandonedQuests = true,
+            stepTypeAcceptQuest = true,
+            stepTypeCompleteQuest = true,
+            stepTypeTurnInQuest = true,
+            stepTypeGoToZone = true,
+            stepTypeReachLevel = true,
+            stepTypeBindHearthstone = true,
+            stepTypeUseHearthstone = true,
+            stepTypeLearnFlightPath = true,
+            stepTypeFlyTo = true,
+            stepTypeTrainClass = false,
+            stepTypeTrainSpells = true,
+            stepTypeDieAndRes = true
+        },
         autoSetWaypoint = true,
         autoSetWaypointMin = 15,
         advanced = {
@@ -52,7 +69,7 @@ local databaseDefaults = {
         chapter = 1,
         state = {},
         hardcoreMode = false,
-        updateJourney = false,
+        --updateJourney = false,
         taxiNodeIds = {}
     }
 }
@@ -140,6 +157,14 @@ function Journeyman:SerializeDatabase()
             end
         end
     end
+
+    -- Serialize character journey
+    if self.myJourney and type(self.myJourney) == "table" then
+        local myJourney = self:ExportJourney(self.myJourney)
+        if myJourney then
+            self.db.char.myJourney = myJourney
+        end
+    end
 end
 
 function Journeyman:DeserializeDatabase()
@@ -161,6 +186,12 @@ function Journeyman:DeserializeDatabase()
                 List:Add(self.journeys, deserialized)
             end
         end)
+
+        -- Import character journey
+        local myJourney = self:ImportJourney(self.db.char.myJourney)
+        if myJourney then
+            self.myJourney = myJourney
+        end
     end
 
     -- Validate active chapter

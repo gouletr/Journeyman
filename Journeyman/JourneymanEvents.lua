@@ -2,45 +2,67 @@ local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local Journey = Journeyman.Journey
 local State = Journeyman.State
+local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 
 function Journeyman:InitializeEvents()
-    self.questTurnedIn = {}
+    Journey = Journeyman.Journey
+    State = Journeyman.State
+    TaxiNodes = Journeyman.TaxiNodes
 
-    -- This is too late to serialize data, doesn't work
+    self.questTurnedIn = {}
+    self.questRemoved = {}
+
+    self:RegisterEvent("PLAYER_LOGIN", function(event)
+        self.skipZoneChanged = true
+    end)
+
     -- self:RegisterEvent("PLAYER_LOGOUT", function(event)
-        -- self:SerializeDatabase()
+        -- Do not try to serialize data here, its too late
     -- end)
 
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function(event)
-        Journeyman.worldLoaded = true
+        self.worldLoaded = true
     end)
 
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
-        Journeyman.worldLoaded = false
-        self:SerializeDatabase()
+        self.worldLoaded = false
+        Journeyman:SerializeDatabase()
     end)
 
     self:RegisterEvent("ZONE_CHANGED", function(event)
+        if self.skipZoneChanged then
+            self.skipZoneChanged = nil
+            return
+        end
         if Journeyman:UpdatePosition() then
-            Journeyman:OnLocationChanged()
+            Journeyman:OnAreaChanged()
         end
         Journeyman:Update()
     end)
 
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", function(event)
+        if self.skipZoneChanged then
+            self.skipZoneChanged = nil
+            return
+        end
         if Journeyman:UpdatePosition() then
-            Journeyman:OnLocationChanged()
+            Journeyman:OnZoneChanged()
         end
         Journeyman:Update()
     end)
 
     self:RegisterEvent("ZONE_CHANGED_INDOORS", function(event)
+        if self.skipZoneChanged then
+            self.skipZoneChanged = nil
+            return
+        end
         if Journeyman:UpdatePosition() then
-            Journeyman:OnLocationChanged()
+            Journeyman:OnAreaChanged()
         end
         Journeyman:Update()
     end)
@@ -49,7 +71,8 @@ function Journeyman:InitializeEvents()
         self:OnQuestAccepted(questId)
     end)
 
-    self:RegisterEvent("QUEST_TURNED_IN", function(event, questId)
+    self:RegisterEvent("QUEST_TURNED_IN", function(event, questId, xpReward, moneyReward)
+        self.questRemoved[questId] = nil
         self.questTurnedIn[questId] = true
         self:OnQuestTurnedIn(questId)
     end)
@@ -63,8 +86,17 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_REMOVED", function(event, questId)
-        if self.questTurnedIn[questId] == nil then
-           self:OnQuestAbandoned(questId)
+        if not self.questTurnedIn[questId] then
+            self.questRemoved[questId] = true
+            -- Check later if quest was turned-in
+            C_Timer.After(1, function()
+                if self.questTurnedIn[questId] then
+                    self.questTurnedIn[questId] = nil
+                elseif self.questRemoved[questId] then
+                    self:OnQuestAbandoned(questId)
+                    self.questRemoved[questId] = nil
+                end
+            end)
         else
             self.questTurnedIn[questId] = nil
         end
@@ -170,6 +202,7 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("LOADING_SCREEN_DISABLED", function(event)
         if self.lastSpellCast == Journeyman.SPELL_HEARTHSTONE or self.lastSpellCast == Journeyman.SPELL_ASTRAL_RECALL then
+            self.skipZoneChanged = true
             local areaId = Journeyman:GetAreaIdFromLocalizedName(GetBindLocation())
             if areaId then
                 self:OnHearthstoneUsed(areaId)
@@ -253,51 +286,71 @@ function Journeyman:ShutdownEvents()
     self:UnregisterAllEvents()
 end
 
-function Journeyman:OnPlayerLeavingWorld()
-    self:SerializeDatabase()
-end
-
 function Journeyman:OnQuestAccepted(questId)
-    self.Journey:OnQuestAccepted(questId)
-    if self.db.char.window.show then
-        self.State:OnQuestAccepted(questId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeAcceptQuest then
+        Journey:OnQuestAccepted(questId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnQuestAccepted(questId)
     end
 end
 
 function Journeyman:OnQuestCompleted(questId)
-    self.Journey:OnQuestCompleted(questId)
-    if self.db.char.window.show then
-        self.State:OnQuestCompleted(questId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+        Journey:OnQuestCompleted(questId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnQuestCompleted(questId)
     end
 end
 
 function Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
-    if self.db.char.window.show then
-        self.State:OnQuestObjectiveCompleted(questId, objectiveIndex)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+        Journey:OnQuestObjectiveCompleted(questId, objectiveIndex)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnQuestObjectiveCompleted(questId, objectiveIndex)
     end
 end
 
 function Journeyman:OnQuestTurnedIn(questId)
-    self.Journey:OnQuestTurnedIn(questId)
-    if self.db.char.window.show then
-        self.State:OnQuestTurnedIn(questId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTurnInQuest then
+        Journey:OnQuestTurnedIn(questId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnQuestTurnedIn(questId)
     end
 end
 
 function Journeyman:OnQuestAbandoned(questId)
-    self.Journey:OnQuestAbandoned(questId)
-    if self.db.char.window.show then
-        self.State:OnQuestAbandoned(questId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.abandonedQuests then
+        Journey:OnQuestAbandoned(questId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnQuestAbandoned(questId)
     end
 end
 
+function Journeyman:OnZoneChanged()
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeGoToZone then
+        if Journeyman.player.location and not UnitOnTaxi("player") then
+            Journey:OnZoneChanged(Journeyman.player.location)
+        end
+    end
+    Journeyman:OnLocationChanged()
+end
+
+function Journeyman:OnAreaChanged()
+    Journeyman:OnLocationChanged()
+end
+
 function Journeyman:OnLocationChanged()
-    if self.db.char.window.show then
+    if Journeyman.db.char.window.show then
         if State.steps == nil then
             return
         end
 
-        local location = self.player.location
+        local location = Journeyman.player.location
         if location == nil then
             return
         end
@@ -312,18 +365,18 @@ function Journeyman:OnLocationChanged()
             if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
                 local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
                 if distance and distance <= 15 then
-                    self.State:OnStepCompleted(step)
+                    State:OnStepCompleted(step)
                 end
             elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
                 if playerAreaId == nil then
                     playerAreaId = Journeyman:GetPlayerAreaId()
                 end
                 if playerAreaId and playerAreaId == step.data.areaId then
-                    self.State:OnStepCompleted(step)
+                    State:OnStepCompleted(step)
                 end
             elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
                 if location.mapId == step.data.mapId then
-                    self.State:OnStepCompleted(step)
+                    State:OnStepCompleted(step)
                 end
             end
         end
@@ -331,77 +384,93 @@ function Journeyman:OnLocationChanged()
 end
 
 function Journeyman:OnLevelUp(level)
-    self.Journey:OnLevelUp(level)
-    if self.db.char.window.show then
-        self.State:OnLevelUp(level)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeReachLevel then
+        Journey:OnLevelUp(level)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnLevelUp(level)
     end
 end
 
 function Journeyman:OnLevelXPReached(step)
-    if self.db.char.window.show then
-        self.State:OnLevelXPReached(step)
+    if Journeyman.db.char.window.show then
+        State:OnLevelXPReached(step)
     end
 end
 
 function Journeyman:OnReputationReached(step)
-    if self.db.char.window.show then
-        self.State:OnReputationReached(step)
+    if Journeyman.db.char.window.show then
+        State:OnReputationReached(step)
     end
 end
 
 function Journeyman:OnHearthstoneBound(areaId)
-    self.Journey:OnHearthstoneBound(areaId)
-    if self.db.char.window.show then
-        self.State:OnHearthstoneBound(areaId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeBindHearthstone then
+        Journey:OnHearthstoneBound(areaId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnHearthstoneBound(areaId)
     end
 end
 
 function Journeyman:OnHearthstoneUsed(areaId)
-    self.Journey:OnHearthstoneUsed(areaId)
-    if self.db.char.window.show then
-        self.State:OnHearthstoneUsed(areaId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeUseHearthstone then
+        Journey:OnHearthstoneUsed(areaId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnHearthstoneUsed(areaId)
     end
 end
 
 function Journeyman:OnTaxiMapOpened()
     local taxiNodeCount = NumTaxiNodes()
     for i = 1, taxiNodeCount do
-        local taxiNodeId = self:GetTaxiNodeId(i)
+        local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(i)
         if taxiNodeId then
-            self.db.char.taxiNodeIds[taxiNodeId] = true
+            Journeyman.db.char.taxiNodeIds[taxiNodeId] = true
         end
     end
 end
 
 function Journeyman:OnLearnFlightPath(taxiNodeId)
-    self.db.char.taxiNodeIds[taxiNodeId] = true
-    self.Journey:OnLearnFlightPath(taxiNodeId)
-    if self.db.char.window.show then
-        self.State:OnLearnFlightPath(taxiNodeId)
+    Journeyman.db.char.taxiNodeIds[taxiNodeId] = true
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeLearnFlightPath then
+        Journey:OnLearnFlightPath(taxiNodeId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnLearnFlightPath(taxiNodeId)
     end
 end
 
 function Journeyman:OnClassTrainerClosed()
-    self.Journey:OnClassTrainerClosed()
-    if self.db.char.window.show then
-        self.State:OnClassTrainerClosed()
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainClass then
+        Journey:OnClassTrainerClosed()
+    end
+    if Journeyman.db.char.window.show then
+        State:OnClassTrainerClosed()
     end
 end
 
 function Journeyman:OnSpellLearned(spellId)
-    if self.db.char.window.show then
-        self.State:OnSpellLearned(spellId)
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainSpells then
+        Journey:OnSpellLearned(spellId)
+    end
+    if Journeyman.db.char.window.show then
+        State:OnSpellLearned(spellId)
     end
 end
 
 function Journeyman:OnSpellCast(spellId)
-    if self.db.char.window.show then
-        self.State:OnSpellCast(spellId)
+    if Journeyman.db.char.window.show then
+        State:OnSpellCast(spellId)
     end
 end
 
 function Journeyman:OnSpiritResurrection()
-    if self.db.char.window.show then
-        self.State:OnSpiritResurrection()
+    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeDieAndRes then
+        Journey:OnSpiritResurrection()
+    end
+    if Journeyman.db.char.window.show then
+        State:OnSpiritResurrection()
     end
 end

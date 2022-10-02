@@ -93,7 +93,7 @@ function Editor:Initialize()
     newJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOM", 0, -22)
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
-        if Journeyman.Journey:CreateJourney(L["NEW_JOURNEY_TITLE"]) then
+        if Journeyman.Journey:AddNewjourney() then
             Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
             Editor:SetSelectedChapterIndex(-1)
             Editor:SetSelectedStepIndex(-1)
@@ -208,7 +208,7 @@ function Editor:Initialize()
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
         local journey = Editor:GetSelectedJourney()
-        if journey and Journeyman.Journey:CreateChapter(journey, L["NEW_CHAPTER_TITLE"]) then
+        if journey and Journeyman.Journey:AddNewChapter(journey) then
             Editor:SetSelectedChapterIndex(#journey.chapters)
             Editor:SetSelectedStepIndex(-1)
             Editor:Refresh()
@@ -348,7 +348,7 @@ function Editor:Initialize()
         if IsControlKeyDown() then
             stepIndex = nil
         end
-        if Journeyman.Journey:CreateStep(journey, chapter, Journeyman.STEP_TYPE_UNDEFINED, "", stepIndex) then
+        if Journeyman.Journey:AddNewStep(journey, chapter, nil, nil, stepIndex) then
             Editor:Refresh()
             Journeyman:Reset(true)
         end
@@ -388,11 +388,11 @@ function Editor:Initialize()
 
     self.GetSelectedJourneyIndex = function(self) return self.journeySelector.list.selectedIndex end
     self.SetSelectedJourneyIndex = function(self, index) self.journeySelector.list.selectedIndex = index end
-    self.GetSelectedJourney = function(self) return Journeyman.Journey:GetJourney(self:GetSelectedJourneyIndex()) end
+    self.GetSelectedJourney = function(self) return Journeyman:GetJourney(self:GetSelectedJourneyIndex()) end
     self.ResetSelectedJourneyState = function(self) Journeyman:ResetJourneyState(self:GetSelectedJourneyIndex()) end
     self.GetSelectedChapterIndex = function(self) return self.chapterSelector.list.selectedIndex end
     self.SetSelectedChapterIndex = function(self, index) self.chapterSelector.list.selectedIndex = index end
-    self.GetSelectedChapter = function(self) return Journeyman.Journey:GetChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
+    self.GetSelectedChapter = function(self) return Journeyman:GetJourneyChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
     self.ResetSelectedChapterState = function(self) Journeyman:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end

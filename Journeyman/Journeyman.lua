@@ -159,6 +159,7 @@ function Journeyman:OnInitialize()
     self.factionNameLocalToFactionId = {}
 
     self.player = {}
+    self.player.name = UnitName("player")
 
     local factionName, factionNameLocal = UnitFactionGroup("player")
     self.player.factionName = factionName
@@ -235,10 +236,6 @@ function Journeyman:Update(immediate)
 end
 
 function Journeyman:UpdatePosition()
-    if not Journeyman.db.char.window.show then
-        return
-    end
-
     -- Get player location
     local location = nil
     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
@@ -252,7 +249,6 @@ function Journeyman:UpdatePosition()
 
     -- Store player location
     self.player.location = location
-
     return locationChanged
 end
 
@@ -344,7 +340,7 @@ function Journeyman:GetQuestColor(questId)
     local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
     if questLevel then
         local colorHex
-        local levelDiff = questLevel - Journeyman.player.level
+        local levelDiff = questLevel - self.player.level
         if levelDiff >= 5 then
             return QUEST_COLOR_RED
         elseif levelDiff >= 3 then
@@ -603,6 +599,35 @@ function Journeyman:GetJourneyState(journey)
         end
         return self.db.char.state[journey]
     end
+end
+
+function Journeyman:IsCharacterJourneyEnabled()
+    if not self.db.profile.myJourney.enabled then
+        return false
+    end
+    if not self.db.profile.myJourney.atMaxLevel then
+        local maxLevel
+        if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+            maxLevel = 60
+        elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+            maxLevel = 70
+        elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
+            maxLevel = 80
+        else
+            Journeyman:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
+        end
+        if self.player.level >= maxLevel then
+            return false
+        end
+    end
+    return true
+end
+
+function Journeyman:GetCharacterJourney()
+    if self.myJourney == nil then
+        self.myJourney = Journeyman.Journey:CreateJourney(self.player.name.."'s Journey")
+    end
+    return self.myJourney
 end
 
 function Journeyman:GetActiveJourney()
