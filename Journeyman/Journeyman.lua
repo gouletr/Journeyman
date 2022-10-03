@@ -744,21 +744,24 @@ local function AddJourneyQuestObjectiveData(journey, questId, questData, objecti
         List:Add(questData.npcs, npcId)
     elseif objective.type == "Item" then
         local itemId = objective.id
-        local itemData = journey.items[itemId]
-        if itemData == nil then
-            itemData = { quests = {} }
-            journey.items[itemId] = itemData
-        end
-        local quest = { id = questId, objectiveType = objective.type, objectiveIndex = objective.objectiveIndex }
-        if parentObjective then
-            if parentObjective.type == "NPC" or parentObjective.type == "Vendor" then
-                quest.npcId = parentObjective.id
-            elseif parentObjective.type == "Item" then
-                quest.itemId = parentObjective.id
+        local classId = select(6, GetItemInfoInstant(itemId))
+        if classId ~= Enum.ItemClass.Container then -- Hack: skip container items to avoid showing junk boxes
+            local itemData = journey.items[itemId]
+            if itemData == nil then
+                itemData = { quests = {} }
+                journey.items[itemId] = itemData
             end
+            local quest = { id = questId, objectiveType = objective.type, objectiveIndex = objective.objectiveIndex }
+            if parentObjective then
+                if parentObjective.type == "NPC" or parentObjective.type == "Vendor" then
+                    quest.npcId = parentObjective.id
+                elseif parentObjective.type == "Item" then
+                    quest.itemId = parentObjective.id
+                end
+            end
+            List:Add(itemData.quests, quest)
+            List:Add(questData.items, itemId)
         end
-        List:Add(itemData.quests, quest)
-        List:Add(questData.items, itemId)
     end
 
     if objective.sources then
