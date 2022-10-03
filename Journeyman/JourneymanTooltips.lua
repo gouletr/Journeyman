@@ -45,23 +45,21 @@ local function OnTooltipSetUnit(tooltip, ...)
         List:ForEach(quests, function(quest)
             local questName = Journeyman:GetQuestName(quest.id, Journeyman.db.profile.window.showQuestLevel)
             if not String:IsNilOrEmpty(questName) then
-                --if quest.itemId and (quest.objectiveType == "Vendor" or not Journeyman:IsItemQuestItem(quest.itemId)) then
-                    -- Add quest name
-                    local questColor = Journeyman:GetQuestColor(quest.id)
-                    tooltip:AddLine(string.format("|c%s%s|r", questColor, questName))
+                -- Add quest name
+                local questColor = Journeyman:GetQuestColor(quest.id)
+                tooltip:AddLine(string.format("|c%s%s|r", questColor, questName))
 
-                    -- Add quest objective
-                    local objectives = State:GetQuestObjectives(quest.id)
-                    if objectives then
-                        local objective = objectives[quest.objectiveIndex]
-                        if objective then
-                            local itemName = Journeyman:GetItemName(quest.itemId, function()
-                                OnTooltipSetUnit(tooltip, unpack(args))
-                            end)
-                            tooltip:AddLine(string.format("   %s/%s %s", objective.numFulfilled, objective.numRequired, itemName), 1, 1, 1)
-                        end
+                -- Add quest objective
+                local objectives = State:GetQuestObjectives(quest.id)
+                if objectives then
+                    local objective = objectives[quest.objectiveIndex]
+                    if objective then
+                        local itemName = Journeyman:GetItemName(quest.itemId, function()
+                            OnTooltipSetUnit(tooltip, unpack(args))
+                        end)
+                        tooltip:AddLine(string.format("   %s/%s %s", objective.numFulfilled, objective.numRequired, itemName), 1, 1, 1)
                     end
-                --end
+                end
             end
         end)
 
