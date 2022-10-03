@@ -552,7 +552,7 @@ function DataSourceQuestie:GetQuestObjectiveLocation(questId, objectiveIndex)
     end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }
+    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
     return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], player)
 end
 
@@ -565,7 +565,7 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }
+    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
 
     local n = #quest.ObjectiveData
     for i = 1, n do
@@ -630,7 +630,7 @@ end
 
 function DataSourceQuestie:GetNearestItemLocation(items)
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestItem(items, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    return GetNearestItem(items, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
 end
 
 function DataSourceQuestie:GetQuestChainStartQuest(questId)
@@ -730,7 +730,7 @@ function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
     local parentAreaId = Journeyman:GetAreaParentId(areaId)
     if parentAreaId then
-        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, parentAreaId)
+        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, parentAreaId)
     end
 end
 
@@ -744,11 +744,11 @@ function DataSourceQuestie:GetNearestClassTrainerLocation()
     if playerAreaId then
         local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
         if parentAreaId then
-            nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, parentAreaId, true)
+            nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, parentAreaId, true)
         end
     end
     if nearest == nil then
-        nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+        nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
     end
     return nearest
 end
@@ -758,7 +758,7 @@ function DataSourceQuestie:GetNearestPortalTrainerLocation()
     if npcs == nil then return nil end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
 end
 
 function DataSourceQuestie:GetNearestFirstAidTrainerLocation()
@@ -766,7 +766,7 @@ function DataSourceQuestie:GetNearestFirstAidTrainerLocation()
     if npcs == nil then return nil end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
 end
 
 function DataSourceQuestie:GetNearestCookingTrainerLocation()
@@ -774,7 +774,7 @@ function DataSourceQuestie:GetNearestCookingTrainerLocation()
     if npcs == nil then return nil end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
 end
 
 function DataSourceQuestie:GetNearestFishingTrainerLocation()
@@ -782,7 +782,7 @@ function DataSourceQuestie:GetNearestFishingTrainerLocation()
     if npcs == nil then return nil end
 
     local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
 end
 
 function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
@@ -877,7 +877,7 @@ function DataSourceQuestie:GetNearestFlightMasterLocation()
     local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
     if npcs then
         local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = UnitFactionGroup("Player") }, nil, true)
+        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, nil, true)
     end
 end
 
