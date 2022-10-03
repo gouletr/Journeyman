@@ -813,6 +813,10 @@ local function LoadJourneyData(journey, callback)
 end
 
 function Journeyman:GetJourneyQuestData(journey, questId, callback)
+    if not self.db.char.window.show then
+        return nil
+    end
+
     -- If data is loading, return nil
     if self.loadJourneyDataTask then
         return nil
@@ -841,6 +845,10 @@ function Journeyman:GetActiveJourneyQuestData(questId, callback)
 end
 
 function Journeyman:GetJourneyItemData(journey, itemId, callback)
+    if not self.db.char.window.show then
+        return nil
+    end
+
     -- If data is loading, return nil
     if self.loadJourneyDataTask then
         return nil
@@ -869,6 +877,10 @@ function Journeyman:GetActiveJourneyItemData(itemId, callback)
 end
 
 function Journeyman:GetJourneyNPCData(journey, npcId, callback)
+    if not self.db.char.window.show then
+        return nil
+    end
+
     -- If data is loading, return nil
     if self.loadJourneyDataTask then
         return nil
