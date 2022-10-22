@@ -11,90 +11,6 @@ local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
 local DataSource = Journeyman.DataSource
 
-local function CompareStepData(step, data)
-    if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-        return step.data.questId == data.questId
-    elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-        if step.data.questId == data.questId then
-            if step.data.objectives or data.objectives then
-                if data.objectiveIndex then
-                    return List:Contains(step.data.objectives, data.objectiveIndex)
-                else
-                    return true -- If no objectiveIndex, it means quest complete event triggered early
-                end
-            else
-                return true
-            end
-        end
-        return false
-    elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-        return step.data.questId == data.questId
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
-        return step.data.mapId == data.mapId and step.data.x == data.x and step.data.y == data.y
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
-        return step.data.mapId == data.mapId
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
-        return step.data.areaId == data.areaId and step.data.x == data.x and step.data.y == data.y
-    elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-        if step.data.level == data.level then
-            if step.data.xp then
-                return step.data.xp == data.xp
-            else
-                return true
-            end
-        end
-        return false
-    elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
-        return step.data.factionId == data.factionId and step.data.standingId == data.standingId
-    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-        return step.data.areaId == data.areaId
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return step.data.taxiNodeId == data.taxiNodeId
-    elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
-        return true
-    elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
-        return List:Contains(step.data.spells, data.spellId)
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
-        return true
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
-        return true
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
-        return true
-    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
-        return List:Any(step.data.items, function(item) return item.id == data.id and item.count == data.count end)
-    elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
-        return true
-    else
-        Journeyman:Error("Step step.type %s not implemented.", step.step.type)
-    end
-end
-
-local function FindStep(type, data)
-    if not State.steps then
-        return nil
-    end
-
-    if State.currentStep then
-        local step = State.currentStep
-        if step.type == type and CompareStepData(step, data) then
-            if Journeyman:IsStepTypeUnique(step) or step.isComplete == false then
-                return step
-            end
-        end
-    end
-
-    for i = 1, #State.steps do
-        local step = State.steps[i]
-        if step.type == type and CompareStepData(step, data) then
-            if Journeyman:IsStepTypeUnique(step) or step.isComplete == false then
-                return step
-            end
-        end
-    end
-
-    --Journeyman:Debug("Could not find step type=%s data=%s", dump(type), dump(data))
-end
-
 function State:Initialize()
     DataSource = Journeyman.DataSource
     self.questsTurnedIn = {}
@@ -176,7 +92,8 @@ function State:UpdateImmediate()
     -- Update steps state
     local stepShownCount = 0
     if self.steps then
-        for i = 1, #self.steps do
+        local n = #self.steps
+        for i = 1, n do
             local step = self.steps[i]
 
             -- Check if step is completed
@@ -223,17 +140,26 @@ function State:UpdateImmediate()
         Journeyman:Debug("State update took %.2fms", elapsed)
     end
 
-    -- Update window, waypoint and macro immediate
-    if Journeyman.db.char.window.show then
-        Journeyman.Window:UpdateImmediate()
-        if self.waypointNeedUpdate then
-            if Journeyman:SetWaypoint(self.currentStep, false) then
-                self.waypointNeedUpdate = false
-            end
+    if self:IsChapterComplete() then
+        -- Advance to next chapter and reset state
+        local journey = Journeyman:GetActiveJourney()
+        if journey then
+            Journeyman.Journey:AdvanceChapter(journey)
+            Journeyman:Reset()
         end
-        if self.macroNeedUpdate then
-            if Journeyman:SetMacro(self.currentStep) then
-                self.macroNeedUpdate = false
+    else
+        -- Update window, waypoint and macro immediate
+        if Journeyman.db.char.window.show then
+            Journeyman.Window:UpdateImmediate()
+            if self.waypointNeedUpdate then
+                if Journeyman:SetWaypoint(self.currentStep, false) then
+                    self.waypointNeedUpdate = false
+                end
+            end
+            if self.macroNeedUpdate then
+                if Journeyman:SetMacro(self.currentStep) then
+                    self.macroNeedUpdate = false
+                end
             end
         end
     end
@@ -274,32 +200,51 @@ function State:GetActiveSteps()
             if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
                 Journeyman:SetStepStateCompleted(step, true)
             end
-            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) and Journeyman:IsStepComplete(step) then
-                self.questsTurnedIn[step.data.questId] = true
+            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and Journeyman:IsStepComplete(step) then
+                self:SetQuestTurnedIn(step.data.questId)
             end
         end
     end
     return steps
 end
 
+function State:FindStep(predicate)
+    if predicate then
+        if self.currentStep and predicate(self.currentStep) then
+            return self.currentStep
+        end
+        if self.steps then
+            return List:First(self.steps, predicate)
+        end
+    end
+end
+
 function State:OnQuestAccepted(questId)
-    local step = FindStep(Journeyman.STEP_TYPE_ACCEPT_QUEST, { questId = questId })
+    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_ACCEPT_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnQuestCompleted(questId)
-    local step = FindStep(Journeyman.STEP_TYPE_COMPLETE_QUEST, { questId = questId })
+    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
-    local step = FindStep(Journeyman.STEP_TYPE_COMPLETE_QUEST, { questId = questId, objectiveIndex = objectiveIndex })
+    local step = self:FindStep(function(s)
+        if s.type == Journeyman.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId then
+            if s.objectives then
+                return List:Contains(s.objectives, objectiveIndex)
+            else
+                return true
+            end
+        end
+    end)
     if step then
-        if self:IsStepQuestObjectivesComplete(step) then
+        if self:IsStepAllQuestObjectivesComplete(step) then
             self:OnStepCompleted(step)
         else
             self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
@@ -310,7 +255,7 @@ function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
 end
 
 function State:OnQuestTurnedIn(questId)
-    local step = FindStep(Journeyman.STEP_TYPE_TURNIN_QUEST, { questId = questId })
+    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_TURNIN_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -319,18 +264,17 @@ end
 function State:OnQuestAbandoned(questId)
     -- Reset state for all steps related to this quest
     if self.steps then
-        for i = 1, #self.steps do
-            local step = self.steps[i]
-            if step and Journeyman:IsStepTypeQuest(step) and step.data.questId == questId then
-                Journeyman:SetStepStateCompleted(step, false)
+        List:ForEach(self.steps, function(step)
+            if Journeyman:IsStepTypeQuest(step) and step.data.questId == questId then
+                Journeyman:ResetStepState(step)
             end
-        end
+        end)
     end
     Journeyman:Update()
 end
 
 function State:OnLevelUp(level)
-    local step = FindStep(Journeyman.STEP_TYPE_REACH_LEVEL, { level = level })
+    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_REACH_LEVEL and s.data.level == level and s.data.xp == nil end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -345,21 +289,21 @@ function State:OnReputationReached(step)
 end
 
 function State:OnHearthstoneBound(areaId)
-    local step = FindStep(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, { areaId = areaId })
-    if step then
+    local step = self.currentStep
+    if step and step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE and step.data.areaId == areaId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnHearthstoneUsed(areaId)
-    local step = FindStep(Journeyman.STEP_TYPE_USE_HEARTHSTONE, { areaId = areaId })
-    if step then
+    local step = self.currentStep
+    if step and step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE and step.data.areaId == areaId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnLearnFlightPath(taxiNodeId)
-    local step = FindStep(Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, { taxiNodeId = taxiNodeId })
+    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH and s.data.taxiNodeId == taxiNodeId end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -367,28 +311,28 @@ end
 
 function State:OnTakeFlightPath(taxiNodeId)
     local step = self.currentStep
-    if step and CompareStepData(step, { taxiNodeId = taxiNodeId }) then
+    if step and step.type == Journeyman.STEP_TYPE_FLY_TO and step.data.taxiNodeId == taxiNodeId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnClassTrainerClosed()
-    local step = FindStep(Journeyman.STEP_TYPE_TRAIN_CLASS, {})
-    if step then
+    local step = self.currentStep
+    if step and step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnSpellLearned(spellId)
-    local step = nil
+    local step
     if spellId == Journeyman.SPELL_FIRST_AID_APPRENTICE then
-        step = FindStep(Journeyman.STEP_TYPE_LEARN_FIRST_AID, {})
+        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID end)
     elseif spellId == Journeyman.SPELL_COOKING_APPRENTICE then
-        step = FindStep(Journeyman.STEP_TYPE_LEARN_COOKING, {})
+        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_COOKING end)
     elseif spellId == Journeyman.SPELL_FISHING_APPRENTICE then
-        step = FindStep(Journeyman.STEP_TYPE_LEARN_FISHING, {})
+        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FISHING end)
     else
-        step = FindStep(Journeyman.STEP_TYPE_TRAIN_SPELLS, { spellId = spellId })
+        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_TRAIN_SPELLS and List:Contains(s.spells, spellId) end)
     end
     if step then
         self:OnStepCompleted(step)
@@ -399,8 +343,8 @@ function State:OnSpellCast(spellId)
 end
 
 function State:OnSpiritResurrection()
-    local step = FindStep(Journeyman.STEP_TYPE_DIE_AND_RES, {})
-    if step then
+    local step = self.currentStep
+    if step and step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
         self:OnStepCompleted(step)
     end
 end
@@ -413,20 +357,11 @@ function State:OnStepCompleted(step, immediate)
     Journeyman:SetStepStateCompleted(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) then
-        self.questsTurnedIn[step.data.questId] = true
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        self:SetQuestTurnedIn(step.data.questId)
     end
 
-    if self:IsChapterComplete() then
-        -- Advance chapter and reset state
-        local journey = Journeyman.Journey:GetActiveJourney()
-        if journey then
-            Journeyman.Journey:AdvanceChapter(journey)
-            Journeyman:Reset(immediate)
-        end
-    else
-        Journeyman:Update(immediate)
-    end
+    Journeyman:Update(immediate)
 end
 
 function State:OnStepSkipped(step, immediate)
@@ -437,20 +372,11 @@ function State:OnStepSkipped(step, immediate)
     Journeyman:SetStepStateSkipped(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and not DataSource:IsQuestRepeatable(step.data.questId) then
-        self.questsTurnedIn[step.data.questId] = true
+    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        self:SetQuestTurnedIn(step.data.questId)
     end
 
-    if self:IsChapterComplete() then
-        -- Advance chapter and reset state
-        local journey = Journeyman.Journey:GetActiveJourney()
-        if journey then
-            Journeyman.Journey:AdvanceChapter(journey)
-            Journeyman:Reset(immediate)
-        end
-    else
-        Journeyman:Update(immediate)
-    end
+    Journeyman:Update(immediate)
 end
 
 function State:OnStepReset(step, immediate)
@@ -583,7 +509,7 @@ function State:IsStepComplete(step)
         elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
             if self:IsQuestInQuestLogAndComplete(questId) then -- Check if quest is in quest log and complete
                 return true
-            elseif self:IsStepQuestObjectivesComplete(step) then -- Check if quest objectives are all complete
+            elseif self:IsStepAllQuestObjectivesComplete(step) then -- Check if quest objectives are all complete
                 return true
             end
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
@@ -642,16 +568,8 @@ function State:IsStepComplete(step)
 end
 
 function State:IsChapterComplete()
-    if self.steps and #self.steps > 0 then
-        for i = 1, #self.steps do
-            local step = self.steps[i]
-            if step then
-                if not step.isComplete and step.isShown then
-                    return false
-                end
-            end
-        end
-        return true
+    if self.steps then
+        return List:All(self.steps, function(step) return step.isComplete or not step.isShown end)
     end
     return false
 end
@@ -875,7 +793,7 @@ function State:IsPreQuestSingleFulfilled(preQuestSingle)
     return false, "No pre quest have been turned-in"
 end
 
-function State:IsStepQuestObjectivesComplete(step)
+function State:IsStepAllQuestObjectivesComplete(step)
     local result = self:IterateStepQuestObjectives(step, function(objective, objectiveIndex)
         if not objective.finished then
             return false
@@ -918,6 +836,12 @@ function State:IsQuestTurnedIn(questId)
         self.questsTurnedIn[questId] = isQuestTurnedIn
     end
     return isQuestTurnedIn
+end
+
+function State:SetQuestTurnedIn(questId)
+    if not DataSource:IsQuestRepeatable(questId) then
+        self.questsTurnedIn[questId] = true
+    end
 end
 
 function State:GetQuestObjectives(questId)
