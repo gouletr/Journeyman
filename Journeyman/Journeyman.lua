@@ -1222,7 +1222,10 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH or step.type == Journeyman.STEP_TYPE_FLY_TO then
         local taxiNodeId = data and data.taxiNodeId or 0
-        local taxiNodeName = TaxiNodes:GetLocalizedName(taxiNodeId, showId)
+        local taxiNodeName
+        if TaxiNodes:IsAvailable(taxiNodeId) then
+            taxiNodeName = TaxiNodes:GetLocalizedName(taxiNodeId, showId)
+        end
         if taxiNodeName == nil then
             taxiNodeName = string.format("taxi:%d", taxiNodeId)
         end

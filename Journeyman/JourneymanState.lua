@@ -415,7 +415,7 @@ function State:IsStepAvailable(step)
     if Journeyman:IsStepTypeQuest(step) then
         return self:IsQuestAvailable(step.data.questId)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.faction)
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.factionName)
     end
 
     return true
@@ -427,7 +427,7 @@ function State:IsStepDoable(step)
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
         return DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
     elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.faction)
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.factionName)
     elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
         return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
     end

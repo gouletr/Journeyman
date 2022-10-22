@@ -10,7 +10,7 @@ function Journeyman:InitializeHooks()
 end
 
 function Journeyman:OnTakeTaxiNode(slot)
-    local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot)
+    local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot, Journeyman.player.factionName)
     if taxiNodeId then
         if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeFlyTo then
             self.Journey:OnTakeFlightPath(taxiNodeId)

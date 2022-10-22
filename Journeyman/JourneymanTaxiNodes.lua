@@ -6,6 +6,7 @@ local TaxiNodes = {}
 Journeyman.TaxiNodes = TaxiNodes
 
 local String = LibStub("LibCollections-1.0").String
+local List = LibStub("LibCollections-1.0").List
 
 -- Constants
 local FLAGS_NONE = 0
@@ -19,7 +20,7 @@ local FACTION_HORDE = "Horde"
 local FACTION_NEUTRAL = "Neutral"
 
 -- Lua APIs
-local next, tinsert, band = next, table.insert, bit.band
+local next, band = next, bit.band
 
 -- Version dependent stuff
 local invalidIds
@@ -102,27 +103,24 @@ function TaxiNodes:GetIdsFromLocalizedName(localizedName)
                 if self.localizedNameToId[key] == nil then
                     self.localizedNameToId[key] = {}
                 end
-                tinsert(self.localizedNameToId[key], id)
+                List:Add(self.localizedNameToId[key], id)
             end
         end
     end
     return self.localizedNameToId[localizedName]
 end
 
-function TaxiNodes:GetBestIdFromLocalizedName(localizedName)
+function TaxiNodes:GetBestIdFromLocalizedName(localizedName, playerFaction, playerInstanceId)
     local ids = self:GetIdsFromLocalizedName(localizedName)
     if ids then
-        local n = #ids
-        for i = 1, n do
-            return ids[i]
-        end
+        return List:First(ids, function(id) return not playerFaction or self:IsAvailable(id, playerFaction, playerInstanceId) end)
     end
 end
 
-function TaxiNodes:GetTaxiNodeIdFromSlot(slot)
+function TaxiNodes:GetTaxiNodeIdFromSlot(slot, playerFaction, playerInstanceId)
     local localizedName = TaxiNodeName(slot)
     if localizedName then
-        return self:GetBestIdFromLocalizedName(localizedName)
+        return self:GetBestIdFromLocalizedName(localizedName, playerFaction, playerInstanceId)
     end
 end
 
