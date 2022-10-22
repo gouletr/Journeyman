@@ -619,7 +619,6 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         Editor:Refresh()
         Journeyman:Reset(true)
     end
-    stepType:Initialize()
     frame.stepType = stepType
 
     local stepData = self:CreateEditBoxProperty("FRAME", "StepData", scrollChild)
@@ -698,7 +697,6 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         Editor:Refresh()
         Journeyman:Reset(true)
     end
-    stepRequiredRaces:Initialize()
     frame.stepRequiredRaces = stepRequiredRaces
 
     local stepRequiredClasses = self:CreateDropDownMenuProperty("FRAME", "StepRequiredClasses", scrollChild, true)
@@ -744,7 +742,6 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         Editor:Refresh()
         Journeyman:Reset(true)
     end
-    stepRequiredClasses:Initialize()
     frame.stepRequiredClasses = stepRequiredClasses
 
     local stepNote = self:CreateEditBoxProperty("FRAME", "StepNote", scrollChild)
@@ -889,7 +886,6 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, t
     dropDownMenu.OnValueChanged = function(self, value) if frame.OnValueChanged then frame:OnValueChanged(value) end end
     frame.dropDownMenu = dropDownMenu
 
-    frame.Initialize = function(self) self.dropDownMenu:Initialize() end
     frame.SetTitle = function(self, value) self.label:SetText(value) end
     frame.SetValue = function(self, value) self.dropDownMenu:SetValue(value) end
     frame.SetWidth = function(self, value) self.dropDownMenu:SetWidth(value) end

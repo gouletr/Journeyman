@@ -159,7 +159,7 @@ end
 function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local dropDownMenu = CreateFrame("Frame", "Dropdown", frame, "UIDropDownMenuTemplate")
+    local dropDownMenu = CreateFrame("FRAME", "Dropdown", frame, "UIDropDownMenuTemplate")
     dropDownMenu:SetPoint("TOPLEFT", -17, 0)
     dropDownMenu:SetPoint("BOTTOMRIGHT")
     frame.dropDownMenu = dropDownMenu
@@ -182,7 +182,7 @@ function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id
         end
     end
 
-    local function _Initialize(self, level, menuList)
+    dropDownMenu.initialize = function(self, level, menuList)
         local info = UIDropDownMenu_CreateInfo()
         info.func = _SetValue
 
@@ -224,7 +224,6 @@ function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id
         end
     end
 
-    frame.Initialize = function(self) UIDropDownMenu_Initialize(self.dropDownMenu, _Initialize) end
     frame.SetValue = function(self, value)
         if frame.isBitFlag and Journeyman.Utils:CountBits(value) > 1 then
             UIDropDownMenu_SetText(self.dropDownMenu, "Many")
