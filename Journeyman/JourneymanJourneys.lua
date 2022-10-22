@@ -16,11 +16,14 @@ function Journey:Initialize()
     end
 end
 
-function Journey:CreateJourney(title)
+function Journey:CreateJourney(title, guid)
     if title == nil then
         title = L["NEW_JOURNEY_TITLE"]
     end
-    return { guid = Journeyman.Utils:CreateGUID(), title = title, chapters = {} }
+    if guid == nil then
+        guid = Journeyman.Utils:CreateGUID()
+    end
+    return { guid = guid, title = title, chapters = {} }
 end
 
 function Journey:AddNewJourney(title)
@@ -97,18 +100,27 @@ function Journey:AdvanceChapter(journey)
     end
 end
 
-function Journey:CreateStep(type, data, requiredRaces, requiredClasses)
+function Journey:CreateStep(type, data, requiredRaces, requiredClasses, note)
     if type == nil then
         type = Journeyman.STEP_TYPE_UNDEFINED
     end
     if data == nil then
         data = ""
     end
-    return { type = type, data = data, requiredRaces = requiredRaces, requiredClasses = requiredClasses }
+    if requiredRaces == 0 then
+        requiredRaces = nil
+    end
+    if requiredClasses == 0 then
+        requiredClasses = nil
+    end
+    if String:IsNilOrEmpty(note) then
+        note = nil
+    end
+    return { type = type, data = data, requiredRaces = requiredRaces, requiredClasses = requiredClasses, note = note }
 end
 
-function Journey:AddNewStep(journey, chapter, type, data, index, requiredRaces, requiredClasses)
-    local step = self:CreateStep(type, data, requiredRaces, requiredClasses)
+function Journey:AddNewStep(journey, chapter, type, data, index, requiredRaces, requiredClasses, note)
+    local step = self:CreateStep(type, data, requiredRaces, requiredClasses, note)
     if journey and chapter then
         if chapter.steps == nil then
             chapter.steps = {}
@@ -226,7 +238,7 @@ function GetLastOrAddNewChapter(journey, title)
 end
 
 function AddOrMergeStepToCharacterJourney(type, data, requiredRaces, requiredClasses)
-    local journey = Journeyman:GetCharacterJourney()
+    local journey = Journeyman:GetMyJourney()
     local chapterTitle = Journeyman:GetMapName()
     local chapter = GetLastOrAddNewChapter(journey, chapterTitle)
     if journey and chapter then
@@ -259,7 +271,7 @@ function Journey:OnQuestTurnedIn(questId)
 end
 
 function Journey:OnQuestAbandoned(questId)
-    local journey = Journeyman:GetCharacterJourney()
+    local journey = Journeyman:GetMyJourney()
     if journey.chapters then
         List:ForEach(journey.chapters, function(chapter)
             if chapter.steps then
