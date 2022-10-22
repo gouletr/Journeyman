@@ -2,9 +2,11 @@ local addonName, addon = ...
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
+local Journey = Journeyman.Journey
+
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
-local Dict = LibStub("LibCollections-1.0").Dictionary
+local Dictionary = LibStub("LibCollections-1.0").Dictionary
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 
@@ -38,7 +40,6 @@ local databaseDefaults = {
             level = 0
         },
         myJourney = {
-            enabled = true,
             atMaxLevel = false,
             abandonedQuests = true,
             stepTypeAcceptQuest = true,
@@ -63,18 +64,22 @@ local databaseDefaults = {
     },
     char = {
         window = {
-            show = true,
+            show = true
+        },
+        myJourney = {
+            enabled = true
         },
         journey = "",
         chapter = 1,
         state = {},
         hardcoreMode = false,
-        --updateJourney = false,
         taxiNodeIds = {}
     }
 }
 
 function Journeyman:InitializeDatabase()
+    Journey = Journeyman.Journey
+
     -- Create database
     self.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
     if self.db.profile.advanced.debug then
@@ -162,7 +167,7 @@ function Journeyman:SerializeDatabase()
     if self.myJourney and type(self.myJourney) == "table" then
         local myJourney = self:ExportJourney(self.myJourney)
         if myJourney then
-            self.db.char.myJourney = myJourney
+            self.db.char.myJourney.journey = myJourney
         end
     end
 end
@@ -183,12 +188,26 @@ function Journeyman:DeserializeDatabase()
         List:ForEach(self.db.global.journeys, function(journey)
             local deserialized = self:ImportJourney(journey)
             if deserialized then
+                -- Make sure title is unique
+                if List:Any(self.journeys, function(j) return j.title == deserialized.title end) then
+                    local title = deserialized.title
+                    local count = 1
+                    while List:Count(self.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+                        count = count + 1
+                    end
+                    deserialized.title = title.." ("..count..")"
+                end
+                -- Make sure guid is unique
+                if List:Any(self.journeys, function(j) return j.guid == deserialized.guid end) then
+                    deserialized.guid = Journeyman.Utils:CreateGUID()
+                end
+                -- Add journey
                 List:Add(self.journeys, deserialized)
             end
         end)
 
         -- Import character journey
-        local myJourney = self:ImportJourney(self.db.char.myJourney)
+        local myJourney = self:ImportJourney(self.db.char.myJourney.journey)
         if myJourney then
             self.myJourney = myJourney
         end
@@ -206,9 +225,9 @@ function Journeyman:DeserializeDatabase()
 
     -- Cleanup states
     local guids = {}
-    Dict:ForEach(self.db.char.state, function(guid, state) List:Add(guids, guid) end)
+    Dictionary:ForEach(self.db.char.state, function(guid, state) List:Add(guids, guid) end)
     List:ForEach(guids, function(guid)
-        if self:GetJourney(guid) == nil or (self.db.char.state[guid] and Dict:Count(self.db.char.state[guid]) == 0) then
+        if self:GetJourney(guid) == nil or (self.db.char.state[guid] and Dictionary:Count(self.db.char.state[guid]) == 0) then
             self.db.char.state[guid] = nil
         end
     end)
@@ -299,13 +318,6 @@ function Journeyman:ImportJourney(serializedJourney)
 
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
-        -- Make sure guids are unique
-        for i = 1, #Journeyman.journeys do
-            if journey.guid == Journeyman.journeys[i].guid then
-                journey.guid = Journeyman.Utils:CreateGUID()
-                break
-            end
-        end
     else
         journey.guid = Journeyman.Utils:CreateGUID()
     end

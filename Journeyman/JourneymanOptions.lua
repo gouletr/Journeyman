@@ -500,13 +500,13 @@ function Journeyman:GetMyJourneyOptionsTable()
             enabled = {
                 order = 1,
                 type = "toggle",
-                name = L["MY_JOURNEY_ENABLE"],
-                desc = L["MY_JOURNEY_ENABLE_DESC"],
+                name = L["MY_JOURNEY_ENABLE"].."*",
+                desc = L["MY_JOURNEY_ENABLE_DESC"].."\n"..L["SAVED_PER_CHARACTER"],
                 width = Percent(1.0),
-                get = function(info) return self.db.profile.myJourney.enabled end,
+                get = function(info) return self.db.char.myJourney.enabled end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.enabled ~= value then
-                        self.db.profile.myJourney.enabled = value
+                    if self.db.char.myJourney.enabled ~= value then
+                        self.db.char.myJourney.enabled = value
                     end
                 end
             },
@@ -516,7 +516,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_AT_MAX_LEVEL"],
                 desc = L["MY_JOURNEY_AT_MAX_LEVEL_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.atMaxLevel end,
                 set = function(info, value)
                     if self.db.profile.myJourney.atMaxLevel ~= value then
@@ -530,7 +530,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_ABANDONED_QUESTS"],
                 desc = L["MY_JOURNEY_ABANDONED_QUESTS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.abandonedQuests end,
                 set = function(info, value)
                     if self.db.profile.myJourney.abandonedQuests ~= value then
@@ -549,7 +549,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_ACCEPT_QUEST"],
                 desc = L["MY_JOURNEY_STEP_ACCEPT_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeAcceptQuest end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeAcceptQuest ~= value then
@@ -563,7 +563,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_COMPLETE_QUEST"],
                 desc = L["MY_JOURNEY_STEP_COMPLETE_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeCompleteQuest end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeCompleteQuest ~= value then
@@ -577,7 +577,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TURNIN_QUEST"],
                 desc = L["MY_JOURNEY_STEP_TURNIN_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeTurnInQuest end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeTurnInQuest ~= value then
@@ -591,7 +591,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_GO_TO_ZONE"],
                 desc = L["MY_JOURNEY_STEP_GO_TO_ZONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeGoToZone end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeGoToZone ~= value then
@@ -605,7 +605,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_REACH_LEVEL"],
                 desc = L["MY_JOURNEY_STEP_REACH_LEVEL_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeReachLevel end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeReachLevel ~= value then
@@ -619,7 +619,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE"],
                 desc = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeBindHearthstone end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeBindHearthstone ~= value then
@@ -633,7 +633,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_USE_HEARTHSTONE"],
                 desc = L["MY_JOURNEY_STEP_USE_HEARTHSTONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeUseHearthstone end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeUseHearthstone ~= value then
@@ -647,7 +647,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH"],
                 desc = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeLearnFlightPath end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeLearnFlightPath ~= value then
@@ -661,7 +661,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_FLY_TO"],
                 desc = L["MY_JOURNEY_STEP_FLY_TO_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeFlyTo end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeFlyTo ~= value then
@@ -675,7 +675,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TRAIN_CLASS"],
                 desc = L["MY_JOURNEY_STEP_TRAIN_CLASS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeTrainClass end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeTrainClass ~= value then
@@ -692,7 +692,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TRAIN_SPELLS"],
                 desc = L["MY_JOURNEY_STEP_TRAIN_SPELLS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeTrainSpells end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeTrainSpells ~= value then
@@ -709,7 +709,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_DIE_AND_RES"],
                 desc = L["MY_JOURNEY_STEP_DIE_AND_RES_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.profile.myJourney.enabled end,
+                disabled = function(info) return not self.db.char.myJourney.enabled end,
                 get = function(info) return self.db.profile.myJourney.stepTypeDieAndRes end,
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeDieAndRes ~= value then

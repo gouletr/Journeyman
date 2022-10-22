@@ -603,8 +603,8 @@ function Journeyman:GetJourneyState(journey)
     end
 end
 
-function Journeyman:IsCharacterJourneyEnabled()
-    if not self.db.profile.myJourney.enabled then
+function Journeyman:IsMyJourneyEnabled()
+    if not self.db.char.myJourney.enabled then
         return false
     end
     if not self.db.profile.myJourney.atMaxLevel then
@@ -625,7 +625,7 @@ function Journeyman:IsCharacterJourneyEnabled()
     return true
 end
 
-function Journeyman:GetCharacterJourney()
+function Journeyman:GetMyJourney()
     if self.myJourney == nil then
         self.myJourney = Journeyman.Journey:CreateJourney(self.player.name.."'s Journey")
     end

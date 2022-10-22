@@ -12,7 +12,7 @@ end
 function Journeyman:OnTakeTaxiNode(slot)
     local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot)
     if taxiNodeId then
-        if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeFlyTo then
+        if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeFlyTo then
             self.Journey:OnTakeFlightPath(taxiNodeId)
         end
         if self.db.char.window.show then

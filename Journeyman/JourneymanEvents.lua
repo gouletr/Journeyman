@@ -287,7 +287,7 @@ function Journeyman:ShutdownEvents()
 end
 
 function Journeyman:OnQuestAccepted(questId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeAcceptQuest then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeAcceptQuest then
         Journey:OnQuestAccepted(questId)
     end
     if Journeyman.db.char.window.show then
@@ -296,7 +296,7 @@ function Journeyman:OnQuestAccepted(questId)
 end
 
 function Journeyman:OnQuestCompleted(questId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
         Journey:OnQuestCompleted(questId)
     end
     if Journeyman.db.char.window.show then
@@ -305,7 +305,7 @@ function Journeyman:OnQuestCompleted(questId)
 end
 
 function Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
         Journey:OnQuestObjectiveCompleted(questId, objectiveIndex)
     end
     if Journeyman.db.char.window.show then
@@ -314,7 +314,7 @@ function Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
 end
 
 function Journeyman:OnQuestTurnedIn(questId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTurnInQuest then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTurnInQuest then
         Journey:OnQuestTurnedIn(questId)
     end
     if Journeyman.db.char.window.show then
@@ -323,7 +323,7 @@ function Journeyman:OnQuestTurnedIn(questId)
 end
 
 function Journeyman:OnQuestAbandoned(questId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.abandonedQuests then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.abandonedQuests then
         Journey:OnQuestAbandoned(questId)
     end
     if Journeyman.db.char.window.show then
@@ -332,7 +332,7 @@ function Journeyman:OnQuestAbandoned(questId)
 end
 
 function Journeyman:OnZoneChanged()
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeGoToZone then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeGoToZone then
         if Journeyman.player.location and not UnitOnTaxi("player") then
             Journey:OnZoneChanged(Journeyman.player.location)
         end
@@ -384,7 +384,7 @@ function Journeyman:OnLocationChanged()
 end
 
 function Journeyman:OnLevelUp(level)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeReachLevel then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeReachLevel then
         Journey:OnLevelUp(level)
     end
     if Journeyman.db.char.window.show then
@@ -405,7 +405,7 @@ function Journeyman:OnReputationReached(step)
 end
 
 function Journeyman:OnHearthstoneBound(areaId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeBindHearthstone then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeBindHearthstone then
         Journey:OnHearthstoneBound(areaId)
     end
     if Journeyman.db.char.window.show then
@@ -414,7 +414,7 @@ function Journeyman:OnHearthstoneBound(areaId)
 end
 
 function Journeyman:OnHearthstoneUsed(areaId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeUseHearthstone then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeUseHearthstone then
         Journey:OnHearthstoneUsed(areaId)
     end
     if Journeyman.db.char.window.show then
@@ -434,7 +434,7 @@ end
 
 function Journeyman:OnLearnFlightPath(taxiNodeId)
     Journeyman.db.char.taxiNodeIds[taxiNodeId] = true
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeLearnFlightPath then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeLearnFlightPath then
         Journey:OnLearnFlightPath(taxiNodeId)
     end
     if Journeyman.db.char.window.show then
@@ -443,7 +443,7 @@ function Journeyman:OnLearnFlightPath(taxiNodeId)
 end
 
 function Journeyman:OnClassTrainerClosed()
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainClass then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainClass then
         Journey:OnClassTrainerClosed()
     end
     if Journeyman.db.char.window.show then
@@ -452,7 +452,7 @@ function Journeyman:OnClassTrainerClosed()
 end
 
 function Journeyman:OnSpellLearned(spellId)
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainSpells then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainSpells then
         Journey:OnSpellLearned(spellId)
     end
     if Journeyman.db.char.window.show then
@@ -467,7 +467,7 @@ function Journeyman:OnSpellCast(spellId)
 end
 
 function Journeyman:OnSpiritResurrection()
-    if Journeyman:IsCharacterJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeDieAndRes then
+    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeDieAndRes then
         Journey:OnSpiritResurrection()
     end
     if Journeyman.db.char.window.show then
