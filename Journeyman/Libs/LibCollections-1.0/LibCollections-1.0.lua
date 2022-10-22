@@ -128,12 +128,15 @@ function List:Clear(list)
     end
 end
 
--- Returns whether an item is in the list.
-function List:Contains(list, item)
+-- Returns whether a value is in the list, using the optional equality comparer.
+function List:Contains(list, value, comparer)
     local n = #list
     for i = 1, n do
-        if list[i] == item then
-            return true
+        local item = list[i]
+        if item ~= nil then
+            if (comparer and comparer(item, value)) or item == value then
+                return true
+            end
         end
     end
     return false
@@ -570,6 +573,7 @@ LibCollections.RunTests = function()
             local list = {1, 2, 3, 4, 5}
             assert(List:Contains(list, 3) == true)
             assert(List:Contains(list, 10) == false)
+            assert(List:Contains({"a", "b", "c"}, "B", function(lhs, rhs) return string.lower(lhs) == string.lower(rhs) end) == true)
         end,
 
         TestListCount = function()
