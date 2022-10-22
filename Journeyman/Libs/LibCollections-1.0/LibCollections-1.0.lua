@@ -343,6 +343,44 @@ function List:Sort(list, comparison)
     tsort(list, comparison)
 end
 
+-- Bypasses a specified number of items in a list and then returns the remaining items.
+function List:Skip(list, count)
+    if count < 1 then
+        return list
+    end
+    local n = #list
+    if count > n then
+        return {}
+    end
+    local result = {}
+    for i = 1 + count, n do
+        local item = list[i]
+        if item ~= nil then
+            tinsert(result, item)
+        end
+    end
+    return result
+end
+
+-- Returns a specified number of contiguous items from the start of a list.
+function List:Take(list, count)
+    if count < 1 then
+        return {}
+    end
+    local n = #list
+    if count > n then
+        return list
+    end
+    local result = {}
+    for i = 1, count do
+        local item = list[i]
+        if item ~= nil then
+            tinsert(result, item)
+        end
+    end
+    return result
+end
+
 -- Filters the list based on a predicate.
 function List:Where(list, predicate)
     local result = {}
@@ -858,6 +896,20 @@ LibCollections.RunTests = function()
             assert(complex[3].dist == 3)
             assert(complex[4].dist == 4)
             assert(complex[5].dist == 5)
+        end,
+
+        TestListSkip = function()
+            local list = {1, 2, 3, 4, 5}
+            assert(List:SequenceEqual(List:Skip(list, 2), {3, 4, 5}))
+            assert(List:SequenceEqual(List:Skip(list, 0), {1, 2, 3, 4, 5}))
+            assert(List:SequenceEqual(List:Skip(list, 10), {}))
+        end,
+
+        TestListTake = function()
+            local list = {1, 2, 3, 4, 5}
+            assert(List:SequenceEqual(List:Take(list, 3), {1, 2, 3}))
+            assert(List:SequenceEqual(List:Take(list, 0), {}))
+            assert(List:SequenceEqual(List:Take(list, 10), {1, 2, 3, 4, 5}))
         end,
 
         TestListWhere = function()
