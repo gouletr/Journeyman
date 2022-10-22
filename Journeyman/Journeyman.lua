@@ -18,6 +18,9 @@ local QUEST_COLOR_GREEN = "FF40C040"
 local QUEST_COLOR_GREY = "FFC0C0C0"
 
 Journeyman.BYTE_ORDER_MARK = "!JM1"
+Journeyman.JOURNEY_AS_DATA = "data"
+Journeyman.JOURNEY_AS_TEXT = "text"
+
 Journeyman.STEP_TYPE_UNDEFINED = "UNDEFINED"
 Journeyman.STEP_TYPE_ACCEPT_QUEST = "ACCEPT"
 Journeyman.STEP_TYPE_COMPLETE_QUEST = "COMPLETE"
@@ -184,13 +187,14 @@ function Journeyman:OnInitialize()
     self.player.greenRange = GetQuestGreenRange("player")
     self.player.location = nil
 
+    self.Journey:Initialize()
+
     self:InitializeDatabase()
     self.Editor:Initialize()
     self:InitializeOptions()
     self.State:Initialize()
     self:InitializeHooks()
     self:InitializeEvents()
-    self.Journey:Initialize()
     self.Window:Initialize()
 end
 

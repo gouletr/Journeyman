@@ -308,6 +308,52 @@ function Journeyman:ExportJourney(deserializedJourney)
     return serializedJourney
 end
 
+local function ExportCommand(type)
+    if type == Journeyman.STEP_TYPE_UNDEFINED then
+        return "undefined"
+    elseif type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+        return "accept"
+    elseif type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+        return "complete"
+    elseif type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        return "turnin"
+    elseif type == Journeyman.STEP_TYPE_GO_TO_COORD then
+        return "goto"
+    elseif type == Journeyman.STEP_TYPE_GO_TO_AREA then
+        return "gotoarea"
+    elseif type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+        return "gotozone"
+    elseif type == Journeyman.STEP_TYPE_REACH_LEVEL then
+        return "level"
+    elseif type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+        return "reputation"
+    elseif type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+        return "bind"
+    elseif type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+        return "hearth"
+    elseif type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+        return "learnfp"
+    elseif type == Journeyman.STEP_TYPE_FLY_TO then
+        return "flyto"
+    elseif type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+        return "trainclass"
+    elseif type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+        return "trainspells"
+    elseif type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+        return "learnfirstaid"
+    elseif type == Journeyman.STEP_TYPE_LEARN_COOKING then
+        return "learncooking"
+    elseif type == Journeyman.STEP_TYPE_LEARN_FISHING then
+        return "learnfishing"
+    elseif type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+        return "getitems"
+    elseif type == Journeyman.STEP_TYPE_DIE_AND_RES then
+        return "die"
+    else
+        Journeyman:Error("Step type %s not implemented.", type)
+    end
+end
+
 function Journeyman:ImportJourney(serializedJourney)
     local result, deserializedJourney = self:Deserialize(serializedJourney)
     if not result then
@@ -423,4 +469,302 @@ function Journeyman:Deserialize(str)
     end
 
     return true, deserialized
+end
+
+local function ExportData(data)
+    if type(data) == "table" then
+        local items = {}
+        Dictionary:ForEach(data, function(key, value)
+            if type(value) ~= "table" then
+                List:Add(items, tostring(key).."="..ExportData(value))
+            end
+        end)
+        return String:Join(" ", items)
+    elseif type(data) == "string" then
+        local number = tonumber(data)
+        if number then
+            return ExportData(number)
+        else
+            if String:Contains(data, " ") then
+                return "\""..data.."\""
+            else
+                return data
+            end
+        end
+    elseif type(data) == "number" then
+        if math.floor(data) == data then
+            return tostring(data) -- integer
+        else
+            return string.format("%.2f", data) -- decimal
+        end
+    else
+        Journeyman:Error("Export type %s not implemented", type(data))
+    end
+end
+
+local function ExportRaces(races)
+    if races then
+        local requiredRaces = {}
+        List:ForEach(Journeyman.raceMask, function(mask)
+            if bit.band(mask, races) == mask then
+                List:Add(requiredRaces, Journeyman.raceName[mask])
+            end
+        end)
+        if #requiredRaces > 0 then
+            return "requiredRaces="..String:Join(",", requiredRaces)
+        end
+    end
+end
+
+local function ExportClasses(classes)
+    if classes then
+        local requiredClasses = {}
+        List:ForEach(Journeyman.classMask, function(mask)
+            if bit.band(mask, classes) == mask then
+                List:Add(requiredClasses, Journeyman.className[mask])
+            end
+        end)
+        if #requiredClasses > 0 then
+            return "requiredClasses="..String:Join(",", requiredClasses)
+        end
+    end
+end
+
+local function ExportNote(note)
+    if note then
+        return "note=\""..note.."\""
+    end
+end
+
+function Journeyman:ExportJourneyAsText(journey)
+    local export = "journey "..ExportData(journey.title).." "..ExportData(journey.guid).."\n"
+    List:ForEach(journey.chapters, function(chapter)
+        export = export.."chapter "..ExportData(chapter.title).."\n"
+        List:ForEach(chapter.steps, function(step)
+            local command = ExportCommand(step.type)
+            local arguments = ExportData(step.data)
+            if not String:IsNilOrEmpty(command) then
+                local requiredRaces = ExportRaces(step.requiredRaces)
+                local requiredClasses = ExportClasses(step.requiredClasses)
+                local note = ExportNote(step.note)
+                local line = String:Join(" ", command, arguments, requiredRaces, requiredClasses, note)
+                export = export..string.format("%s\n", String:Trim(line))
+            end
+        end)
+    end)
+    return export
+end
+
+local function ParseWords(line)
+    local tokens = {}
+    local word = ""
+    local insideQuotes = false
+    local insideDoubleQuotes = false
+    local n = line:len()
+    for i = 1, n do
+        local char = line:sub(i, i)
+        if char == ' ' then
+            if insideQuotes or insideDoubleQuotes then
+                word = word..char
+            elseif not String:IsNilOrEmpty(word) then
+                List:Add(tokens, word)
+                word = ""
+            end
+        elseif char == '\"' then
+            if insideQuotes then
+                word = word..char
+            elseif insideDoubleQuotes then
+                if not String:IsNilOrEmpty(word) then
+                    List:Add(tokens, word)
+                    word = ""
+                end
+                insideDoubleQuotes = false
+            else
+                insideDoubleQuotes = true
+            end
+        elseif char == '\'' then
+            if insideDoubleQuotes then
+                word = word..char
+            elseif insideQuotes then
+                if not String:IsNilOrEmpty(word) then
+                    List:Add(tokens, word)
+                    word = ""
+                end
+                insideQuotes = false
+            else
+                insideQuotes = true
+            end
+        else
+            word = word..char
+        end
+    end
+    if not String:IsNilOrEmpty(word) then
+        List:Add(tokens, word)
+    end
+    return tokens
+end
+
+local function ParseCommandJourney(arguments, context)
+    if context.journey then
+        Journeyman:Error("Parsing error, journey already defined.")
+        return
+    end
+
+    local title = arguments[1]
+    if String:IsNilOrEmpty(title) then
+        Journeyman:Error("Parsing error, missing journey title.")
+        return
+    end
+
+    local guid = arguments[2]
+    if String:IsNilOrEmpty(guid) then
+        Journeyman:Error("Parsing error, missing journey guid.")
+        return
+    end
+
+    context.journey = Journey:CreateJourney(title, guid)
+end
+
+local function ParseCommandChapter(arguments, context)
+    local title = arguments[1]
+    if String:IsNilOrEmpty(title) then
+        Journeyman:Error("Parsing error, missing chapter title.")
+        return
+    end
+
+    context.chapter = Journey:AddNewChapter(context.journey, title)
+end
+
+local function ParseCommand(type, arguments, context)
+    local data, requiredRaces, requiredClasses, note = ""
+    if arguments then
+        List:ForEach(arguments, function(argument)
+            local tokens = String:Split(argument, "=")
+            local count = List:Count(tokens)
+            if count == 1 then
+                data = String:Trim(String:Trim(argument, '\"'), '\'')
+            elseif count == 2 then
+                local field = tokens[1]
+                local value = tokens[2]
+                if field == "requiredRaces" then
+                    local races = String:Split(value, ",")
+                    List:ForEach(races, function(race)
+                        if requiredRaces == nil then
+                            requiredRaces = 0
+                        end
+                        local mask = Journeyman["RACE_"..race:upper()]
+                        if mask then
+                            requiredRaces = bit.bor(requiredRaces, mask)
+                        end
+                    end)
+                elseif field == "requiredClasses" then
+                    local classes = String:Split(value, ",")
+                    List:ForEach(classes, function(class)
+                        if requiredClasses == nil then
+                            requiredClasses = 0
+                        end
+                        local mask = Journeyman["CLASS_"..class:upper()]
+                        if mask then
+                            requiredClasses = bit.bor(requiredClasses, mask)
+                        end
+                    end)
+                elseif field == "note" then
+                    note = String:Trim(String:Trim(value, '\"'), '\'')
+                else
+                    Journeyman:Error("Parsing error, unknown optional field: %s", field)
+                end
+            else
+                Journeyman:Error("Parsing error, unknown argument: %s", argument)
+            end
+        end)
+    end
+
+    if data then
+        context.step = Journey:AddNewStep(context.journey, context.chapter, type, data, nil, requiredRaces, requiredClasses, note)
+    end
+end
+
+local function ParseCommands(words, context)
+    local command = words[1]
+    if not String:IsNilOrEmpty(command) then
+        local arguments = List:Skip(words, 1)
+        if command == "journey" then
+            ParseCommandJourney(arguments, context)
+        elseif command == "chapter" then
+            ParseCommandChapter(arguments, context)
+        else
+            if not context.journey then
+                Journeyman:Error("Parsing error, no journey defined.")
+                return
+            end
+
+            if not context.journey then
+                Journeyman:Error("Parsing error, no chapter defined.")
+                return
+            end
+
+            if command == "accept" then
+                ParseCommand(Journeyman.STEP_TYPE_ACCEPT_QUEST, arguments, context)
+            elseif command == "complete" then
+                ParseCommand(Journeyman.STEP_TYPE_COMPLETE_QUEST, arguments, context)
+            elseif command == "turnin" then
+                ParseCommand(Journeyman.STEP_TYPE_TURNIN_QUEST, arguments, context)
+            elseif command == "goto" then
+                ParseCommand(Journeyman.STEP_TYPE_GO_TO_COORD, arguments, context)
+            elseif command == "gotoarea" then
+                ParseCommand(Journeyman.STEP_TYPE_GO_TO_AREA, arguments, context)
+            elseif command == "gotozone" then
+                ParseCommand(Journeyman.STEP_TYPE_GO_TO_ZONE, arguments, context)
+            elseif command == "level" then
+                ParseCommand(Journeyman.STEP_TYPE_REACH_LEVEL, arguments, context)
+            elseif command == "reputation" then
+                ParseCommand(Journeyman.STEP_TYPE_REACH_REPUTATION, arguments, context)
+            elseif command == "bind" then
+                ParseCommand(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, arguments, context)
+            elseif command == "hearth" then
+                ParseCommand(Journeyman.STEP_TYPE_USE_HEARTHSTONE, arguments, context)
+            elseif command == "learnfp" then
+                ParseCommand(Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, arguments, context)
+            elseif command == "flyto" then
+                ParseCommand(Journeyman.STEP_TYPE_FLY_TO, arguments, context)
+            elseif command == "trainclass" then
+                ParseCommand(Journeyman.STEP_TYPE_TRAIN_CLASS, arguments, context)
+            elseif command == "trainspells" then
+                ParseCommand(Journeyman.STEP_TYPE_TRAIN_SPELLS, arguments, context)
+            elseif command == "learnfirstaid" then
+                ParseCommand(Journeyman.STEP_TYPE_LEARN_FIRST_AID, arguments, context)
+            elseif command == "learncooking" then
+                ParseCommand(Journeyman.STEP_TYPE_LEARN_COOKING, arguments, context)
+            elseif command == "learnfishing" then
+                ParseCommand(Journeyman.STEP_TYPE_LEARN_FISHING, arguments, context)
+            elseif command == "getitems" then
+                ParseCommand(Journeyman.STEP_TYPE_ACQUIRE_ITEMS, arguments, context)
+            elseif command == "die" then
+                ParseCommand(Journeyman.STEP_TYPE_DIE_AND_RES, arguments, context)
+            else
+                ParseCommand(Journeyman.STEP_TYPE_UNDEFINED, arguments, context)
+            end
+        end
+    end
+end
+
+function Journeyman:ImportJourneyFromText(text)
+    -- Get lines
+    local lines = {}
+    for line in text:gmatch("[^\r\n]+") do
+        if not String:IsNilOrEmpty(line) then
+            List:Add(lines, line)
+        end
+    end
+
+    -- Parse words into commands
+    local journey, chapter, step
+    local context = {}
+    List:ForEach(lines, function(line)
+        local words = ParseWords(line)
+        if words then
+            ParseCommands(words, context)
+        end
+    end)
+    return context.journey
 end

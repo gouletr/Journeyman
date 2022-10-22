@@ -237,6 +237,55 @@ function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id
 
     return frame
  end
+ 
+ function GUI:CreateDropDownButton(frameType, name, parent, template, id)
+    local frame = CreateFrame(frameType, name, parent, template, id)
+
+    local dropDownMenu = CreateFrame("FRAME", "Dropdown", frame, "UIDropDownMenuTemplate")
+    frame.dropDownMenu = dropDownMenu
+
+    local button = CreateFrame("BUTTON", "Button", frame, "UIPanelButtonTemplate")
+    button:SetPoint("TOPLEFT", 0, 0)
+    button:SetPoint("BOTTOMRIGHT")
+    button:SetScript("OnClick", function(self, button, down)
+        ToggleDropDownMenu(1, nil, dropDownMenu, "cursor", 3, -3)
+    end)
+    frame.button = button
+
+    dropDownMenu.initialize = function(self, level, menuList)
+        local info = UIDropDownMenu_CreateInfo()
+        info.func = function(self, arg1, arg2, checked)
+            if frame.OnValueSelected then
+                frame:OnValueSelected(arg1)
+            end
+        end
+
+        local sorting
+        if frame.GetSorting then
+            sorting = frame:GetSorting()
+        end
+
+        local values = frame:GetValues()
+        if sorting then
+            for i, v in ipairs(sorting) do
+                info.text, info.arg1 = values[v], v
+                info.notCheckable = true
+                UIDropDownMenu_AddButton(info)
+            end
+        else
+            for k, v in pairs(values) do
+                info.text, info.arg1 = v, k
+                info.notCheckable = true
+                UIDropDownMenu_AddButton(info)
+            end
+        end
+    end
+
+    frame.SetText = function(self, value) self.button:SetText(value) end
+    frame.SetEnabled = function(self, value) frame.button:SetEnabled(value) end
+
+    return frame
+ end
 
 function GUI:CreateListView(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)

@@ -6,12 +6,15 @@ local L = addon.Locale
 local Editor = {}
 Journeyman.Editor = Editor
 
+local Journey = Journeyman.Journey
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
 local HBD = LibStub("HereBeDragons-2.0")
 
 function Editor:Initialize()
+    Journey = Journeyman.Journey
+
     local frame = CreateFrame("FRAME", "Editor", UIParent)
     frame.name = "Editor"
     frame.parent = addonName
@@ -93,7 +96,7 @@ function Editor:Initialize()
     newJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOM", 0, -22)
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
-        if Journeyman.Journey:AddNewjourney() then
+        if Journey:AddNewJourney() then
             Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
             Editor:SetSelectedChapterIndex(-1)
             Editor:SetSelectedStepIndex(-1)
@@ -107,7 +110,7 @@ function Editor:Initialize()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            if Journeyman.Journey:DeleteJourney(Editor:GetSelectedJourneyIndex()) then
+            if Journey:DeleteJourney(Editor:GetSelectedJourneyIndex()) then
                 Editor:SetSelectedJourneyIndex(-1)
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
@@ -127,6 +130,54 @@ function Editor:Initialize()
     end)
     self.deleteJourneyButton = deleteJourneyButton
 
+    StaticPopupDialogs[addonName .. "_IMPORT_JOURNEY"] = {
+        text = "Another journey with the same GUID already exist. Do you want to make a new journey or overwrite existing journey?",
+        showAlert = true,
+        button1 = "New",
+        button2 = "Overwrite",
+        button3 = "Cancel",
+        OnAccept = function(self)
+            local importingJourney = self.importingJourney
+            if importingJourney then
+                -- Make sure guid is unique
+                importingJourney.guid = Journeyman.Utils:CreateGUID()
+                -- Make sure title is unique
+                if List:Any(Journeyman.journeys, function(j) return j.title == importingJourney.title end) then
+                    local title = importingJourney.title
+                    local count = 1
+                    while List:Count(Journeyman.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+                        count = count + 1
+                    end
+                    importingJourney.title = title.." ("..count..")"
+                end
+                -- Add journey
+                List:Add(Journeyman.journeys, importingJourney)
+                Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+                Editor:SetSelectedChapterIndex(1)
+                Editor:SetSelectedStepIndex(-1)
+                Editor:Refresh()
+            end
+        end,
+        OnCancel = function(self)
+            local importingJourney = self.importingJourney
+            if importingJourney then
+                -- Update journey chapters
+                local existingJourney = List:First(Journeyman.journeys, function(j) return j.guid == importingJourney.guid end)
+                if existingJourney then
+                    existingJourney.title = importingJourney.title
+                    existingJourney.chapters = importingJourney.chapters
+                end
+                Editor:Refresh()
+                Journeyman:ResetJourneyState(existingJourney)
+                Journeyman:Reset(true)
+            end
+        end,
+        OnAlt = function(self)
+            Editor:Refresh()
+        end,
+        sound = SOUNDKIT.IG_MAINMENU_OPEN,
+        hideOnEscape = true,
+    }
     local importJourneyButton = CreateFrame("BUTTON", "ImportJourney", content, "UIPanelButtonTemplate")
     importJourneyButton:SetPoint("TOPLEFT", newJourneyButton, "BOTTOMLEFT")
     importJourneyButton:SetPoint("BOTTOMRIGHT", newJourneyButton, "BOTTOMRIGHT", 0, -22)
@@ -148,16 +199,13 @@ function Editor:Initialize()
                     if serialized and serialized:len() > 0 then
                         journey, status = Journeyman:ImportJourney(serialized)
                     end
+                else
+                    journey = Journeyman:ImportJourneyFromText(trimmed)
                 end
             end
-
             if journey then
-                List:Add(Journeyman.journeys, journey)
                 window:Hide()
-                Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
-                Editor:SetSelectedChapterIndex(1)
-                Editor:SetSelectedStepIndex(-1)
-                Editor:Refresh()
+                Editor:ImportJourney(journey)
             else
                 if status == nil then
                     status = L["INVALID_JOURNEY"]
@@ -173,33 +221,53 @@ function Editor:Initialize()
     end)
     self.importJourneyButton = importJourneyButton
 
-    local exportJourneyButton = CreateFrame("BUTTON", "ExportJourney", content, "UIPanelButtonTemplate")
+    local exportJourneyButton = Journeyman.GUI:CreateDropDownButton("FRAME", "ExportJourney", content)
     exportJourneyButton:SetPoint("TOPLEFT", deleteJourneyButton, "BOTTOMLEFT")
     exportJourneyButton:SetPoint("BOTTOMRIGHT", deleteJourneyButton, "BOTTOMRIGHT", 0, -22)
     exportJourneyButton:SetText(L["EXPORT_JOURNEY"])
-    exportJourneyButton:SetScript("OnClick", function(self, button, down)
-        local window = AceGUI:Create("Frame")
-        window:SetTitle(L["EXPORT_JOURNEY"])
-        window:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
-        window:SetLayout("Fill")
-
-        local editBox = AceGUI:Create("MultiLineEditBox")
-        editBox:DisableButton(true)
-        editBox:SetFocus()
-        editBox.label:SetText(L["COPY_TEXT_BELOW"])
-        window:AddChild(editBox)
-
+    exportJourneyButton.GetValues = function(self)
+        return {
+            [Journeyman.JOURNEY_AS_DATA] = L["JOURNEY_AS_DATA"],
+            [Journeyman.JOURNEY_AS_TEXT] = L["JOURNEY_AS_TEXT"],
+        }
+    end
+    exportJourneyButton.GetSorting = function(self)
+        return {
+            Journeyman.JOURNEY_AS_DATA,
+            Journeyman.JOURNEY_AS_TEXT,
+        }
+    end
+    exportJourneyButton.OnValueSelected = function(self, value)
         local journey = Editor:GetSelectedJourney()
         if journey then
-            local serialized, status = Journeyman:ExportJourney(journey)
-            if serialized then
-                editBox:SetText(Journeyman.BYTE_ORDER_MARK .. serialized)
-                editBox:HighlightText()
-            else
-                window:SetStatusText(status)
+            local window = AceGUI:Create("Frame")
+            window:SetTitle(L["EXPORT_JOURNEY"])
+            window:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+            window:SetLayout("Fill")
+
+            local editBox = AceGUI:Create("MultiLineEditBox")
+            editBox:DisableButton(true)
+            editBox:SetFocus()
+            editBox.label:SetText(L["COPY_TEXT_BELOW"])
+            window:AddChild(editBox)
+
+            if value == Journeyman.JOURNEY_AS_DATA then
+                local serialized, status = Journeyman:ExportJourney(journey)
+                if serialized then
+                    editBox:SetText(Journeyman.BYTE_ORDER_MARK..serialized)
+                    editBox:HighlightText()
+                else
+                    window:SetStatusText(status)
+                end
+            elseif value == Journeyman.JOURNEY_AS_TEXT then
+                local export = Journeyman:ExportJourneyAsText(journey)
+                if export then
+                    editBox:SetText(export)
+                    editBox:HighlightText()
+                end
             end
         end
-    end)
+    end
     self.exportJourneyButton = exportJourneyButton
 
     local newChapterButton = CreateFrame("BUTTON", "NewChapter", content, "UIPanelButtonTemplate")
@@ -208,7 +276,7 @@ function Editor:Initialize()
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
         local journey = Editor:GetSelectedJourney()
-        if journey and Journeyman.Journey:AddNewChapter(journey) then
+        if journey and Journey:AddNewChapter(journey) then
             Editor:SetSelectedChapterIndex(#journey.chapters)
             Editor:SetSelectedStepIndex(-1)
             Editor:Refresh()
@@ -224,7 +292,7 @@ function Editor:Initialize()
         button2 = CANCEL,
         OnAccept = function()
             local journey = Editor:GetSelectedJourney()
-            if journey and Journeyman.Journey:DeleteChapter(journey, Editor:GetSelectedChapterIndex()) then
+            if journey and Journey:DeleteChapter(journey, Editor:GetSelectedChapterIndex()) then
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
@@ -348,7 +416,7 @@ function Editor:Initialize()
         if IsControlKeyDown() then
             stepIndex = nil
         end
-        if Journeyman.Journey:AddNewStep(journey, chapter, nil, nil, stepIndex) then
+        if Journey:AddNewStep(journey, chapter, nil, nil, stepIndex) then
             Editor:Refresh()
             Journeyman:Reset(true)
         end
@@ -363,7 +431,7 @@ function Editor:Initialize()
         OnAccept = function()
             local journey = Editor:GetSelectedJourney()
             local chapter = Editor:GetSelectedChapter()
-            if Journeyman.Journey:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
+            if Journey:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
                 Journeyman:Reset(true)
@@ -396,7 +464,7 @@ function Editor:Initialize()
     self.ResetSelectedChapterState = function(self) Journeyman:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
-    self.GetSelectedStep = function(self) return Journeyman.Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
+    self.GetSelectedStep = function(self) return Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
     self.IsSelectedStepLast = function(self) return self.stepSelector.list.selectedIndex == #self:GetSelectedChapter().steps end
     self.Refresh = function(self)
         xpcall(function()
@@ -492,7 +560,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyIndex:SetNumeric(true)
     journeyIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        if index and Journeyman.Journey:MoveJourney(Editor:GetSelectedJourneyIndex(), index) then
+        if index and Journey:MoveJourney(Editor:GetSelectedJourneyIndex(), index) then
             Editor:SetSelectedJourneyIndex(index)
         end
         Editor:Refresh()
@@ -522,7 +590,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
         local journey = Editor:GetSelectedJourney()
-        if index and journey and Journeyman.Journey:MoveChapter(journey, Editor:GetSelectedChapterIndex(), index) then
+        if index and journey and Journey:MoveChapter(journey, Editor:GetSelectedChapterIndex(), index) then
             Editor:SetSelectedChapterIndex(index)
         end
         Editor:Refresh()
@@ -647,7 +715,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         local journey = Editor:GetSelectedJourney()
         local chapter = Editor:GetSelectedChapter()
         local index = self:GetNumber()
-        if Journeyman.Journey:MoveStep(journey, chapter, Editor:GetSelectedStepIndex(), index) then
+        if Journey:MoveStep(journey, chapter, Editor:GetSelectedStepIndex(), index) then
             Editor:SetSelectedStepIndex(index)
         end
         Editor:Refresh()
@@ -892,4 +960,30 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, t
     frame.SetEnabled = function(self, value) self.dropDownMenu:SetEnabled(value) end
 
     return frame
+end
+
+function Editor:ImportJourney(journey)
+    -- Verify if journey already exist
+    if List:Any(Journeyman.journeys, function(j) return j.guid == journey.guid end) then
+        local dialog = StaticPopup_Show(addonName .. "_IMPORT_JOURNEY", nil, nil, journey)
+        dialog.importingJourney = journey
+        return
+    end
+
+    -- Make sure title is unique
+    if List:Any(Journeyman.journeys, function(j) return j.title == journey.title end) then
+        local title = journey.title
+        local count = 1
+        while List:Count(Journeyman.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+            count = count + 1
+        end
+        journey.title = title.." ("..count..")"
+    end
+
+    -- Add journey
+    List:Add(Journeyman.journeys, journey)
+    Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+    Editor:SetSelectedChapterIndex(1)
+    Editor:SetSelectedStepIndex(-1)
+    Editor:Refresh()
 end
