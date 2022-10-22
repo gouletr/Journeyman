@@ -107,35 +107,38 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
+        -- Store some values
+        Journeyman.player.level = UnitLevel("player")
+        Journeyman.player.xp = UnitXP("player")
+        Journeyman.player.maxXP = UnitXPMax("player")
+        Journeyman.player.greenRange = GetQuestGreenRange("player")
+
         -- Delay level up so that it happens after quests turn-in
         C_Timer.After(1, function() self:OnLevelUp(level) end)
     end)
 
     self:RegisterEvent("PLAYER_XP_UPDATE", function(event, unit)
-        if not Journeyman.db.char.window.show or State.steps == nil then
-            return
-        end
-
         -- Store some values
-        local xp = UnitXP("player")
         Journeyman.player.level = UnitLevel("player")
-        Journeyman.player.xp = xp
+        Journeyman.player.xp = UnitXP("player")
         Journeyman.player.maxXP = UnitXPMax("player")
         Journeyman.player.greenRange = GetQuestGreenRange("player")
 
-        List:ForEach(State.steps, function(step)
-            if step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
-                if Journeyman.player.level == step.data.level and step.data.xp then
-                    if Journeyman.player.xp >= step.data.xp then
-                        self:OnLevelXPReached(step)
-                    else
+        if State.steps then
+            List:ForEach(State.steps, function(step)
+                if step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
+                    if Journeyman.player.level == step.data.level and step.data.xp then
+                        if Journeyman.player.xp >= step.data.xp then
+                            self:OnLevelXPReached(step)
+                        else
+                            Journeyman:Update()
+                        end
+                    elseif Journeyman.player.level == step.data.level - 1 then
                         Journeyman:Update()
                     end
-                elseif Journeyman.player.level == step.data.level - 1 then
-                    Journeyman:Update()
                 end
-            end
-        end)
+            end)
+        end
     end)
 
     self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", function(event, text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, supressRaidIcons)

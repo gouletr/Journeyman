@@ -1050,7 +1050,7 @@ function Journeyman:GetStepData(step)
             local xp = tonumber(values[2])
             if level then
                 data = { level = level }
-                if xp then
+                if xp and xp >= 1 then
                     data.xp = xp
                 end
             end
@@ -1183,7 +1183,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         local level = data and data.level or 0
         local text = string.format(L["STEP_TEXT_REACH_LEVEL"], level)
         if data and data.xp then
-            text = text..string.format(" +%s xp", data.xp)
+            text = string.format("%s + %s xp", text, data.xp)
         end
         return text
 

@@ -108,8 +108,6 @@ L["NUMBER_OF_KILL"] = "%s kill"
 L["OPEN_OPTIONS"] = "Open Options"
 L["PASTE_CHAPTER"] = "Paste Chapter"
 L["PASTE_TEXT_BELOW"] = "Paste text below"
-L["REGEX_COMBAT_FACTION_CHANGE"] = "Your (.+) reputation has increased by (%d+)."
-L["REGEX_COMBAT_XP_GAIN"] = "(.+) dies, you gain (%d+) experience."
 L["RESET_POSITION"] = "Reset Position"
 L["RESET_POSITION_DESC"] = "Reset the window position."
 L["SAVED_PER_CHARACTER"] = "Saved per character."
@@ -182,3 +180,16 @@ L["WINDOW_STRATA"] = "Strata"
 L["WINDOW_STRATA_DESC"] = "Control the strata (display layer) of the window."
 L["WINDOW_WIDTH"] = "Width"
 L["WINDOW_WIDTH_DESC"] = "Width of the window."
+
+if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+    L["REGEX_COMBAT_FACTION_CHANGE"] = "Your (.+) reputation has increased by (%d+)."
+    L["REGEX_COMBAT_XP_GAIN"] = "(.+) dies, you gain (%d+) experience."
+elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+    L["REGEX_COMBAT_FACTION_CHANGE"] = "Reputation with (.+) increased by (%d+)."
+    L["REGEX_COMBAT_XP_GAIN"] = "(.+) dies, you gain (%d+) experience."
+elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
+    L["REGEX_COMBAT_FACTION_CHANGE"] = "Reputation with (.+) increased by (%d+)."
+    L["REGEX_COMBAT_XP_GAIN"] = "(.+) dies, you gain (%d+) experience."
+else
+    error(string.format("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID))
+end

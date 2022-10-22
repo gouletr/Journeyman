@@ -456,7 +456,7 @@ function Window:DisplayStep(step, depth)
             -- Step text
             local text = string.format(L["STEP_TEXT_REACH_LEVEL"], self:GetColoredHighlightText(step.data.level, step.isComplete))
             if step.data.xp then
-                text = text..string.format(" +%s xp", step.data.xp)
+                text = string.format("%s + %s xp", text, step.data.xp)
             end
             self:GetNextLine():SetStepText(step, depth, "%s", text) -- string contains % sign
             -- Step objective text
