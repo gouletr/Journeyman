@@ -80,16 +80,21 @@ function String:Trim(value, char)
     return smatch(value, "^["..char.."]*(.-)["..char.."]*$")
 end
 
--- Adds the item to the end of the list.
+-- Adds the item to the end of the list, if its not nil.
 function List:Add(list, item)
-    tinsert(list, item)
+    if item ~= nil then
+        tinsert(list, item)
+    end
 end
 
--- Adds the items to the end of the list.
+-- Adds the items to the end of the list, if its not nil.
 function List:AddRange(list, items)
     local n = #items
     for i = 1, n do
-        tinsert(list, items[i])
+        local item = items[i]
+        if item ~= nil then
+            tinsert(list, item)
+        end
     end
 end
 
@@ -155,8 +160,10 @@ function List:Distinct(list)
     local n = #list
     for i = 1, n do
         local item = list[i]
-        if not List:Contains(result, item) then
-            List:Add(result, item)
+        if item ~= nil then
+            if not self:Contains(result, item) then
+                tinsert(result, item)
+            end
         end
     end
     return result
@@ -187,7 +194,10 @@ end
 function List:ForEach(list, action)
     local n = #list
     for i = 1, n do
-        action(list[i])
+        local item = list[i]
+        if item ~= nil then
+            action(item)
+        end
     end
 end
 
@@ -201,19 +211,22 @@ function List:IndexOf(list, item)
     end
 end
 
--- Inserts the item into the list at the specified index.
+-- Inserts the item into the list at the specified index, if its not nil.
 function List:Insert(list, index, item)
-    if index >= 1 and index <= #list + 1 then
+    if index >= 1 and index <= #list + 1 and item ~= nil then
         tinsert(list, index, item)
     end
 end
 
--- Inserts the items into the list at the specified index.
+-- Inserts the items into the list at the specified index, if its not nil.
 function List:InsertRange(list, index, items)
     if index >= 1 and index <= #list + 1 then
         local n = #items
         for i = 1, n do
-            tinsert(list, index + i - 1, items[i])
+            local item = items[i]
+            if item ~= nil then
+                tinsert(list, index + i - 1, item)
+            end
         end
     end
 end
@@ -306,7 +319,7 @@ function List:Select(list, selector)
     return result
 end
 
--- Determines whether two lists are equal according to an equality comparer.
+-- Determines whether two lists are equal, using the optional equality comparer.
 function List:SequenceEqual(list1, list2, comparer)
     local n1, n2 = #list1, #list2
     if n1 ~= n2 then
@@ -512,6 +525,8 @@ LibCollections.RunTests = function()
             assert(List:SequenceEqual(list, {1, 2}) == true)
             List:Add(list, 2)
             assert(List:SequenceEqual(list, {1, 2, 2}) == true)
+            List:Add(list, nil)
+            assert(List:SequenceEqual(list, {1, 2, 2}) == true)
         end,
 
         TestListAddRange = function()
@@ -522,6 +537,10 @@ LibCollections.RunTests = function()
             assert(List:SequenceEqual(list, {1, 2, 3}) == true)
             List:AddRange(list, {4, 5, 6})
             assert(List:SequenceEqual(list, {1, 2, 3, 4, 5, 6}) == true)
+            List:AddRange(list, {nil, nil, nil})
+            assert(List:SequenceEqual(list, {1, 2, 3, 4, 5, 6}) == true)
+            List:AddRange(list, {7, nil, 9})
+            assert(List:SequenceEqual(list, {1, 2, 3, 4, 5, 6, 7, 9}) == true)
         end,
 
         TestListAll = function()
@@ -565,6 +584,7 @@ LibCollections.RunTests = function()
         end,
 
         TestListDistinct = function()
+            assert(List:SequenceEqual(List:Distinct({1, 2, 3}), {1, 2, 3}) == true)
             assert(List:SequenceEqual(List:Distinct({1, 1, 2, 2, 3, 3, 11, 12, 13, 1, 2, 3}), {1, 2, 3, 11, 12, 13}) == true)
             assert(List:SequenceEqual(List:Distinct({"a", "ab", "abc"}), {"a", "ab", "abc"}) == true)
         end,
@@ -594,6 +614,7 @@ LibCollections.RunTests = function()
             local result = {}
             List:ForEach(list, function(v) tinsert(result, v + 10) end)
             assert(List:SequenceEqual(result, {11, 12, 13, 14, 15}) == true)
+            List:ForEach({nil, 2, nil, 4, nil}, function(v) assert(v ~= nil) end)
         end,
 
         TestListIndexOf = function()
@@ -619,6 +640,8 @@ LibCollections.RunTests = function()
             assert(List:SequenceEqual(list, {1, 2, 3, 4, 5}) == true)
             List:Insert(list, 10, 10)
             assert(List:SequenceEqual(list, {1, 2, 3, 4, 5}) == true)
+            List:Insert(list, 3, nil)
+            assert(List:SequenceEqual(list, {1, 2, 3, 4, 5}) == true)
 
             do
                 local empty = {}
@@ -643,6 +666,12 @@ LibCollections.RunTests = function()
                 List:Insert(empty, 2, 2)
                 assert(List:SequenceEqual(empty, {}) == true)
             end
+
+            do
+                local empty = {}
+                List:Insert(empty, 0, nil)
+                assert(List:SequenceEqual(empty, {}) == true)
+            end
         end,
 
         TestListInsertRange = function()
@@ -660,6 +689,8 @@ LibCollections.RunTests = function()
             List:InsertRange(list, -1, {-1, -1})
             assert(List:SequenceEqual(list, {1, 2, 0, 0, 3, 4, 5}) == true)
             List:InsertRange(list, 10, {10, 11})
+            assert(List:SequenceEqual(list, {1, 2, 0, 0, 3, 4, 5}) == true)
+            List:InsertRange(list, 4, {nil, nil})
             assert(List:SequenceEqual(list, {1, 2, 0, 0, 3, 4, 5}) == true)
 
             do
@@ -683,6 +714,12 @@ LibCollections.RunTests = function()
             do
                 local empty = {}
                 List:Insert(empty, 2, {1, 2, 3})
+                assert(List:SequenceEqual(empty, {}) == true)
+            end
+
+            do
+                local empty = {}
+                List:Insert(empty, 0, {nil, nil, nil})
                 assert(List:SequenceEqual(empty, {}) == true)
             end
         end,
