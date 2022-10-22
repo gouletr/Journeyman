@@ -15,8 +15,26 @@ local Dictionary = {}
 LibCollections.Dictionary = Dictionary
 
 -- Lua APIs
+local tostring, tonumber = tostring, tonumber
 local tinsert, tremove, tsort = table.insert, table.remove, table.sort
-local slen, sfind, smatch, sgmatch = string.len, string.find, string.match, string.gmatch
+local slen, slow, sfind, smatch, sgmatch = string.len, string.lower, string.find, string.match, string.gmatch
+
+local function getvargs(...)
+    local result = {}
+    local vargs = {...}
+    local n = #vargs
+    for i = 1, n do
+        local varg = vargs[i]
+        if varg then
+            if type(varg) == "table" then
+                List:AddRange(result, getvargs(unpack(varg)))
+            else
+                List:Add(result, varg)
+            end
+        end
+    end
+    return result
+end
 
 -- Returns a value indicating whether a specified substring occurs within this string.
 function String:Contains(value, substring)
@@ -29,13 +47,17 @@ function String:IsNilOrEmpty(value)
 end
 
 -- Concatenates all the items as a string, using the specified separator between each.
-function String:Join(separator, values)
+function String:Join(separator, ...)
     local result = ""
+    local values = getvargs(...)
     local n = #values
     for i = 1, n do
-        result = result..values[i]
-        if i < n then
-            result = result..separator
+        local value = tostring(values[i])
+        if value ~= nil then
+            result = result..value
+            if i < n then
+                result = result..separator
+            end
         end
     end
     return result
@@ -451,6 +473,8 @@ LibCollections.RunTests = function()
         end,
 
         TestStringJoin = function()
+            assert(String:Join(", ", "red") == "red")
+            assert(String:Join(", ", "red", "green", "blue") == "red, green, blue")
             assert(String:Join(", ", {"red"}) == "red")
             assert(String:Join(", ", {"red", "green", "blue"}) == "red, green, blue")
             assert(String:Join(";", {"1", "2", "3", "", "4"}) == "1;2;3;;4")
@@ -472,6 +496,9 @@ LibCollections.RunTests = function()
             assert(String:Trim("aa bb  ") == "aa bb")
             assert(String:Trim("  aa bb  ") == "aa bb")
             assert(String:Trim("  aa bb") == "aa bb")
+            assert(String:Trim("aa bb||", '|') == "aa bb")
+            assert(String:Trim("||aa bb||", '|') == "aa bb")
+            assert(String:Trim("||aa bb", '|') == "aa bb")
         end,
 
         TestListAdd = function()
