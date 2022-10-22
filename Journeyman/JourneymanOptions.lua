@@ -4,6 +4,7 @@ local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local List = LibStub("LibCollections-1.0").List
+local AceGUI = LibStub("AceGUI-3.0")
 
 local function Percent(value)
     local windowWidth = 600 - 20
@@ -714,6 +715,34 @@ function Journeyman:GetMyJourneyOptionsTable()
                 set = function(info, value)
                     if self.db.profile.myJourney.stepTypeDieAndRes ~= value then
                         self.db.profile.myJourney.stepTypeDieAndRes = value
+                    end
+                end
+            },
+            exportJourney = {
+                order = 17,
+                type = "execute",
+                name = L["EXPORT_JOURNEY"],
+                desc = L["EXPORT_JOURNEY_DESC"],
+                width = Percent(1.0),
+                func = function()
+                    local journey = Journeyman.myJourney
+                    if journey then
+                        local window = AceGUI:Create("Frame")
+                        window:SetTitle(L["EXPORT_JOURNEY"])
+                        window:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+                        window:SetLayout("Fill")
+
+                        local editBox = AceGUI:Create("MultiLineEditBox")
+                        editBox:DisableButton(true)
+                        editBox:SetFocus()
+                        editBox.label:SetText(L["COPY_TEXT_BELOW"])
+                        window:AddChild(editBox)
+
+                        local export = Journeyman:ExportJourneyAsText(journey)
+                        if export then
+                            editBox:SetText(export)
+                            editBox:HighlightText()
+                        end
                     end
                 end
             }
