@@ -985,12 +985,14 @@ function Journeyman:IsStepTypeUnique(step)
 end
 
 function Journeyman:GetStepData(step)
-    if step.type == Journeyman.STEP_TYPE_UNDEFINED then
+    if step.type == Journeyman.STEP_TYPE_UNDEFINED or step.data == nil then
         return nil
     end
 
     local data
-    if step.data and type(step.data) == "string" then
+    if type(step.data) == "table" then
+        return step.data
+    elseif type(step.data) == "string" then
         if self:IsStepTypeQuest(step) then
             local values = String:Split(step.data, ",")
             local questId = tonumber(values[1])

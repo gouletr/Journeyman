@@ -361,6 +361,14 @@ function State:OnStepCompleted(step, immediate)
         self:SetQuestTurnedIn(step.data.questId)
     end
 
+    -- Display step complete message
+    if not Journeyman:IsStepTypeQuest(step) then
+        local text = Journeyman:GetStepText(step, false, false)
+        if not String:IsNilOrEmpty(text) then
+            UIErrorsFrame:AddMessage(string.format("%s (%s)", text, "Complete"), YELLOW_FONT_COLOR:GetRGB())
+        end
+    end
+
     Journeyman:Update(immediate)
 end
 
