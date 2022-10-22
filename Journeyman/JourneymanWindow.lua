@@ -431,7 +431,7 @@ function Window:DisplayStep(step, depth)
         if step.location then
             self:GetNextLine():SetStepText(step, depth, "%s %s", L["STEP_PREFIX_GO_TO"], self:GetColoredHighlightText(step.location.name, step.isComplete))
         else
-            Journeyman:Error("Unknown location for step %s", dump(step))
+            Journeyman:Error("Unknown location for step %d", step.indexInChapter)
         end
         -- Display child steps
         for i = 1, #step.children do
