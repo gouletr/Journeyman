@@ -230,9 +230,7 @@ function Journeyman:Reset(immediate)
 end
 
 function Journeyman:Update(immediate)
-    if self.db.char.window.show then
-        self.State:Update(immediate)
-    end
+    self.State:Update(immediate)
 end
 
 function Journeyman:UpdatePosition()
