@@ -72,9 +72,12 @@ function String:Split(value, separator)
     return result
 end
 
--- Returns a new string in which all leading and trailing spaces are removed.
-function String:Trim(value)
-    return smatch(value, "^%s*(.-)%s*$")
+-- Removes all leading and trailing instances of a character from the string. Character will be space if unspecified.
+function String:Trim(value, char)
+    if char == nil then
+        char = ' '
+    end
+    return smatch(value, "^["..char.."]*(.-)["..char.."]*$")
 end
 
 -- Adds the item to the end of the list.
