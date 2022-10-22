@@ -497,10 +497,19 @@ end
 function Journeyman:GetPlayerAreaId()
     local mapId = C_Map.GetBestMapForUnit("player")
     if mapId then
-        local pos = C_Map.GetPlayerMapPosition(mapId, "player")
-        local areaIds = C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapId, pos)
+        local playerPosition = C_Map.GetPlayerMapPosition(mapId, "player")
+        local areaIds = C_MapExplorationInfo.GetExploredAreaIDsAtPosition(mapId, playerPosition)
         if areaIds == nil then
-            areaIds = self:GetAreaIdsFromLocalizedName(self:GetMapNameById(mapId))
+            local subZoneText = GetSubZoneText()
+            if not String:IsNilOrEmpty(subZoneText) then
+                areaIds = self:GetAreaIdsFromLocalizedName(subZoneText)
+            end
+            if areaIds == nil then
+                local mapName = self:GetMapNameById(mapId)
+                if not String:IsNilOrEmpty(mapName) then
+                    areaIds = self:GetAreaIdsFromLocalizedName(self:GetMapNameById(mapId))
+                end
+            end
         end
         if areaIds then
             return List:First(areaIds, function(areaId) return not String:IsNilOrEmpty(C_Map.GetAreaInfo(areaId)) end)
