@@ -221,6 +221,10 @@ function Window:Shutdown()
 end
 
 function Window:CheckForUpdate()
+    if self.frame:IsShown() ~= Journeyman.db.char.window.show then
+        self:Update()
+    end
+
     local verticalScrollRange = round(self.scrollFrame:GetVerticalScrollRange())
     local verticalScrollRangeChanged = self.verticalScrollRange ~= verticalScrollRange
     if self.needUpdate or verticalScrollRangeChanged then
