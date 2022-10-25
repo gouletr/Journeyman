@@ -119,6 +119,7 @@ for i = 1, numClasses do
     local classNameLocal, className, classId = GetClassInfo(i)
     if classNameLocal and className and classId then
         local classMask = bit.lshift(1, classId - 1)
+        className = className:upper()
         Journeyman["CLASS_"..className] = classMask
         Journeyman.className[classMask] = className
         Journeyman.classNameLocal[classMask] = classNameLocal
@@ -170,13 +171,13 @@ function Journeyman:OnInitialize()
     self.player.factionGained = {}
 
     local raceNameLocal, raceName, raceId = UnitRace("player")
-    self.player.raceName = raceName
+    self.player.raceName = raceName:upper()
     self.player.raceNameLocal = raceNameLocal
     self.player.raceId = raceId
     self.player.raceMask = bit.lshift(1, raceId - 1)
 
     local classNameLocal, className, classId = UnitClass("player")
-    self.player.className = className
+    self.player.className = className:upper()
     self.player.classNameLocal = classNameLocal
     self.player.classId = classId
     self.player.classMask = bit.lshift(1, classId - 1)
@@ -188,8 +189,8 @@ function Journeyman:OnInitialize()
     self.player.location = nil
 
     self.Journey:Initialize()
-
     self:InitializeDatabase()
+    self.JourneymanDB:Initialize()
     self.Editor:Initialize()
     self:InitializeOptions()
     self.State:Initialize()
@@ -240,10 +241,10 @@ end
 function Journeyman:UpdatePosition()
     -- Get player location
     local location = nil
-    local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
-    local instanceId = select(8, GetInstanceInfo())
-    if instanceId and playerMapId and playerX and playerY then
-        location = { instanceId = instanceId, mapId = playerMapId, x = playerX, y = playerY }
+    local worldX, worldY, instanceId = HBD:GetPlayerWorldPosition()
+    local x, y, mapId = HBD:GetPlayerZonePosition()
+    if instanceId and worldX and worldY and mapId and x and y then
+        location = { instanceId = instanceId, worldX = worldX, worldY = worldY, mapId = mapId, x = x, y = y }
     end
 
     -- Check if location changed

@@ -19,6 +19,17 @@ local QuestieProfessions = QuestieLoader and QuestieLoader:ImportModule("Questie
 
 local tinsert = table.insert
 
+local function GetPlayerInfo(withFaction)
+    local location = Journeyman.player.location
+    if location then
+        local info = { instanceId = location.instanceId, worldX = location.worldX, worldY = location.worldY, mapId = location.mapId, x = location.x, y = location.y }
+        if withFaction then
+            info.factionName = Journeyman.player.factionName
+        end
+        return info
+    end
+end
+
 local function GetNearestSpawn(spawns, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId
@@ -34,7 +45,7 @@ local function GetNearestSpawn(spawns, player, zoneFilter)
                             local x, y = dungeonCoords[2], dungeonCoords[3]
                             local worldX, worldY, instanceId = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                             if player.instanceId == instanceId then
-                                local distance = HBD:GetWorldDistance(instanceId, player.x, player.y, worldX, worldY)
+                                local distance = HBD:GetWorldDistance(player.instanceId, player.worldX, player.worldY, worldX, worldY)
                                 if distance and distance < bestDistance then
                                     bestDistance = distance
                                     bestX = x
@@ -48,7 +59,7 @@ local function GetNearestSpawn(spawns, player, zoneFilter)
                         local x, y = spawnCoords[1], spawnCoords[2]
                         local worldX, worldY, instanceId = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
                         if player.instanceId == instanceId then
-                            local distance = HBD:GetWorldDistance(instanceId, player.x, player.y, worldX, worldY)
+                            local distance = HBD:GetWorldDistance(player.instanceId, player.worldX, player.worldY, worldX, worldY)
                             if distance and distance < bestDistance then
                                 bestDistance = distance
                                 bestX = x
@@ -73,7 +84,7 @@ local function GetNearestNPC(npcs, player, zoneFilter)
 
     List:ForEach(npcs, function(npcId)
         local npc = QuestieDB:GetNPC(npcId)
-        if npc and npc.spawns and (not player.faction or npc.friendly) then
+        if npc and npc.spawns and (not player.factionName or npc.friendly) then
             local nearest = GetNearestSpawn(npc.spawns, player, zoneFilter)
             if nearest and nearest.distance < bestDistance then
                 bestDistance = nearest.distance
@@ -541,20 +552,15 @@ end
 function DataSourceQuestie:GetNearestQuestStarter(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Starts then
-        local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestEntityLocation(quest.Starts, { instanceId = playerInstanceId, x = playerX, y = playerY })
+        return GetNearestEntityLocation(quest.Starts, GetPlayerInfo())
     end
 end
 
 function DataSourceQuestie:GetQuestObjectiveLocation(questId, objectiveIndex)
     local quest = QuestieDB:GetQuest(questId)
-    if quest == nil or quest.ObjectiveData == nil then
-        return nil
+    if quest and quest.ObjectiveData then
+        return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], GetPlayerInfo())
     end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
-    return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], player)
 end
 
 function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
@@ -565,8 +571,7 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
 
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local player = { instanceId = playerInstanceId, x = playerX, y = playerY }
+    local player = GetPlayerInfo()
 
     local n = #quest.ObjectiveData
     for i = 1, n do
@@ -640,58 +645,12 @@ end
 function DataSourceQuestie:GetNearestQuestFinisher(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Finisher then
-        local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestEntityLocation(quest.Finisher, { instanceId = playerInstanceId, x = playerX, y = playerY })
+        return GetNearestEntityLocation(quest.Finisher, GetPlayerInfo())
     end
 end
 
 function DataSourceQuestie:GetNearestItemLocation(items)
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestItem(items, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
-end
-
-function DataSourceQuestie:GetQuestChainStartQuest(questId)
-    if self.questChainStartQuest == nil then
-        self.questChainStartQuest = {}
-    elseif self.questChainStartQuest[questId] ~= nil then
-        return self.questChainStartQuest[questId]
-    end
-
-    local quest = QuestieDB:GetQuest(questId)
-    if quest then
-        local chainStartQuestId
-        local preQuestSingle = QuestieDB.QueryQuestSingle(questId, "preQuestSingle")
-        if preQuestSingle then
-            for _, preQuestId in pairs(preQuestSingle) do
-                -- preQuestSingle is a table, but assuming there will always be a single element, might be wrong
-                chainStartQuestId = self:GetQuestChainStartQuest(preQuestId)
-                break
-            end
-        end
-
-        if chainStartQuestId then
-            self.questChainStartQuest[questId] = chainStartQuestId
-            return chainStartQuestId
-        else
-            self.questChainStartQuest[questId] = questId
-            return questId
-        end
-    end
-end
-
-function DataSourceQuestie:IsQuestStartedFromNPCDrop(questId)
-    if self.isQuestStartedFromNPCDrop == nil then
-        self.isQuestStartedFromNPCDrop = {}
-    end
-
-    local isQuestStartedFromNPCDrop = self.isQuestStartedFromNPCDrop[questId]
-    if isQuestStartedFromNPCDrop ~= nil then
-        return isQuestStartedFromNPCDrop
-    end
-
-    isQuestStartedFromNPCDrop = self:_IsQuestStartedFromNPCDrop(questId)
-    self.isQuestStartedFromNPCDrop[questId] = isQuestStartedFromNPCDrop
-    return isQuestStartedFromNPCDrop
+    return GetNearestItem(items, GetPlayerInfo(true))
 end
 
 function DataSourceQuestie:IsQuestRepeatable(questId)
@@ -715,8 +674,7 @@ function DataSourceQuestie:GetNPCName(npcId, showId)
 end
 
 function DataSourceQuestie:GetNPCLocation(npcId)
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC({ npcId }, { instanceId = playerInstanceId, x = playerX, y = playerY })
+    return GetNearestNPC({ npcId }, GetPlayerInfo())
 end
 
 function DataSourceQuestie:GetAllInnkeeperZones()
@@ -742,12 +700,11 @@ end
 
 function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
-    if npcs == nil then return nil end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    local parentAreaId = Journeyman:GetAreaParentId(areaId)
-    if parentAreaId then
-        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, parentAreaId)
+    if npcs then
+        local parentAreaId = Journeyman:GetAreaParentId(areaId)
+        if parentAreaId then
+            return GetNearestNPC(npcs, GetPlayerInfo(true), parentAreaId)
+        end
     end
 end
 
@@ -756,50 +713,46 @@ function DataSourceQuestie:GetNearestClassTrainerLocation()
     if npcs == nil then return nil end
 
     local nearest = nil
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
+    local player = GetPlayerInfo(true)
     local playerAreaId = Journeyman:GetPlayerAreaId()
     if playerAreaId then
         local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
         if parentAreaId then
-            nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName }, parentAreaId, true)
+            nearest = GetNearestNPC(npcs, player, parentAreaId, true)
         end
     end
     if nearest == nil then
-        nearest = GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+        nearest = GetNearestNPC(npcs, player)
     end
     return nearest
 end
 
 function DataSourceQuestie:GetNearestPortalTrainerLocation()
     local npcs = Questie.db.global.classSpecificTownsfolk["MAGE"]["Portal Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Portal Trainer"]
-    if npcs == nil then return nil end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+    if npcs then
+        return GetNearestNPC(npcs, GetPlayerInfo(true))
+    end
 end
 
 function DataSourceQuestie:GetNearestFirstAidTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FIRST_AID]
-    if npcs == nil then return nil end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+    if npcs then
+        return GetNearestNPC(npcs, GetPlayerInfo(true))
+    end
 end
 
 function DataSourceQuestie:GetNearestCookingTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.COOKING]
-    if npcs == nil then return nil end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+    if npcs then
+        return GetNearestNPC(npcs, GetPlayerInfo(true))
+    end
 end
 
 function DataSourceQuestie:GetNearestFishingTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FISHING]
-    if npcs == nil then return nil end
-
-    local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-    return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+    if npcs then
+        return GetNearestNPC(npcs, GetPlayerInfo(true))
+    end
 end
 
 function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
@@ -834,8 +787,7 @@ function DataSourceQuestie:GetFlightMasterLocation(taxiNodeId)
     if taxiNodeId then
         local npcId = self:GetTaxiNodeNPCId(taxiNodeId)
         if npcId then
-            local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-            return GetNearestNPC({ npcId }, { instanceId = playerInstanceId, x = playerX, y = playerY })
+            return GetNearestNPC({ npcId }, GetPlayerInfo())
         end
     end
 end
@@ -865,8 +817,7 @@ end
 function DataSourceQuestie:GetNearestFlightMasterLocation()
     local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
     if npcs then
-        local playerX, playerY, playerInstanceId = HBD:GetPlayerWorldPosition()
-        return GetNearestNPC(npcs, { instanceId = playerInstanceId, x = playerX, y = playerY, faction = Journeyman.player.factionName })
+        return GetNearestNPC(npcs, GetPlayerInfo(true))
     end
 end
 
@@ -887,44 +838,4 @@ function DataSourceQuestie:ShowQuestTooltip(questId)
     ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE");
     ItemRefTooltip:SetHyperlink(questLink)
     ItemRefTooltip:Show()
-end
-
-function DataSourceQuestie:_IsQuestStartedFromNPCDrop(questId)
-    local quest = QuestieDB:GetQuest(questId)
-    if quest == nil then
-        return false
-    end
-
-    local location = self:GetNearestQuestStarter(questId)
-    if location and location.type == "NPC" then
-        return true
-    end
-
-    -- Check parent quest
-    local parentQuestId = self:GetQuestParentQuest(questId)
-    if parentQuestId and self:IsQuestStartedFromNPCDrop(parentQuestId) then
-        return true
-    end
-
-    -- Check pre quest group
-    local preQuestGroup = self:GetQuestPreQuestGroup(questId)
-    if preQuestGroup and next(preQuestGroup) then
-        for _, preQuestId in pairs(preQuestGroup) do
-            if preQuestId and self:IsQuestStartedFromNPCDrop(preQuestId) then
-                return true
-            end
-        end
-    end
-
-    -- Check pre quest single
-    local preQuestSingle = self:GetQuestPreQuestSingle(questId)
-    if preQuestSingle and next(preQuestSingle) then
-        for _, preQuestId in pairs(preQuestSingle) do
-            if preQuestId and self:IsQuestStartedFromNPCDrop(preQuestId) then
-                return true
-            end
-        end
-    end
-
-    return false
 end

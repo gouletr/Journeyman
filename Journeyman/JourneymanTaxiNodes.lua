@@ -7,6 +7,7 @@ Journeyman.TaxiNodes = TaxiNodes
 
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
+local HBD = LibStub("HereBeDragons-2.0")
 
 -- Constants
 local FLAGS_NONE = 0
@@ -21,6 +22,28 @@ local FACTION_NEUTRAL = "Neutral"
 
 -- Lua APIs
 local next, band = next, bit.band
+
+-- HereBeDragons
+local instanceIDOverrides = HBD.___DIIDO
+local transforms = HBD.transforms
+
+local function overrideInstance(instance)
+    return instanceIDOverrides[instance] or instance
+end
+
+local function applyCoordinateTransforms(x, y, instanceID)
+    if transforms[instanceID] then
+        for _, transformData in ipairs(transforms[instanceID]) do
+            if transformData.minX <= x and transformData.maxX >= x and transformData.minY <= y and transformData.maxY >= y then
+                instanceID = transformData.newInstanceID
+                x = x + transformData.offsetX
+                y = y + transformData.offsetY
+                break
+            end
+        end
+    end
+    return x, y, overrideInstance(instanceID)
+end
 
 -- Version dependent stuff
 local invalidIds
@@ -150,6 +173,7 @@ function TaxiNodes:GetWorldCoordinates(id)
         local instanceId = GetInstanceId(data)
         local x, y = GetWorldCoordinates(data)
         if instanceId and x and y then
+            x, y, instanceId = applyCoordinateTransforms(x, y, instanceId)
             return { instanceId = instanceId, x = x, y = y }
         end
     end

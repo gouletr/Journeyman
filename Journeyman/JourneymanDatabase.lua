@@ -118,7 +118,7 @@ function Journeyman:InitializeDatabase()
             Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
         elseif Journeyman.player.raceName == "BLOODELF" then
             Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
-        elseif Journeyman.player.raceName == "DRANEI" then
+        elseif Journeyman.player.raceName == "DRAENEI" then
             Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
         end
     elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
@@ -137,7 +137,7 @@ function Journeyman:InitializeDatabase()
             Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
         elseif Journeyman.player.raceName == "BLOODELF" then
             Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
-        elseif Journeyman.player.raceName == "DRANEI" then
+        elseif Journeyman.player.raceName == "DRAENEI" then
             Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
         end
     else
@@ -542,13 +542,14 @@ function Journeyman:ExportJourneyAsText(journey)
         export = export.."chapter "..ExportData(chapter.title).."\n"
         List:ForEach(chapter.steps, function(step)
             local command = ExportCommand(step.type)
-            local arguments = ExportData(step.data)
             if not String:IsNilOrEmpty(command) then
-                local requiredRaces = ExportRaces(step.requiredRaces)
-                local requiredClasses = ExportClasses(step.requiredClasses)
-                local note = ExportNote(step.note)
-                local line = String:Join(" ", command, arguments, requiredRaces, requiredClasses, note)
-                export = export..string.format("%s\n", String:Trim(line))
+                local arguments = {}
+                List:Add(arguments, command)
+                List:Add(arguments, ExportData(step.data))
+                List:Add(arguments, ExportRaces(step.requiredRaces))
+                List:Add(arguments, ExportClasses(step.requiredClasses))
+                List:Add(arguments, ExportNote(step.note))
+                export = export..string.format("%s\n", String:Trim(String:Join(" ", arguments)))
             end
         end)
     end)
