@@ -97,7 +97,9 @@ function Journey:AdvanceChapter(journey)
     local index = Journeyman.db.char.chapter + 1
     if journey and index > 0 and index <= #journey.chapters then
         Journeyman.db.char.chapter = index
+        return true
     end
+    return false
 end
 
 function Journey:CreateStep(type, data, requiredRaces, requiredClasses, note)

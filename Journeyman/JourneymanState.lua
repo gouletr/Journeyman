@@ -140,12 +140,15 @@ function State:UpdateImmediate()
         Journeyman:Debug("State update took %.2fms", elapsed)
     end
 
-    if self:IsChapterComplete() then
+    if self.steps and next(self.steps) and self:IsChapterComplete() then
         -- Advance to next chapter and reset state
         local journey = Journeyman:GetActiveJourney()
         if journey then
-            Journeyman.Journey:AdvanceChapter(journey)
-            Journeyman:Reset()
+            if not Journeyman.Journey:AdvanceChapter(journey) then
+                Journeyman.db.char.journey = ""
+                Journeyman.db.char.chapter = 1
+            end
+            Journeyman:Reset(true)
         end
     else
         -- Update window, waypoint and macro immediate
