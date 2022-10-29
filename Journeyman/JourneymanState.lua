@@ -365,7 +365,7 @@ function State:OnStepCompleted(step, immediate)
     end
 
     -- Display step complete message
-    if not Journeyman:IsStepTypeQuest(step) then
+    if not Journeyman:IsStepTypeQuest(step) and step.type ~= Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
         local text = Journeyman:GetStepText(step, false, false)
         if not String:IsNilOrEmpty(text) then
             UIErrorsFrame:AddMessage(string.format("Step: %s (%s)", text, "Complete"), YELLOW_FONT_COLOR:GetRGB())
