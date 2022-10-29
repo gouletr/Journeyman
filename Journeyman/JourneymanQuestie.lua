@@ -211,6 +211,10 @@ local function GetNearestEntityLocation(entity, player, zoneFilter)
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
 
+    if not player then
+        return nil
+    end
+
     if entity.NPC then
         local nearest = GetNearestNPC(entity.NPC, player, zoneFilter)
         if nearest and nearest.distance < bestDistance then
@@ -552,14 +556,20 @@ end
 function DataSourceQuestie:GetNearestQuestStarter(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Starts then
-        return GetNearestEntityLocation(quest.Starts, GetPlayerInfo())
+        local player = GetPlayerInfo()
+        if player then
+            return GetNearestEntityLocation(quest.Starts, player)
+        end
     end
 end
 
 function DataSourceQuestie:GetQuestObjectiveLocation(questId, objectiveIndex)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.ObjectiveData then
-        return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], GetPlayerInfo())
+        local player = GetPlayerInfo()
+        if player then
+            return GetNearestEntityLocation(quest.ObjectiveData[objectiveIndex], player)
+        end
     end
 end
 
@@ -569,9 +579,13 @@ function DataSourceQuestie:GetNearestQuestObjectiveLocation(questId, objectives)
         return nil
     end
 
+    local player = GetPlayerInfo()
+    if player == nil then
+        return nil
+    end
+
     local bestDistance = 999999999
     local bestX, bestY, bestMapId, bestName, bestId, bestType
-    local player = GetPlayerInfo()
 
     local n = #quest.ObjectiveData
     for i = 1, n do
@@ -645,12 +659,18 @@ end
 function DataSourceQuestie:GetNearestQuestFinisher(questId)
     local quest = QuestieDB:GetQuest(questId)
     if quest and quest.Finisher then
-        return GetNearestEntityLocation(quest.Finisher, GetPlayerInfo())
+        local player = GetPlayerInfo()
+        if player then
+            return GetNearestEntityLocation(quest.Finisher, player)
+        end
     end
 end
 
 function DataSourceQuestie:GetNearestItemLocation(items)
-    return GetNearestItem(items, GetPlayerInfo(true))
+    local player = GetPlayerInfo(true)
+    if player then
+        return GetNearestItem(items, player)
+    end
 end
 
 function DataSourceQuestie:IsQuestRepeatable(questId)
@@ -674,7 +694,10 @@ function DataSourceQuestie:GetNPCName(npcId, showId)
 end
 
 function DataSourceQuestie:GetNPCLocation(npcId)
-    return GetNearestNPC({ npcId }, GetPlayerInfo())
+    local player = GetPlayerInfo()
+    if player then
+        return GetNearestNPC({ npcId }, player)
+    end
 end
 
 function DataSourceQuestie:GetAllInnkeeperZones()
@@ -703,7 +726,10 @@ function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     if npcs then
         local parentAreaId = Journeyman:GetAreaParentId(areaId)
         if parentAreaId then
-            return GetNearestNPC(npcs, GetPlayerInfo(true), parentAreaId)
+            local player = GetPlayerInfo(true)
+            if player then
+                return GetNearestNPC(npcs, player, parentAreaId)
+            end
         end
     end
 end
@@ -714,15 +740,17 @@ function DataSourceQuestie:GetNearestClassTrainerLocation()
 
     local nearest = nil
     local player = GetPlayerInfo(true)
-    local playerAreaId = Journeyman:GetPlayerAreaId()
-    if playerAreaId then
-        local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
-        if parentAreaId then
-            nearest = GetNearestNPC(npcs, player, parentAreaId, true)
+    if player then
+        local playerAreaId = Journeyman:GetPlayerAreaId()
+        if playerAreaId then
+            local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
+            if parentAreaId then
+                nearest = GetNearestNPC(npcs, player, parentAreaId, true)
+            end
         end
-    end
-    if nearest == nil then
-        nearest = GetNearestNPC(npcs, player)
+        if nearest == nil then
+            nearest = GetNearestNPC(npcs, player)
+        end
     end
     return nearest
 end
@@ -730,28 +758,40 @@ end
 function DataSourceQuestie:GetNearestPortalTrainerLocation()
     local npcs = Questie.db.global.classSpecificTownsfolk["MAGE"]["Portal Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Portal Trainer"]
     if npcs then
-        return GetNearestNPC(npcs, GetPlayerInfo(true))
+        local player = GetPlayerInfo(true)
+        if player then
+            return GetNearestNPC(npcs, player)
+        end
     end
 end
 
 function DataSourceQuestie:GetNearestFirstAidTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FIRST_AID]
     if npcs then
-        return GetNearestNPC(npcs, GetPlayerInfo(true))
+        local player = GetPlayerInfo(true)
+        if player then
+            return GetNearestNPC(npcs, player)
+        end
     end
 end
 
 function DataSourceQuestie:GetNearestCookingTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.COOKING]
     if npcs then
-        return GetNearestNPC(npcs, GetPlayerInfo(true))
+        local player = GetPlayerInfo(true)
+        if player then
+            return GetNearestNPC(npcs, player)
+        end
     end
 end
 
 function DataSourceQuestie:GetNearestFishingTrainerLocation()
     local npcs = Questie.db.global.professionTrainers[QuestieProfessions.professionKeys.FISHING]
     if npcs then
-        return GetNearestNPC(npcs, GetPlayerInfo(true))
+        local player = GetPlayerInfo(true)
+        if player then
+            return GetNearestNPC(npcs, player)
+        end
     end
 end
 
@@ -767,7 +807,7 @@ function DataSourceQuestie:GetTaxiNodeNPCId(taxiNodeId)
         if TaxiNodes:IsAvailable(taxiNodeId) then
             local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
             local taxiNodeWorldCoords = TaxiNodes:GetWorldCoordinates(taxiNodeId)
-            local nearest = GetNearestNPC(npcs, { instanceId = taxiNodeWorldCoords.instanceId, x = taxiNodeWorldCoords.x, y = taxiNodeWorldCoords.y })
+            local nearest = GetNearestNPC(npcs, { instanceId = taxiNodeWorldCoords.instanceId, worldX = taxiNodeWorldCoords.x, worldY = taxiNodeWorldCoords.y })
             if nearest then
                 self.taxiNodeIdToNPCId[taxiNodeId] = nearest.id
                 self.npcIdToTaxiNodeId[nearest.id] = taxiNodeId
@@ -787,7 +827,10 @@ function DataSourceQuestie:GetFlightMasterLocation(taxiNodeId)
     if taxiNodeId then
         local npcId = self:GetTaxiNodeNPCId(taxiNodeId)
         if npcId then
-            return GetNearestNPC({ npcId }, GetPlayerInfo())
+            local player = GetPlayerInfo()
+            if player then
+                return GetNearestNPC({ npcId }, player)
+            end
         end
     end
 end
@@ -817,7 +860,10 @@ end
 function DataSourceQuestie:GetNearestFlightMasterLocation()
     local npcs = Questie.db.global.townsfolk["Flight Master"] or Questie.db.char.townsfolk["Flight Master"]
     if npcs then
-        return GetNearestNPC(npcs, GetPlayerInfo(true))
+        local player = GetPlayerInfo(true)
+        if player then
+            return GetNearestNPC(npcs, player)
+        end
     end
 end
 
