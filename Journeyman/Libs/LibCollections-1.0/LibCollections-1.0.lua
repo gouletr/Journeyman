@@ -49,15 +49,13 @@ end
 -- Concatenates all the items as a string, using the specified separator between each.
 function String:Join(separator, ...)
     local result = ""
-    local values = getvargs(...)
-    local n = #values
+    local vargs = getvargs(...)
+    local strings = List:Select(vargs, function(varg) local s = tostring(varg) if s and s:len() > 0 then return s end end)
+    local n = #strings
     for i = 1, n do
-        local value = tostring(values[i])
-        if value ~= nil and value:len() > 0 then
-            result = result..value
-            if i < n then
-                result = result..separator
-            end
+        result = result..strings[i]
+        if i < n then
+            result = result..separator
         end
     end
     return result
@@ -532,10 +530,14 @@ LibCollections.RunTests = function()
         TestStringJoin = function()
             assert(String:Join(", ", "red") == "red")
             assert(String:Join(", ", "red", "green", "blue") == "red, green, blue")
+            assert(String:Join(", ", "red", "green", "") == "red, green")
             assert(String:Join(", ", "red", "", "blue") == "red, blue")
+            assert(String:Join(", ", "", "green", "blue") == "green, blue")
             assert(String:Join(", ", {"red"}) == "red")
             assert(String:Join(", ", {"red", "green", "blue"}) == "red, green, blue")
+            assert(String:Join(", ", {"red", "green", ""}) == "red, green")
             assert(String:Join(", ", {"red", "", "blue"}) == "red, blue")
+            assert(String:Join(", ", {"", "green", "blue"}) == "green, blue")
             assert(String:Join("  &", {1, 2, 3, 4, 5}) == "1  &2  &3  &4  &5")
             assert(String:Join(",", {1}) ~= "1,")
             assert(String:Join(" - ", {}) == "")
