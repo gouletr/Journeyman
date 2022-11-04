@@ -1,36 +1,37 @@
 local addonName, addon = ...
-local addonVersion = GetAddOnMetadata(addonName, "version")
-local Journeyman = addon.Journeyman
+local Editor, Private = addon:NewModule("Editor"), {}
 local L = addon.Locale
 
-local Editor = {}
-Journeyman.Editor = Editor
+local addonVersion = GetAddOnMetadata(addonName, "version")
 
-local Journey = Journeyman.Journey
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
 local HBD = LibStub("HereBeDragons-2.0")
+local Database, Journey
 
-function Editor:Initialize()
-    Journey = Journeyman.Journey
+function Editor:OnInitialize()
+    Database = addon.Database
+    Journey = addon.Journey
+end
 
+function Editor:OnEnable()
     local frame = CreateFrame("FRAME", "Editor", UIParent)
     frame.name = "Editor"
     frame.parent = addonName
     frame.refresh = function() Editor:Refresh() end
     frame:Hide()
     frame:SetScript("OnShow", function(self)
-        local journey = Journeyman:GetActiveJourney()
+        local journey = addon:GetActiveJourney()
         if journey then
-            local journeyIndex = Journeyman:GetJourneyIndex(journey)
+            local journeyIndex = addon:GetJourneyIndex(journey)
             if journeyIndex and Editor:GetSelectedJourneyIndex() == -1 then
                 Editor:SetSelectedJourneyIndex(journeyIndex)
             end
 
-            local chapter = Journeyman:GetActiveJourneyChapter()
+            local chapter = addon:GetActiveJourneyChapter()
             if chapter then
-                local chapterIndex = Journeyman:GetJourneyChapterIndex(journey, chapter)
+                local chapterIndex = addon:GetJourneyChapterIndex(journey, chapter)
                 if chapterIndex and Editor:GetSelectedChapterIndex() == -1 then
                     Editor:SetSelectedChapterIndex(chapterIndex)
                 end
@@ -44,7 +45,7 @@ function Editor:Initialize()
     content:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15)
     content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 10)
 
-    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", content)
+    local title = addon.GUI:CreateLabel("FRAME", "Title", content)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", content, "TOPRIGHT", 0, -30)
     title:SetJustifyH("LEFT")
@@ -59,8 +60,8 @@ function Editor:Initialize()
     journeySelector:SetTitle(L["SELECT_JOURNEY"])
     journeySelector.list.GetValues = function(self)
         local values = {}
-        for i = 1, #Journeyman.journeys do
-            values[i] = Journeyman.journeys[i].title
+        for i = 1, #addon.journeys do
+            values[i] = addon.journeys[i].title
         end
         return values
     end
@@ -97,7 +98,7 @@ function Editor:Initialize()
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
         if Journey:AddNewJourney() then
-            Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+            Editor:SetSelectedJourneyIndex(#addon.journeys)
             Editor:SetSelectedChapterIndex(-1)
             Editor:SetSelectedStepIndex(-1)
             Editor:Refresh()
@@ -115,7 +116,7 @@ function Editor:Initialize()
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
-                Journeyman:Reset(true)
+                addon:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -140,19 +141,19 @@ function Editor:Initialize()
             local importingJourney = self.importingJourney
             if importingJourney then
                 -- Make sure guid is unique
-                importingJourney.guid = Journeyman.Utils:CreateGUID()
+                importingJourney.guid = addon.Utils:CreateGUID()
                 -- Make sure title is unique
-                if List:Any(Journeyman.journeys, function(j) return j.title == importingJourney.title end) then
+                if List:Any(addon.journeys, function(j) return j.title == importingJourney.title end) then
                     local title = importingJourney.title
                     local count = 1
-                    while List:Count(Journeyman.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+                    while List:Count(addon.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
                         count = count + 1
                     end
                     importingJourney.title = title.." ("..count..")"
                 end
                 -- Add journey
-                List:Add(Journeyman.journeys, importingJourney)
-                Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+                List:Add(addon.journeys, importingJourney)
+                Editor:SetSelectedJourneyIndex(#addon.journeys)
                 Editor:SetSelectedChapterIndex(1)
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
@@ -162,14 +163,14 @@ function Editor:Initialize()
             local importingJourney = self.importingJourney
             if importingJourney then
                 -- Update journey chapters
-                local existingJourney = List:First(Journeyman.journeys, function(j) return j.guid == importingJourney.guid end)
+                local existingJourney = List:First(addon.journeys, function(j) return j.guid == importingJourney.guid end)
                 if existingJourney then
                     existingJourney.title = importingJourney.title
                     existingJourney.chapters = importingJourney.chapters
                 end
                 Editor:Refresh()
-                Journeyman:ResetJourneyState(existingJourney)
-                Journeyman:Reset(true)
+                addon:ResetJourneyState(existingJourney)
+                addon:Reset(true)
             end
         end,
         OnAlt = function(self)
@@ -193,14 +194,14 @@ function Editor:Initialize()
             local journey, status
             local trimmed = strtrim(text)
             if trimmed then
-                local bom = strsub(trimmed, 1, Journeyman.BYTE_ORDER_MARK:len())
-                if bom and bom == Journeyman.BYTE_ORDER_MARK then
-                    local serialized = strsub(trimmed, Journeyman.BYTE_ORDER_MARK:len() + 1)
+                local bom = strsub(trimmed, 1, addon.BYTE_ORDER_MARK:len())
+                if bom and bom == addon.BYTE_ORDER_MARK then
+                    local serialized = strsub(trimmed, addon.BYTE_ORDER_MARK:len() + 1)
                     if serialized and serialized:len() > 0 then
-                        journey, status = Journeyman:ImportJourney(serialized)
+                        journey, status = Database:ImportJourney(serialized)
                     end
                 else
-                    journey = Journeyman:ImportJourneyFromText(trimmed)
+                    journey = Database:ImportJourneyFromText(trimmed)
                 end
             end
             if journey then
@@ -221,20 +222,20 @@ function Editor:Initialize()
     end)
     self.importJourneyButton = importJourneyButton
 
-    local exportJourneyButton = Journeyman.GUI:CreateDropDownButton("FRAME", "ExportJourney", content)
+    local exportJourneyButton = addon.GUI:CreateDropDownButton("FRAME", "ExportJourney", content)
     exportJourneyButton:SetPoint("TOPLEFT", deleteJourneyButton, "BOTTOMLEFT")
     exportJourneyButton:SetPoint("BOTTOMRIGHT", deleteJourneyButton, "BOTTOMRIGHT", 0, -22)
     exportJourneyButton:SetText(L["EXPORT_JOURNEY"])
     exportJourneyButton.GetValues = function(self)
         return {
-            [Journeyman.JOURNEY_AS_DATA] = L["JOURNEY_AS_DATA"],
-            [Journeyman.JOURNEY_AS_TEXT] = L["JOURNEY_AS_TEXT"],
+            [addon.JOURNEY_AS_DATA] = L["JOURNEY_AS_DATA"],
+            [addon.JOURNEY_AS_TEXT] = L["JOURNEY_AS_TEXT"],
         }
     end
     exportJourneyButton.GetSorting = function(self)
         return {
-            Journeyman.JOURNEY_AS_DATA,
-            Journeyman.JOURNEY_AS_TEXT,
+            addon.JOURNEY_AS_DATA,
+            addon.JOURNEY_AS_TEXT,
         }
     end
     exportJourneyButton.OnValueSelected = function(self, value)
@@ -251,16 +252,16 @@ function Editor:Initialize()
             editBox.label:SetText(L["COPY_TEXT_BELOW"])
             window:AddChild(editBox)
 
-            if value == Journeyman.JOURNEY_AS_DATA then
-                local serialized, status = Journeyman:ExportJourney(journey)
+            if value == addon.JOURNEY_AS_DATA then
+                local serialized, status = Database:ExportJourney(journey)
                 if serialized then
-                    editBox:SetText(Journeyman.BYTE_ORDER_MARK..serialized)
+                    editBox:SetText(addon.BYTE_ORDER_MARK..serialized)
                     editBox:HighlightText()
                 else
                     window:SetStatusText(status)
                 end
-            elseif value == Journeyman.JOURNEY_AS_TEXT then
-                local export = Journeyman:ExportJourneyAsText(journey)
+            elseif value == addon.JOURNEY_AS_TEXT then
+                local export = Database:ExportJourneyAsText(journey)
                 if export then
                     editBox:SetText(export)
                     editBox:HighlightText()
@@ -280,7 +281,7 @@ function Editor:Initialize()
             Editor:SetSelectedChapterIndex(#journey.chapters)
             Editor:SetSelectedStepIndex(-1)
             Editor:Refresh()
-            Journeyman:Reset(true)
+            addon:Reset(true)
         end
     end)
     self.newChapterButton = newChapterButton
@@ -296,7 +297,7 @@ function Editor:Initialize()
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
-                Journeyman:Reset(true)
+                addon:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -332,7 +333,7 @@ function Editor:Initialize()
         local journey = Editor:GetSelectedJourney()
         if journey and Editor.clipBoard and Editor.clipBoard.type == "Chapter" and Editor.clipBoard.data then
             Editor.clipBoard.data.journey = nil -- prevent infinite recursion
-            local chapter = Journeyman.Utils:Clone(Editor.clipBoard.data)
+            local chapter = addon.Utils:Clone(Editor.clipBoard.data)
             chapter.journey = journey -- restore chapter's journey after clone
             List:Add(journey.chapters, chapter)
             Editor:SetSelectedChapterIndex(#journey.chapters)
@@ -352,7 +353,7 @@ function Editor:Initialize()
         end
     end
     stepSelector.list.CreateRow = function(self, index, parent)
-        local row = Journeyman.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
+        local row = addon.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)
@@ -367,7 +368,7 @@ function Editor:Initialize()
 
         row.SetValue = function(self, step)
             local prefix = self.index .. ". "
-            self:SetText(prefix .. Journeyman:GetStepText(step, true, true, function() stepSelector:Refresh() end))
+            self:SetText(prefix .. addon:GetStepText(step, true, true, function() stepSelector:Refresh() end))
             if self.list.selectedIndex == self.index then
                 self.highlightTexture:SetVertexColor(1, 1, 0) -- selected
             elseif row:IsMouseOver() then
@@ -418,7 +419,7 @@ function Editor:Initialize()
         end
         if Journey:AddNewStep(journey, chapter, nil, nil, stepIndex) then
             Editor:Refresh()
-            Journeyman:Reset(true)
+            addon:Reset(true)
         end
     end)
     self.newStepButton = newStepButton
@@ -434,7 +435,7 @@ function Editor:Initialize()
             if Journey:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
-                Journeyman:Reset(true)
+                addon:Reset(true)
             end
         end,
         sound = SOUNDKIT.IG_MAINMENU_OPEN,
@@ -456,12 +457,12 @@ function Editor:Initialize()
 
     self.GetSelectedJourneyIndex = function(self) return self.journeySelector.list.selectedIndex end
     self.SetSelectedJourneyIndex = function(self, index) self.journeySelector.list.selectedIndex = index end
-    self.GetSelectedJourney = function(self) return Journeyman:GetJourney(self:GetSelectedJourneyIndex()) end
-    self.ResetSelectedJourneyState = function(self) Journeyman:ResetJourneyState(self:GetSelectedJourneyIndex()) end
+    self.GetSelectedJourney = function(self) return addon:GetJourney(self:GetSelectedJourneyIndex()) end
+    self.ResetSelectedJourneyState = function(self) addon:ResetJourneyState(self:GetSelectedJourneyIndex()) end
     self.GetSelectedChapterIndex = function(self) return self.chapterSelector.list.selectedIndex end
     self.SetSelectedChapterIndex = function(self, index) self.chapterSelector.list.selectedIndex = index end
-    self.GetSelectedChapter = function(self) return Journeyman:GetJourneyChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
-    self.ResetSelectedChapterState = function(self) Journeyman:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
+    self.GetSelectedChapter = function(self) return addon:GetJourneyChapter(self:GetSelectedJourney(), self:GetSelectedChapterIndex()) end
+    self.ResetSelectedChapterState = function(self) addon:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
     self.GetSelectedStep = function(self) return Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
@@ -484,13 +485,13 @@ function Editor:Initialize()
     end
 end
 
-function Editor:Shutdown()
+function Editor:OnDisable()
 end
 
 function Editor:CreateSelector(name, parent)
     local frame = CreateFrame("FRAME", name, parent)
 
-    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = addon.GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -498,11 +499,11 @@ function Editor:CreateSelector(name, parent)
     title:SetFontSize(12)
     frame.title = title
 
-    local container = Journeyman.GUI:CreateGroup("FRAME", "Container", frame)
+    local container = addon.GUI:CreateGroup("FRAME", "Container", frame)
     container:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     container:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 
-    local list = Journeyman.GUI:CreateListView("FRAME", "List", container)
+    local list = addon.GUI:CreateListView("FRAME", "List", container)
     list:SetPoint("TOPLEFT", 5, -5)
     list:SetPoint("BOTTOMRIGHT", -5, 5)
     frame.list = list
@@ -516,7 +517,7 @@ end
 function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local title = Journeyman.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = addon.GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -525,7 +526,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     title:SetText("Properties")
     frame.title = title
 
-    local group = Journeyman.GUI:CreateGroup("FRAME", "Group", frame)
+    local group = addon.GUI:CreateGroup("FRAME", "Group", frame)
     group:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     group:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     frame.group = group
@@ -549,7 +550,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             journey.title = self:GetText()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.journeyTitle = journeyTitle
 
@@ -564,7 +565,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:SetSelectedJourneyIndex(index)
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.journeyIndex = journeyIndex
 
@@ -578,7 +579,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             chapter.title = self:GetText()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.chapterTitle = chapterTitle
 
@@ -594,7 +595,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:SetSelectedChapterIndex(index)
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.chapterIndex = chapterIndex
 
@@ -612,50 +613,50 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     end
     stepType.GetValues = function(self)
         return {
-            [Journeyman.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
-            [Journeyman.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
-            [Journeyman.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
-            [Journeyman.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
-            [Journeyman.STEP_TYPE_GO_TO_COORD] = L["DROPDOWN_GO_TO_COORD"],
-            [Journeyman.STEP_TYPE_GO_TO_ZONE] = L["DROPDOWN_GO_TO_ZONE"],
---            [Journeyman.STEP_TYPE_GO_TO_AREA] = L["DROPDOWN_GO_TO_AREA"],
-            [Journeyman.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
-            [Journeyman.STEP_TYPE_REACH_REPUTATION] = L["DROPDOWN_REACH_REPUTATION"],
-            [Journeyman.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
-            [Journeyman.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
-            [Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
-            [Journeyman.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
-            [Journeyman.STEP_TYPE_TRAIN_CLASS] = L["DROPDOWN_TRAIN_CLASS"],
-            [Journeyman.STEP_TYPE_TRAIN_SPELLS] = L["DROPDOWN_TRAIN_SPELLS"],
-            [Journeyman.STEP_TYPE_LEARN_FIRST_AID] = L["DROPDOWN_LEARN_FIRST_AID"],
-            [Journeyman.STEP_TYPE_LEARN_COOKING] = L["DROPDOWN_LEARN_COOKING"],
-            [Journeyman.STEP_TYPE_LEARN_FISHING] = L["DROPDOWN_LEARN_FISHING"],
-            [Journeyman.STEP_TYPE_ACQUIRE_ITEMS] = L["DROPDOWN_ACQUIRE_ITEMS"],
-            [Journeyman.STEP_TYPE_DIE_AND_RES] = L["DROPDOWN_DIE_AND_RES"],
+            [addon.STEP_TYPE_UNDEFINED] = L["UNDEFINED"],
+            [addon.STEP_TYPE_ACCEPT_QUEST] = L["DROPDOWN_ACCEPT_QUEST"],
+            [addon.STEP_TYPE_COMPLETE_QUEST] = L["DROPDOWN_COMPLETE_QUEST"],
+            [addon.STEP_TYPE_TURNIN_QUEST] = L["DROPDOWN_TURNIN_QUEST"],
+            [addon.STEP_TYPE_GO_TO_COORD] = L["DROPDOWN_GO_TO_COORD"],
+            [addon.STEP_TYPE_GO_TO_ZONE] = L["DROPDOWN_GO_TO_ZONE"],
+--            [addon.STEP_TYPE_GO_TO_AREA] = L["DROPDOWN_GO_TO_AREA"],
+            [addon.STEP_TYPE_REACH_LEVEL] = L["DROPDOWN_REACH_LEVEL"],
+            [addon.STEP_TYPE_REACH_REPUTATION] = L["DROPDOWN_REACH_REPUTATION"],
+            [addon.STEP_TYPE_BIND_HEARTHSTONE] = L["DROPDOWN_BIND_HEARTHSTONE"],
+            [addon.STEP_TYPE_USE_HEARTHSTONE] = L["DROPDOWN_USE_HEARTHSTONE"],
+            [addon.STEP_TYPE_LEARN_FLIGHT_PATH] = L["DROPDOWN_LEARN_FLIGHT_PATH"],
+            [addon.STEP_TYPE_FLY_TO] = L["DROPDOWN_FLY_TO"],
+            [addon.STEP_TYPE_TRAIN_CLASS] = L["DROPDOWN_TRAIN_CLASS"],
+            [addon.STEP_TYPE_TRAIN_SPELLS] = L["DROPDOWN_TRAIN_SPELLS"],
+            [addon.STEP_TYPE_LEARN_FIRST_AID] = L["DROPDOWN_LEARN_FIRST_AID"],
+            [addon.STEP_TYPE_LEARN_COOKING] = L["DROPDOWN_LEARN_COOKING"],
+            [addon.STEP_TYPE_LEARN_FISHING] = L["DROPDOWN_LEARN_FISHING"],
+            [addon.STEP_TYPE_ACQUIRE_ITEMS] = L["DROPDOWN_ACQUIRE_ITEMS"],
+            [addon.STEP_TYPE_DIE_AND_RES] = L["DROPDOWN_DIE_AND_RES"],
         }
     end
     stepType.GetSorting = function(self)
         return {
-            Journeyman.STEP_TYPE_UNDEFINED,
-            Journeyman.STEP_TYPE_ACCEPT_QUEST,
-            Journeyman.STEP_TYPE_COMPLETE_QUEST,
-            Journeyman.STEP_TYPE_TURNIN_QUEST,
-            Journeyman.STEP_TYPE_REACH_LEVEL,
-            Journeyman.STEP_TYPE_REACH_REPUTATION,
-            Journeyman.STEP_TYPE_GO_TO_COORD,
-            Journeyman.STEP_TYPE_GO_TO_ZONE,
---            Journeyman.STEP_TYPE_GO_TO_AREA,
-            Journeyman.STEP_TYPE_FLY_TO,
-            Journeyman.STEP_TYPE_BIND_HEARTHSTONE,
-            Journeyman.STEP_TYPE_USE_HEARTHSTONE,
-            Journeyman.STEP_TYPE_TRAIN_CLASS,
-            Journeyman.STEP_TYPE_TRAIN_SPELLS,
-            Journeyman.STEP_TYPE_LEARN_FIRST_AID,
-            Journeyman.STEP_TYPE_LEARN_COOKING,
-            Journeyman.STEP_TYPE_LEARN_FISHING,
-            Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH,
-            Journeyman.STEP_TYPE_ACQUIRE_ITEMS,
-            Journeyman.STEP_TYPE_DIE_AND_RES,
+            addon.STEP_TYPE_UNDEFINED,
+            addon.STEP_TYPE_ACCEPT_QUEST,
+            addon.STEP_TYPE_COMPLETE_QUEST,
+            addon.STEP_TYPE_TURNIN_QUEST,
+            addon.STEP_TYPE_REACH_LEVEL,
+            addon.STEP_TYPE_REACH_REPUTATION,
+            addon.STEP_TYPE_GO_TO_COORD,
+            addon.STEP_TYPE_GO_TO_ZONE,
+--            addon.STEP_TYPE_GO_TO_AREA,
+            addon.STEP_TYPE_FLY_TO,
+            addon.STEP_TYPE_BIND_HEARTHSTONE,
+            addon.STEP_TYPE_USE_HEARTHSTONE,
+            addon.STEP_TYPE_TRAIN_CLASS,
+            addon.STEP_TYPE_TRAIN_SPELLS,
+            addon.STEP_TYPE_LEARN_FIRST_AID,
+            addon.STEP_TYPE_LEARN_COOKING,
+            addon.STEP_TYPE_LEARN_FISHING,
+            addon.STEP_TYPE_LEARN_FLIGHT_PATH,
+            addon.STEP_TYPE_ACQUIRE_ITEMS,
+            addon.STEP_TYPE_DIE_AND_RES,
         }
     end
     stepType.OnValueChanged = function(self, value)
@@ -663,7 +664,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         if step then
             step.type = value
             if String:IsNilOrEmpty(step.data) then
-                if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+                if step.type == addon.STEP_TYPE_GO_TO_COORD then
                     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
                     if playerMapId and playerX and playerY then
                         local subZoneText = GetSubZoneText()
@@ -673,7 +674,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
                             step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
                         end
                     end
-                elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+                elseif step.type == addon.STEP_TYPE_GO_TO_ZONE then
                     local playerX, playerY, playerMapId = HBD:GetPlayerZonePosition()
                     if playerMapId and playerX and playerY then
                         step.data = string.format("%d,%.2f,%.2f", playerMapId, playerX * 100.0, playerY * 100.0)
@@ -685,7 +686,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:ResetSelectedChapterState()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepType = stepType
 
@@ -702,7 +703,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:ResetSelectedChapterState()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepData = stepData
 
@@ -719,7 +720,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:SetSelectedStepIndex(index)
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepIndex = stepIndex
 
@@ -736,18 +737,18 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         end
     end
     stepRequiredRaces.GetValues = function(self)
-        return Journeyman.raceNameLocal
+        return addon.raceNameLocal
     end
     stepRequiredRaces.GetSorting = function(self)
         return {
-            Journeyman.RACE_HUMAN,
-            Journeyman.RACE_DWARF,
-            Journeyman.RACE_NIGHTELF,
-            Journeyman.RACE_GNOME,
-            Journeyman.RACE_ORC,
-            Journeyman.RACE_SCOURGE,
-            Journeyman.RACE_TAUREN,
-            Journeyman.RACE_TROLL,
+            addon.RACE_HUMAN,
+            addon.RACE_DWARF,
+            addon.RACE_NIGHTELF,
+            addon.RACE_GNOME,
+            addon.RACE_ORC,
+            addon.RACE_SCOURGE,
+            addon.RACE_TAUREN,
+            addon.RACE_TROLL,
         }
     end
     stepRequiredRaces.OnValueChanged = function(self, value)
@@ -763,7 +764,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:ResetSelectedChapterState()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepRequiredRaces = stepRequiredRaces
 
@@ -780,19 +781,19 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         end
     end
     stepRequiredClasses.GetValues = function(self)
-        return Journeyman.classNameLocal
+        return addon.classNameLocal
     end
     stepRequiredClasses.GetSorting = function(self)
         return {
-            Journeyman.CLASS_DRUID,
-            Journeyman.CLASS_HUNTER,
-            Journeyman.CLASS_MAGE,
-            Journeyman.CLASS_PALADIN,
-            Journeyman.CLASS_PRIEST,
-            Journeyman.CLASS_ROGUE,
-            Journeyman.CLASS_SHAMAN,
-            Journeyman.CLASS_WARLOCK,
-            Journeyman.CLASS_WARRIOR,
+            addon.CLASS_DRUID,
+            addon.CLASS_HUNTER,
+            addon.CLASS_MAGE,
+            addon.CLASS_PALADIN,
+            addon.CLASS_PRIEST,
+            addon.CLASS_ROGUE,
+            addon.CLASS_SHAMAN,
+            addon.CLASS_WARLOCK,
+            addon.CLASS_WARRIOR,
         }
     end
     stepRequiredClasses.OnValueChanged = function(self, value)
@@ -808,7 +809,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             Editor:ResetSelectedChapterState()
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepRequiredClasses = stepRequiredClasses
 
@@ -825,7 +826,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             end
         end
         Editor:Refresh()
-        Journeyman:Reset(true)
+        addon:Reset(true)
     end
     frame.stepNote = stepNote
 
@@ -905,7 +906,7 @@ end
 function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = Journeyman.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = addon.GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -913,7 +914,7 @@ function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     label:SetFontSize(10)
     frame.label = label
 
-    local editBox = Journeyman.GUI:CreateEditBox("FRAME", "EditBox", frame)
+    local editBox = addon.GUI:CreateEditBox("FRAME", "EditBox", frame)
     editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     editBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     editBox:SetTextColor(1, 1, 1, 1)
@@ -937,7 +938,7 @@ end
 function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = Journeyman.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = addon.GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -945,7 +946,7 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, t
     label:SetFontSize(10)
     frame.label = label
 
-    local dropDownMenu = Journeyman.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame, isBitFlag)
+    local dropDownMenu = addon.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame, isBitFlag)
     dropDownMenu:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     dropDownMenu:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     dropDownMenu.GetValue = function(self) return frame:GetValue() end
@@ -964,25 +965,25 @@ end
 
 function Editor:ImportJourney(journey)
     -- Verify if journey already exist
-    if List:Any(Journeyman.journeys, function(j) return j.guid == journey.guid end) then
+    if List:Any(addon.journeys, function(j) return j.guid == journey.guid end) then
         local dialog = StaticPopup_Show(addonName .. "_IMPORT_JOURNEY", nil, nil, journey)
         dialog.importingJourney = journey
         return
     end
 
     -- Make sure title is unique
-    if List:Any(Journeyman.journeys, function(j) return j.title == journey.title end) then
+    if List:Any(addon.journeys, function(j) return j.title == journey.title end) then
         local title = journey.title
         local count = 1
-        while List:Count(Journeyman.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+        while List:Count(addon.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
             count = count + 1
         end
         journey.title = title.." ("..count..")"
     end
 
     -- Add journey
-    List:Add(Journeyman.journeys, journey)
-    Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
+    List:Add(addon.journeys, journey)
+    Editor:SetSelectedJourneyIndex(#addon.journeys)
     Editor:SetSelectedChapterIndex(1)
     Editor:SetSelectedStepIndex(-1)
     Editor:Refresh()

@@ -1,14 +1,13 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local Database, Private = addon:NewModule("Database"), {}
 local L = addon.Locale
-
-local Journey = Journeyman.Journey
 
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dictionary = LibStub("LibCollections-1.0").Dictionary
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
+local Journey
 
 local databaseDefaults = {
     profile = {
@@ -77,169 +76,175 @@ local databaseDefaults = {
     }
 }
 
-function Journeyman:InitializeDatabase()
-    Journey = Journeyman.Journey
+function Database:OnInitialize()
+    Journey = addon.Journey
 
     -- Create database
-    self.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
-    if self.db.profile.advanced.debug then
-        _G["Journeyman"] = Journeyman
+    addon.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
+    if addon.db.profile.advanced.debug then
+        _G["Journeyman"] = addon
     end
 
     -- Initialize known taxi node ids per race
     if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-        if Journeyman.player.raceName == "HUMAN" then
-            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
-        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
-            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
-        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
-            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
-        elseif Journeyman.player.raceName == "NIGHTELF" then
-            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
-            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
-        elseif Journeyman.player.raceName == "SCOURGE" then
-            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
-        elseif Journeyman.player.raceName == "TAUREN" then
-            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        if addon.player.raceName == "HUMAN" then
+            addon.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif addon.player.raceName == "ORC" or addon.player.raceName == "TROLL" then
+            addon.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif addon.player.raceName == "DWARF" or addon.player.raceName == "GNOME" then
+            addon.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif addon.player.raceName == "NIGHTELF" then
+            addon.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            addon.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif addon.player.raceName == "SCOURGE" then
+            addon.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif addon.player.raceName == "TAUREN" then
+            addon.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
         end
     elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
-        if Journeyman.player.raceName == "HUMAN" then
-            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
-        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
-            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
-        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
-            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
-        elseif Journeyman.player.raceName == "NIGHTELF" then
-            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
-            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
-        elseif Journeyman.player.raceName == "SCOURGE" then
-            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
-        elseif Journeyman.player.raceName == "TAUREN" then
-            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
-        elseif Journeyman.player.raceName == "BLOODELF" then
-            Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
-        elseif Journeyman.player.raceName == "DRAENEI" then
-            Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
+        if addon.player.raceName == "HUMAN" then
+            addon.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif addon.player.raceName == "ORC" or addon.player.raceName == "TROLL" then
+            addon.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif addon.player.raceName == "DWARF" or addon.player.raceName == "GNOME" then
+            addon.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif addon.player.raceName == "NIGHTELF" then
+            addon.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            addon.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif addon.player.raceName == "SCOURGE" then
+            addon.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif addon.player.raceName == "TAUREN" then
+            addon.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        elseif addon.player.raceName == "BLOODELF" then
+            addon.db.char.taxiNodeIds[82] = true -- Silvermoon City
+        elseif addon.player.raceName == "DRAENEI" then
+            addon.db.char.taxiNodeIds[94] = true -- The Exodar
         end
     elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
-        if Journeyman.player.raceName == "HUMAN" then
-            Journeyman.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
-        elseif Journeyman.player.raceName == "ORC" or Journeyman.player.raceName == "TROLL" then
-            Journeyman.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
-        elseif Journeyman.player.raceName == "DWARF" or Journeyman.player.raceName == "GNOME" then
-            Journeyman.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
-        elseif Journeyman.player.raceName == "NIGHTELF" then
-            Journeyman.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
-            Journeyman.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
-        elseif Journeyman.player.raceName == "SCOURGE" then
-            Journeyman.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
-        elseif Journeyman.player.raceName == "TAUREN" then
-            Journeyman.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
-        elseif Journeyman.player.raceName == "BLOODELF" then
-            Journeyman.db.char.taxiNodeIds[82] = true -- Silvermoon City
-        elseif Journeyman.player.raceName == "DRAENEI" then
-            Journeyman.db.char.taxiNodeIds[94] = true -- The Exodar
+        if addon.player.raceName == "HUMAN" then
+            addon.db.char.taxiNodeIds[2] = true -- Stormwind, Elwynn
+        elseif addon.player.raceName == "ORC" or addon.player.raceName == "TROLL" then
+            addon.db.char.taxiNodeIds[23] = true -- Orgrimmar, Durotar
+        elseif addon.player.raceName == "DWARF" or addon.player.raceName == "GNOME" then
+            addon.db.char.taxiNodeIds[6] = true -- Ironforge, Dun Morogh
+        elseif addon.player.raceName == "NIGHTELF" then
+            addon.db.char.taxiNodeIds[26] = true -- Auberdine, Darkshore
+            addon.db.char.taxiNodeIds[27] = true -- Rut'theran Village, Teldrassil
+        elseif addon.player.raceName == "SCOURGE" then
+            addon.db.char.taxiNodeIds[11] = true -- Undercity, Tirisfal
+        elseif addon.player.raceName == "TAUREN" then
+            addon.db.char.taxiNodeIds[22] = true -- Thunder Bluff, Mulgore
+        elseif addon.player.raceName == "BLOODELF" then
+            addon.db.char.taxiNodeIds[82] = true -- Silvermoon City
+        elseif addon.player.raceName == "DRAENEI" then
+            addon.db.char.taxiNodeIds[94] = true -- The Exodar
         end
     else
-        Journeyman:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
+        addon:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
     end
 
     -- Deserialize database
     self:DeserializeDatabase()
 end
 
-function Journeyman:SerializeDatabase()
+function Database:OnEnable()
+end
+
+function Database:OnDisable()
+end
+
+function Database:SerializeDatabase()
     -- Serialize journeys
-    if self.journeys and type(self.journeys) == "table" then
-        self.db.global.journeys = {}
-        for i = 1, #self.journeys do
-            local journey = self.journeys[i]
+    if addon.journeys and type(addon.journeys) == "table" then
+        addon.db.global.journeys = {}
+        for i = 1, #addon.journeys do
+            local journey = addon.journeys[i]
             if journey then
                 local serialized = self:ExportJourney(journey)
                 if serialized then
-                    List:Add(self.db.global.journeys, serialized)
+                    List:Add(addon.db.global.journeys, serialized)
                 end
             end
         end
     end
 
     -- Serialize character journey
-    if self.myJourney and type(self.myJourney) == "table" then
-        local myJourney = self:ExportJourney(self.myJourney)
+    if addon.myJourney and type(addon.myJourney) == "table" then
+        local myJourney = self:ExportJourney(addon.myJourney)
         if myJourney then
-            self.db.char.myJourney.journey = myJourney
+            addon.db.char.myJourney.journey = myJourney
         end
     end
 end
 
-function Journeyman:DeserializeDatabase()
+function Database:DeserializeDatabase()
     -- Deserialize journeys
-    if self.db.global.journeys and type(self.db.global.journeys) == "table" then
+    if addon.db.global.journeys and type(addon.db.global.journeys) == "table" then
         -- Migrate from profile db
-        if self.db.profile.journeys and type(self.db.profile.journeys) == "table" then
-            List:ForEach(self.db.profile.journeys, function(journey)
-                List:Add(self.db.global.journeys, journey)
+        if addon.db.profile.journeys and type(addon.db.profile.journeys) == "table" then
+            List:ForEach(addon.db.profile.journeys, function(journey)
+                List:Add(addon.db.global.journeys, journey)
             end)
-            self.db.profile.journeys = nil
+            addon.db.profile.journeys = nil
         end
 
         -- Import journeys
-        self.journeys = {}
-        List:ForEach(self.db.global.journeys, function(journey)
+        addon.journeys = {}
+        List:ForEach(addon.db.global.journeys, function(journey)
             local deserialized = self:ImportJourney(journey)
             if deserialized then
                 -- Make sure title is unique
-                if List:Any(self.journeys, function(j) return j.title == deserialized.title end) then
+                if List:Any(addon.journeys, function(j) return j.title == deserialized.title end) then
                     local title = deserialized.title
                     local count = 1
-                    while List:Count(self.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
+                    while List:Count(addon.journeys, function(j) return j.title == title.." ("..count..")" end) > 0 do
                         count = count + 1
                     end
                     deserialized.title = title.." ("..count..")"
                 end
                 -- Make sure guid is unique
-                if List:Any(self.journeys, function(j) return j.guid == deserialized.guid end) then
-                    deserialized.guid = Journeyman.Utils:CreateGUID()
+                if List:Any(addon.journeys, function(j) return j.guid == deserialized.guid end) then
+                    deserialized.guid = addon.Utils:CreateGUID()
                 end
                 -- Add journey
-                List:Add(self.journeys, deserialized)
+                List:Add(addon.journeys, deserialized)
             end
         end)
 
         -- Import character journey
-        local myJourney = self:ImportJourney(self.db.char.myJourney.journey)
+        local myJourney = self:ImportJourney(addon.db.char.myJourney.journey)
         if myJourney then
-            self.myJourney = myJourney
+            addon.myJourney = myJourney
         end
     end
 
     -- Validate active chapter
-    local journey = Journeyman:GetActiveJourney()
+    local journey = addon:GetActiveJourney()
     if journey then
         if #journey.chapters <= 0 then
-            self.db.char.chapter = -1
-        elseif self.db.char.chapter <= 0 or self.db.char.chapter > #journey.chapters then
-            self.db.char.chapter = 1
+            addon.db.char.chapter = -1
+        elseif addon.db.char.chapter <= 0 or addon.db.char.chapter > #journey.chapters then
+            addon.db.char.chapter = 1
         end
     end
 
     -- Cleanup states
     local guids = {}
-    Dictionary:ForEach(self.db.char.state, function(guid, state) List:Add(guids, guid) end)
+    Dictionary:ForEach(addon.db.char.state, function(guid, state) List:Add(guids, guid) end)
     List:ForEach(guids, function(guid)
-        if self:GetJourney(guid) == nil or (self.db.char.state[guid] and Dictionary:Count(self.db.char.state[guid]) == 0) then
-            self.db.char.state[guid] = nil
+        if addon:GetJourney(guid) == nil or (addon.db.char.state[guid] and Dictionary:Count(addon.db.char.state[guid]) == 0) then
+            addon.db.char.state[guid] = nil
         end
     end)
 end
 
-function Journeyman:ExportJourney(deserializedJourney)
+function Database:ExportJourney(deserializedJourney)
     local journey = { chapters = {} }
 
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = Journeyman.Utils:CreateGUID()
+        journey.guid = addon.Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -269,7 +274,7 @@ function Journeyman:ExportJourney(deserializedJourney)
                     if deserializedStep.type and type(deserializedStep.type) == "string" then
                         step.type = deserializedStep.type
                     else
-                        step.type = Journeyman.STEP_TYPE_UNDEFINED
+                        step.type = addon.STEP_TYPE_UNDEFINED
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
@@ -309,52 +314,52 @@ function Journeyman:ExportJourney(deserializedJourney)
 end
 
 local function ExportCommand(type)
-    if type == Journeyman.STEP_TYPE_UNDEFINED then
+    if type == addon.STEP_TYPE_UNDEFINED then
         return "undefined"
-    elseif type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+    elseif type == addon.STEP_TYPE_ACCEPT_QUEST then
         return "accept"
-    elseif type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+    elseif type == addon.STEP_TYPE_COMPLETE_QUEST then
         return "complete"
-    elseif type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    elseif type == addon.STEP_TYPE_TURNIN_QUEST then
         return "turnin"
-    elseif type == Journeyman.STEP_TYPE_GO_TO_COORD then
+    elseif type == addon.STEP_TYPE_GO_TO_COORD then
         return "goto"
-    elseif type == Journeyman.STEP_TYPE_GO_TO_AREA then
+    elseif type == addon.STEP_TYPE_GO_TO_AREA then
         return "gotoarea"
-    elseif type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+    elseif type == addon.STEP_TYPE_GO_TO_ZONE then
         return "gotozone"
-    elseif type == Journeyman.STEP_TYPE_REACH_LEVEL then
+    elseif type == addon.STEP_TYPE_REACH_LEVEL then
         return "level"
-    elseif type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+    elseif type == addon.STEP_TYPE_REACH_REPUTATION then
         return "reputation"
-    elseif type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+    elseif type == addon.STEP_TYPE_BIND_HEARTHSTONE then
         return "bind"
-    elseif type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+    elseif type == addon.STEP_TYPE_USE_HEARTHSTONE then
         return "hearth"
-    elseif type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+    elseif type == addon.STEP_TYPE_LEARN_FLIGHT_PATH then
         return "learnfp"
-    elseif type == Journeyman.STEP_TYPE_FLY_TO then
+    elseif type == addon.STEP_TYPE_FLY_TO then
         return "flyto"
-    elseif type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+    elseif type == addon.STEP_TYPE_TRAIN_CLASS then
         return "trainclass"
-    elseif type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+    elseif type == addon.STEP_TYPE_TRAIN_SPELLS then
         return "trainspells"
-    elseif type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+    elseif type == addon.STEP_TYPE_LEARN_FIRST_AID then
         return "learnfirstaid"
-    elseif type == Journeyman.STEP_TYPE_LEARN_COOKING then
+    elseif type == addon.STEP_TYPE_LEARN_COOKING then
         return "learncooking"
-    elseif type == Journeyman.STEP_TYPE_LEARN_FISHING then
+    elseif type == addon.STEP_TYPE_LEARN_FISHING then
         return "learnfishing"
-    elseif type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+    elseif type == addon.STEP_TYPE_ACQUIRE_ITEMS then
         return "getitems"
-    elseif type == Journeyman.STEP_TYPE_DIE_AND_RES then
+    elseif type == addon.STEP_TYPE_DIE_AND_RES then
         return "die"
     else
-        Journeyman:Error("Step type %s not implemented.", type)
+        addon:Error("Step type %s not implemented.", type)
     end
 end
 
-function Journeyman:ImportJourney(serializedJourney)
+function Database:ImportJourney(serializedJourney)
     local result, deserializedJourney = self:Deserialize(serializedJourney)
     if not result then
         return nil, deserializedJourney
@@ -365,7 +370,7 @@ function Journeyman:ImportJourney(serializedJourney)
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = Journeyman.Utils:CreateGUID()
+        journey.guid = addon.Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -395,7 +400,7 @@ function Journeyman:ImportJourney(serializedJourney)
                     if deserializedStep.type and type(deserializedStep.type) == "string" then
                         step.type = deserializedStep.type
                     else
-                        step.type = Journeyman.STEP_TYPE_UNDEFINED
+                        step.type = addon.STEP_TYPE_UNDEFINED
                     end
 
                     if deserializedStep.data and type(deserializedStep.data) == "number" then
@@ -429,7 +434,7 @@ function Journeyman:ImportJourney(serializedJourney)
     return journey
 end
 
-function Journeyman:Serialize(...)
+function Database:Serialize(...)
     local serialized = LibAceSerializer:Serialize(...)
     if serialized == nil then
         return false, "Failed to serialize."
@@ -448,7 +453,7 @@ function Journeyman:Serialize(...)
     return true, encoded
 end
 
-function Journeyman:Deserialize(str)
+function Database:Deserialize(str)
     if String:IsNilOrEmpty(str) then
         return false, "Expected string, got nil or empty string."
     end
@@ -498,16 +503,16 @@ local function ExportData(data)
             return string.format("%.2f", data) -- decimal
         end
     else
-        Journeyman:Error("Export type %s not implemented", type(data))
+        addon:Error("Export type %s not implemented", type(data))
     end
 end
 
 local function ExportRaces(races)
     if races then
         local requiredRaces = {}
-        List:ForEach(Journeyman.raceMask, function(mask)
+        List:ForEach(addon.raceMask, function(mask)
             if bit.band(mask, races) == mask then
-                List:Add(requiredRaces, Journeyman.raceName[mask])
+                List:Add(requiredRaces, addon.raceName[mask])
             end
         end)
         if #requiredRaces > 0 then
@@ -519,9 +524,9 @@ end
 local function ExportClasses(classes)
     if classes then
         local requiredClasses = {}
-        List:ForEach(Journeyman.classMask, function(mask)
+        List:ForEach(addon.classMask, function(mask)
             if bit.band(mask, classes) == mask then
-                List:Add(requiredClasses, Journeyman.className[mask])
+                List:Add(requiredClasses, addon.className[mask])
             end
         end)
         if #requiredClasses > 0 then
@@ -536,7 +541,7 @@ local function ExportNote(note)
     end
 end
 
-function Journeyman:ExportJourneyAsText(journey)
+function Database:ExportJourneyAsText(journey)
     local export = "journey "..ExportData(journey.title).." "..ExportData(journey.guid).."\n"
     List:ForEach(journey.chapters, function(chapter)
         export = export.."chapter "..ExportData(chapter.title).."\n"
@@ -607,19 +612,19 @@ end
 
 local function ParseCommandJourney(arguments, context)
     if context.journey then
-        Journeyman:Error("Parsing error, journey already defined.")
+        addon:Error("Parsing error, journey already defined.")
         return
     end
 
     local title = arguments[1]
     if String:IsNilOrEmpty(title) then
-        Journeyman:Error("Parsing error, missing journey title.")
+        addon:Error("Parsing error, missing journey title.")
         return
     end
 
     local guid = arguments[2]
     if String:IsNilOrEmpty(guid) then
-        Journeyman:Error("Parsing error, missing journey guid.")
+        addon:Error("Parsing error, missing journey guid.")
         return
     end
 
@@ -629,7 +634,7 @@ end
 local function ParseCommandChapter(arguments, context)
     local title = arguments[1]
     if String:IsNilOrEmpty(title) then
-        Journeyman:Error("Parsing error, missing chapter title.")
+        addon:Error("Parsing error, missing chapter title.")
         return
     end
 
@@ -672,10 +677,10 @@ local function ParseCommand(type, arguments, context)
                 elseif field == "note" then
                     note = String:Trim(String:Trim(value, '\"'), '\'')
                 else
-                    Journeyman:Error("Parsing error, unknown optional field: %s", field)
+                    addon:Error("Parsing error, unknown optional field: %s", field)
                 end
             else
-                Journeyman:Error("Parsing error, unknown argument: %s", argument)
+                addon:Error("Parsing error, unknown argument: %s", argument)
             end
         end)
     end
@@ -695,61 +700,61 @@ local function ParseCommands(words, context)
             ParseCommandChapter(arguments, context)
         else
             if not context.journey then
-                Journeyman:Error("Parsing error, no journey defined.")
+                addon:Error("Parsing error, no journey defined.")
                 return
             end
 
             if not context.journey then
-                Journeyman:Error("Parsing error, no chapter defined.")
+                addon:Error("Parsing error, no chapter defined.")
                 return
             end
 
             if command == "accept" then
-                ParseCommand(Journeyman.STEP_TYPE_ACCEPT_QUEST, arguments, context)
+                ParseCommand(addon.STEP_TYPE_ACCEPT_QUEST, arguments, context)
             elseif command == "complete" then
-                ParseCommand(Journeyman.STEP_TYPE_COMPLETE_QUEST, arguments, context)
+                ParseCommand(addon.STEP_TYPE_COMPLETE_QUEST, arguments, context)
             elseif command == "turnin" then
-                ParseCommand(Journeyman.STEP_TYPE_TURNIN_QUEST, arguments, context)
+                ParseCommand(addon.STEP_TYPE_TURNIN_QUEST, arguments, context)
             elseif command == "goto" then
-                ParseCommand(Journeyman.STEP_TYPE_GO_TO_COORD, arguments, context)
+                ParseCommand(addon.STEP_TYPE_GO_TO_COORD, arguments, context)
             elseif command == "gotoarea" then
-                ParseCommand(Journeyman.STEP_TYPE_GO_TO_AREA, arguments, context)
+                ParseCommand(addon.STEP_TYPE_GO_TO_AREA, arguments, context)
             elseif command == "gotozone" then
-                ParseCommand(Journeyman.STEP_TYPE_GO_TO_ZONE, arguments, context)
+                ParseCommand(addon.STEP_TYPE_GO_TO_ZONE, arguments, context)
             elseif command == "level" then
-                ParseCommand(Journeyman.STEP_TYPE_REACH_LEVEL, arguments, context)
+                ParseCommand(addon.STEP_TYPE_REACH_LEVEL, arguments, context)
             elseif command == "reputation" then
-                ParseCommand(Journeyman.STEP_TYPE_REACH_REPUTATION, arguments, context)
+                ParseCommand(addon.STEP_TYPE_REACH_REPUTATION, arguments, context)
             elseif command == "bind" then
-                ParseCommand(Journeyman.STEP_TYPE_BIND_HEARTHSTONE, arguments, context)
+                ParseCommand(addon.STEP_TYPE_BIND_HEARTHSTONE, arguments, context)
             elseif command == "hearth" then
-                ParseCommand(Journeyman.STEP_TYPE_USE_HEARTHSTONE, arguments, context)
+                ParseCommand(addon.STEP_TYPE_USE_HEARTHSTONE, arguments, context)
             elseif command == "learnfp" then
-                ParseCommand(Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH, arguments, context)
+                ParseCommand(addon.STEP_TYPE_LEARN_FLIGHT_PATH, arguments, context)
             elseif command == "flyto" then
-                ParseCommand(Journeyman.STEP_TYPE_FLY_TO, arguments, context)
+                ParseCommand(addon.STEP_TYPE_FLY_TO, arguments, context)
             elseif command == "trainclass" then
-                ParseCommand(Journeyman.STEP_TYPE_TRAIN_CLASS, arguments, context)
+                ParseCommand(addon.STEP_TYPE_TRAIN_CLASS, arguments, context)
             elseif command == "trainspells" then
-                ParseCommand(Journeyman.STEP_TYPE_TRAIN_SPELLS, arguments, context)
+                ParseCommand(addon.STEP_TYPE_TRAIN_SPELLS, arguments, context)
             elseif command == "learnfirstaid" then
-                ParseCommand(Journeyman.STEP_TYPE_LEARN_FIRST_AID, arguments, context)
+                ParseCommand(addon.STEP_TYPE_LEARN_FIRST_AID, arguments, context)
             elseif command == "learncooking" then
-                ParseCommand(Journeyman.STEP_TYPE_LEARN_COOKING, arguments, context)
+                ParseCommand(addon.STEP_TYPE_LEARN_COOKING, arguments, context)
             elseif command == "learnfishing" then
-                ParseCommand(Journeyman.STEP_TYPE_LEARN_FISHING, arguments, context)
+                ParseCommand(addon.STEP_TYPE_LEARN_FISHING, arguments, context)
             elseif command == "getitems" then
-                ParseCommand(Journeyman.STEP_TYPE_ACQUIRE_ITEMS, arguments, context)
+                ParseCommand(addon.STEP_TYPE_ACQUIRE_ITEMS, arguments, context)
             elseif command == "die" then
-                ParseCommand(Journeyman.STEP_TYPE_DIE_AND_RES, arguments, context)
+                ParseCommand(addon.STEP_TYPE_DIE_AND_RES, arguments, context)
             else
-                ParseCommand(Journeyman.STEP_TYPE_UNDEFINED, arguments, context)
+                ParseCommand(addon.STEP_TYPE_UNDEFINED, arguments, context)
             end
         end
     end
 end
 
-function Journeyman:ImportJourneyFromText(text)
+function Database:ImportJourneyFromText(text)
     -- Get lines
     local lines = {}
     for line in text:gmatch("[^\r\n]+") do

@@ -1,14 +1,11 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local Tooltips, Private = addon:NewModule("Tooltips"), {}
 local L = addon.Locale
-
-local Tooltips = {}
-Journeyman.Tooltips = Tooltips
 
 local strsplit, unpack = strsplit, unpack
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
-local State = Journeyman.State
+local State
 
 local function OnTooltipSetUnit(tooltip, ...)
     local unitName, unitId = tooltip:GetUnit()
@@ -43,7 +40,7 @@ local function OnTooltipSetUnit(tooltip, ...)
 
         -- Display each quest to show
         List:ForEach(quests, function(quest)
-            local questName = Journeyman:GetQuestName(quest.id, Journeyman.db.profile.window.showQuestLevel)
+            local questName = Journeyman:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
             if not String:IsNilOrEmpty(questName) then
                 -- Add quest name
                 local questColor = Journeyman:GetQuestColor(quest.id)
@@ -94,7 +91,7 @@ local function OnTooltipSetItem(tooltip, ...)
 
         -- Display each quest to show
         List:ForEach(quests, function(quest)
-            local questName = Journeyman:GetQuestName(quest.id, Journeyman.db.profile.window.showQuestLevel)
+            local questName = Journeyman:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
             if not String:IsNilOrEmpty(questName) then
                 -- Add quest name
                 local questColor = Journeyman:GetQuestColor(quest.id)
@@ -115,8 +112,17 @@ local function OnTooltipSetItem(tooltip, ...)
     end
 end
 
-GameTooltip:HookScript("OnTooltipSetUnit", OnTooltipSetUnit)
-GameTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
-ItemRefTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
-ShoppingTooltip1:HookScript("OnTooltipSetItem", OnTooltipSetItem)
-ShoppingTooltip2:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+function Tooltips:OnInitialize()
+    State = addon.State
+end
+
+function Tooltips:OnEnable()
+    GameTooltip:HookScript("OnTooltipSetUnit", OnTooltipSetUnit)
+    GameTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+    ItemRefTooltip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+    ShoppingTooltip1:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+    ShoppingTooltip2:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+end
+
+function Tooltips:OnDisable()
+end

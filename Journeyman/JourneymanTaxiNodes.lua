@@ -1,9 +1,6 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local TaxiNodes, Private = addon:NewModule("TaxiNodes"), {}
 local L = addon.Locale
-
-local TaxiNodes = {}
-Journeyman.TaxiNodes = TaxiNodes
 
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
@@ -92,6 +89,12 @@ local function IsValid(id, data)
     return true
 end
 
+local function GetLocalizedName(data)
+    if data and data.Name_lang then
+        return data.Name_lang
+    end
+end
+
 local function GetFactionGroup(data)
     if data and data.Flags then
         local flags = band(data.Flags, FLAGS_SHOW_ON_MAP)
@@ -117,12 +120,33 @@ local function GetWorldCoordinates(data)
     end
 end
 
+function TaxiNodes:GetTaxiNode(id)
+    local data = L.taxiNodes[id]
+    if data and IsValid(id, data) then
+        local name = GetLocalizedName(data)
+        local instanceId = GetInstanceId(data)
+        local worldX, worldY = GetWorldCoordinates(data)
+        if instanceId and worldX and worldY then
+            worldX, worldY, instanceId = applyCoordinateTransforms(worldX, worldY, instanceId)
+        end
+        local faction = GetFactionGroup(data)
+        return {
+            id = id,
+            name = name,
+            instanceId = instanceId,
+            worldX = worldX,
+            worldY = worldY,
+            faction = faction
+        }
+    end
+end
+
 function TaxiNodes:GetIdsFromLocalizedName(localizedName)
     if self.localizedNameToId == nil then
         self.localizedNameToId = {}
         for id, data in pairs(L.taxiNodes) do
             if IsValid(id, data) then
-                local key = data.Name_lang
+                local key = GetLocalizedName(data)
                 if self.localizedNameToId[key] == nil then
                     self.localizedNameToId[key] = {}
                 end
@@ -150,7 +174,7 @@ end
 function TaxiNodes:GetLocalizedName(id, showId)
     local data = L.taxiNodes[id]
     if data then
-        local localizedName = data.Name_lang
+        local localizedName = GetLocalizedName(data)
         if not String:IsNilOrEmpty(localizedName) then
             if showId then
                 localizedName = localizedName.." ("..id..")"

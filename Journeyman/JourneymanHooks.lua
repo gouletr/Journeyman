@@ -12,10 +12,10 @@ end
 function Journeyman:OnTakeTaxiNode(slot)
     local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot, Journeyman.player.factionName)
     if taxiNodeId then
-        if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeFlyTo then
+        if Journeyman:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeFlyTo then
             self.Journey:OnTakeFlightPath(taxiNodeId)
         end
-        if self.db.char.window.show then
+        if addon.db.char.window.show then
             self.flyingTo = taxiNodeId
             self.State:OnTakeFlightPath(taxiNodeId)
         end

@@ -1,15 +1,15 @@
 local addonName, addon = ...
-addon.Journeyman = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceHook-3.0", "AceEvent-3.0", "AceConsole-3.0")
+addon.Journeyman = LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceHook-3.0", "AceConsole-3.0")
 addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
 local Journeyman = addon.Journeyman
 local L = addon.Locale
 
-local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dict = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
+local Database, Options, Events, JourneymanDB, DataSource, TaxiNodes, State, Window, Tooltips, Editor
 
 local QUEST_COLOR_RED = "FFFF1A1A"
 local QUEST_COLOR_ORANGE = "FFFF8040"
@@ -78,7 +78,12 @@ Journeyman.FalseQuestItems = {
     737,   -- Holy Spring Water
     2799,  -- Gorilla Fang
     8564,  -- Hippogryph Egg
+    11184, -- Blue Power Crystal
+    11185, -- Green Power Crystal
+    11186, -- Red Power Crystal
+    11188, -- Yellow Power Crystal
     11242, -- Evoroot
+    11511, -- Cenarion Beacon
     12738, -- Dalson Outhouse Key
     12739, -- Dalson Cabinet Key
     12840, -- Minion's Scourgestone
@@ -158,7 +163,27 @@ local function LocationEquals(current, previous)
 end
 
 function Journeyman:OnInitialize()
-    TaxiNodes = Journeyman.TaxiNodes
+    Database = self:GetModule("Database")
+    Options = self:GetModule("Options")
+    Events = self:GetModule("Events")
+    JourneymanDB = self:GetModule("JourneymanDB")
+    DataSource = self:GetModule("DataSourceQuestie")
+    TaxiNodes = self:GetModule("TaxiNodes")
+    State = self:GetModule("State")
+    Window = self:GetModule("Window")
+    Tooltips = self:GetModule("Tooltips")
+    Editor = self:GetModule("Editor")
+
+    self.Database = Database
+    self.Options = Options
+    self.Events = Events
+    self.JourneymanDB = JourneymanDB
+    self.DataSource = DataSource
+    self.TaxiNodes = TaxiNodes
+    self.State = State
+    self.Window = Window
+    self.Tooltips = Tooltips
+    self.Editor = Editor
 
     self.factionNameLocalToFactionId = {}
 
@@ -189,40 +214,29 @@ function Journeyman:OnInitialize()
     self.player.location = nil
 
     self.Journey:Initialize()
-    self:InitializeDatabase()
-    self.JourneymanDB:Initialize()
-    self.Editor:Initialize()
-    self:InitializeOptions()
-    self.State:Initialize()
     self:InitializeHooks()
-    self:InitializeEvents()
-    self.Window:Initialize()
 end
 
 function Journeyman:OnEnable()
     self:Reset()
 
     -- Install update ticker
-    local updateFrequency = min(max(Journeyman.db.profile.advanced.updateFrequency, 0.1), 5)
+    local updateFrequency = min(max(addon.db.profile.advanced.updateFrequency, 0.1), 5)
     self.updateTicker = C_Timer.NewTicker(updateFrequency, function()
         -- Check for state and window update
-        self.State:CheckForUpdate()
-        self.Window:CheckForUpdate()
+        State:CheckForUpdate()
+        Window:CheckForUpdate()
     end)
 
     -- High frequency ticker for goto steps
     C_Timer.NewTicker(0.25, function()
         if self:UpdatePosition() then
-            self:OnLocationChanged()
+            Events:OnLocationChanged()
         end
     end)
 end
 
 function Journeyman:OnDisable()
-    self.Editor:Shutdown()
-    self.Window:Shutdown()
-    self:ShutdownEvents()
-    self.State:Shutdown()
 end
 
 function Journeyman:Reset(immediate)
@@ -230,12 +244,12 @@ function Journeyman:Reset(immediate)
     self.activeJourneyChapter = nil
     self.loadJourneyDataTask = nil
     if self.db.char.window.show then
-        self.State:Reset(immediate)
+        State:Reset(immediate)
     end
 end
 
 function Journeyman:Update(immediate)
-    self.State:Update(immediate)
+    State:Update(immediate)
 end
 
 function Journeyman:UpdatePosition()
@@ -258,6 +272,10 @@ end
 Journeyman._Print = Journeyman.Print
 Journeyman.Print = function(self, fmt, ...)
     Journeyman._Print(self, string.format(fmt, ...))
+end
+
+function Journeyman:Dump(o, recurse)
+    return addon.Utils:Dump(o, recurse)
 end
 
 function Journeyman:Debug(fmt, ...)
@@ -324,7 +342,7 @@ function Journeyman:GetQuestLog()
     for i = 1, entriesCount do
         local info = self:GetQuestLogInfo(i)
         if info and not info.isHeader then
-            info.objectives = Journeyman.State:GetQuestObjectives(info.questId)
+            info.objectives = State:GetQuestObjectives(info.questId)
             questLog[info.questId] = info
         end
     end
@@ -332,7 +350,7 @@ function Journeyman:GetQuestLog()
 end
 
 function Journeyman:GetQuestName(questId, showLevel, showId)
-    local questName = Journeyman.DataSource:GetQuestName(questId, showLevel, showId)
+    local questName = JourneymanDB:GetQuestName(questId, showLevel, showId)
     if not String:IsNilOrEmpty(questName) then
         return questName
     end
@@ -340,7 +358,7 @@ function Journeyman:GetQuestName(questId, showLevel, showId)
 end
 
 function Journeyman:GetQuestColor(questId)
-    local questLevel = Journeyman.DataSource:GetQuestLevel(questId)
+    local questLevel = DataSource:GetQuestLevel(questId)
     if questLevel then
         local colorHex
         local levelDiff = questLevel - self.player.level
@@ -789,7 +807,7 @@ local function AddJourneyQuestData(journey, questId)
         questData = { npcs = {}, items = {} }
         journey.quests[questId] = questData
 
-        local objectives = Journeyman.DataSource:GetQuestObjectives(questId)
+        local objectives = DataSource:GetQuestObjectives(questId)
         if objectives then
             List:ForEach(objectives, function(objective)
                 AddJourneyQuestObjectiveData(journey, questId, questData, objective)
@@ -799,7 +817,7 @@ local function AddJourneyQuestData(journey, questId)
 end
 
 local function LoadJourneyData(journey, callback)
-    if not Journeyman.worldLoaded or not Journeyman.DataSource:IsInitialized() then
+    if not addon.worldLoaded or not DataSource:IsInitialized() then
         coroutine.yield()
     end
 
@@ -1295,7 +1313,7 @@ function Journeyman:SetWaypoint(step, force)
     if step.hasChildren then
         location = step.location
     else
-        location = self.State:GetStepLocation(step)
+        location = State:GetStepLocation(step)
     end
 
     if location == nil then
@@ -1384,7 +1402,7 @@ function Journeyman:SetMacro(step)
     local suffix = "/cleartarget [noexists][dead]\n/tm [exists] 8\n"
     if step then
         if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
-            local location = self.DataSource:GetNearestQuestStarter(step.data.questId)
+            local location = DataSource:GetNearestQuestStarter(step.data.questId)
             if location and not String:IsNilOrEmpty(location.name) then
                 local command = string.format("/tar [noexists][dead] %s\n", location.name)
                 if body:len() + command:len() + suffix:len() <= 255 then
@@ -1392,7 +1410,7 @@ function Journeyman:SetMacro(step)
                 end
             end
         elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-            local objectives = self.DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
+            local objectives = DataSource:GetQuestObjectives(step.data.questId, step.data.objectives)
             if objectives then
                 local names = GetNPCNamesRecurse(objectives)
                 local n = #names
@@ -1409,7 +1427,7 @@ function Journeyman:SetMacro(step)
                 end
             end
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
-            local location = self.DataSource:GetNearestQuestFinisher(step.data.questId)
+            local location = DataSource:GetNearestQuestFinisher(step.data.questId)
             if location and not String:IsNilOrEmpty(location.name) then
                 local command = string.format("/tar [noexists][dead] %s\n", location.name)
                 if body:len() + command:len() + suffix:len() <= 255 then
@@ -1424,7 +1442,7 @@ function Journeyman:SetMacro(step)
                     return item.id
                 end
             end)
-            local location = Journeyman.DataSource:GetNearestItemLocation(items)
+            local location = DataSource:GetNearestItemLocation(items)
             if location and not String:IsNilOrEmpty(location.name) then
                 local command = string.format("/tar [noexists][dead] %s\n", location.name)
                 if body:len() + command:len() + suffix:len() <= 255 then

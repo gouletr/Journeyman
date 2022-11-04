@@ -1,22 +1,23 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local Events, Private = addon:NewModule("Events", "AceEvent-3.0"), {}
 local L = addon.Locale
 
-local Journey = Journeyman.Journey
-local State = Journeyman.State
-local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
+local Database, DataSource, Journey, State, TaxiNodes
 
-function Journeyman:InitializeEvents()
-    Journey = Journeyman.Journey
-    State = Journeyman.State
-    TaxiNodes = Journeyman.TaxiNodes
-
+function Events:OnInitialize()
+    Database = addon.Database
+    DataSource = addon.DataSource
+    Journey = addon.Journey
+    State = addon.State
+    TaxiNodes = addon.TaxiNodes
     self.questTurnedIn = {}
     self.questRemoved = {}
+end
 
+function Events:OnEnable()
     self:RegisterEvent("PLAYER_LOGIN", function(event)
         self.skipZoneChanged = true
     end)
@@ -26,12 +27,12 @@ function Journeyman:InitializeEvents()
     -- end)
 
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function(event)
-        self.worldLoaded = true
+        addon.worldLoaded = true
     end)
 
     self:RegisterEvent("PLAYER_LEAVING_WORLD", function(event)
-        self.worldLoaded = false
-        Journeyman:SerializeDatabase()
+        addon.worldLoaded = false
+        Database:SerializeDatabase()
     end)
 
     self:RegisterEvent("ZONE_CHANGED", function(event)
@@ -39,10 +40,10 @@ function Journeyman:InitializeEvents()
             self.skipZoneChanged = nil
             return
         end
-        if Journeyman:UpdatePosition() then
-            Journeyman:OnAreaChanged()
+        if addon:UpdatePosition() then
+            self:OnAreaChanged()
         end
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", function(event)
@@ -50,10 +51,10 @@ function Journeyman:InitializeEvents()
             self.skipZoneChanged = nil
             return
         end
-        if Journeyman:UpdatePosition() then
-            Journeyman:OnZoneChanged()
+        if addon:UpdatePosition() then
+            self:OnZoneChanged()
         end
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("ZONE_CHANGED_INDOORS", function(event)
@@ -61,10 +62,10 @@ function Journeyman:InitializeEvents()
             self.skipZoneChanged = nil
             return
         end
-        if Journeyman:UpdatePosition() then
-            Journeyman:OnAreaChanged()
+        if addon:UpdatePosition() then
+            self:OnAreaChanged()
         end
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("QUEST_ACCEPTED", function(event, questLogIndex, questId)
@@ -78,11 +79,11 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("QUEST_WATCH_UPDATE", function(event, questId)
-        Journeyman:SetMacro(State.currentStep)
+        addon:SetMacro(State.currentStep)
     end)
 
     self:RegisterEvent("QUEST_LOG_UPDATE", function(event)
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("QUEST_REMOVED", function(event, questId)
@@ -103,15 +104,15 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("BAG_UPDATE_DELAYED", function(event)
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("PLAYER_LEVEL_UP", function(event, level, healthDelta, powerDelta, numNewTalents, numNewPvpTalentSlots, strengthDelta, agilityDelta, staminaDelta, intellectDelta)
         -- Store some values
-        Journeyman.player.level = UnitLevel("player")
-        Journeyman.player.xp = UnitXP("player")
-        Journeyman.player.maxXP = UnitXPMax("player")
-        Journeyman.player.greenRange = GetQuestGreenRange("player")
+        addon.player.level = UnitLevel("player")
+        addon.player.xp = UnitXP("player")
+        addon.player.maxXP = UnitXPMax("player")
+        addon.player.greenRange = GetQuestGreenRange("player")
 
         -- Delay level up so that it happens after quests turn-in
         C_Timer.After(1, function() self:OnLevelUp(level) end)
@@ -119,22 +120,22 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("PLAYER_XP_UPDATE", function(event, unit)
         -- Store some values
-        Journeyman.player.level = UnitLevel("player")
-        Journeyman.player.xp = UnitXP("player")
-        Journeyman.player.maxXP = UnitXPMax("player")
-        Journeyman.player.greenRange = GetQuestGreenRange("player")
+        addon.player.level = UnitLevel("player")
+        addon.player.xp = UnitXP("player")
+        addon.player.maxXP = UnitXPMax("player")
+        addon.player.greenRange = GetQuestGreenRange("player")
 
         if State.steps then
             List:ForEach(State.steps, function(step)
-                if step.type == Journeyman.STEP_TYPE_REACH_LEVEL and not step.isComplete then
-                    if Journeyman.player.level == step.data.level and step.data.xp then
-                        if Journeyman.player.xp >= step.data.xp then
+                if step.type == addon.STEP_TYPE_REACH_LEVEL and not step.isComplete then
+                    if addon.player.level == step.data.level and step.data.xp then
+                        if addon.player.xp >= step.data.xp then
                             self:OnLevelXPReached(step)
                         else
-                            Journeyman:Update()
+                            addon:Update()
                         end
-                    elseif Journeyman.player.level == step.data.level - 1 then
-                        Journeyman:Update()
+                    elseif addon.player.level == step.data.level - 1 then
+                        addon:Update()
                     end
                 end
             end)
@@ -147,7 +148,7 @@ function Journeyman:InitializeEvents()
             npcName = String:Trim(npcName)
             xpGained = tonumber(xpGained)
             if xpGained and xpGained > 0 then
-                Journeyman.player.xpGained = xpGained
+                addon.player.xpGained = xpGained
             end
         end
     end)
@@ -157,20 +158,20 @@ function Journeyman:InitializeEvents()
         if factionName and factionGained then
             factionName = String:Trim(factionName)
             factionGained = tonumber(factionGained)
-            local factionId = Journeyman:GetFactionId(factionName)
+            local factionId = addon:GetFactionId(factionName)
             if factionId and factionGained > 0 then
-                Journeyman.player.factionGained[factionId] = factionGained
+                addon.player.factionGained[factionId] = factionGained
             end
         end
     end)
 
     self:RegisterEvent("UPDATE_FACTION", function(event)
-        if not Journeyman.db.char.window.show or State.steps == nil then
+        if not addon.db.char.window.show or State.steps == nil then
             return
         end
 
         List:ForEach(State.steps, function(step)
-            if step.type == Journeyman.STEP_TYPE_REACH_REPUTATION and not step.isComplete then
+            if step.type == addon.STEP_TYPE_REACH_REPUTATION and not step.isComplete then
                 local name, _, standingId = GetFactionInfoByID(step.data.factionId)
                 if name and standingId and standingId >= step.data.standingId then
                     self:OnReputationReached(step)
@@ -180,11 +181,11 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("CONFIRM_BINDER", function(event, location)
-        local areaId = Journeyman:GetAreaIdFromLocalizedName(location)
+        local areaId = addon:GetAreaIdFromLocalizedName(location)
         if areaId then
             self.bindAreaId = areaId
         else
-            Journeyman:Error("Could not find areaId for bind location name '%s'.", location)
+            addon:Error("Could not find areaId for bind location name '%s'.", location)
         end
     end)
 
@@ -196,7 +197,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", function(event, unitTarget, castGUID, spellId)
-        if spellId == Journeyman.SPELL_HEARTHSTONE or spellId == Journeyman.SPELL_ASTRAL_RECALL then
+        if spellId == addon.SPELL_HEARTHSTONE or spellId == addon.SPELL_ASTRAL_RECALL then
             self.lastSpellCast = spellId
         else
             self:OnSpellCast(spellId)
@@ -204,17 +205,17 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("LOADING_SCREEN_DISABLED", function(event)
-        if self.lastSpellCast == Journeyman.SPELL_HEARTHSTONE or self.lastSpellCast == Journeyman.SPELL_ASTRAL_RECALL then
+        if self.lastSpellCast == addon.SPELL_HEARTHSTONE or self.lastSpellCast == addon.SPELL_ASTRAL_RECALL then
             self.skipZoneChanged = true
-            local areaId = Journeyman:GetAreaIdFromLocalizedName(GetBindLocation())
+            local areaId = addon:GetAreaIdFromLocalizedName(GetBindLocation())
             if areaId then
                 self:OnHearthstoneUsed(areaId)
             else
-                Journeyman:Error("Could not find areaId for bind location name '%s'.", location)
+                addon:Error("Could not find areaId for bind location name '%s'.", location)
             end
             self.lastSpellCast = nil
         end
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("TAXIMAP_OPENED", function(event, uiMapSystem)
@@ -225,28 +226,28 @@ function Journeyman:InitializeEvents()
 
     self:RegisterEvent("UI_INFO_MESSAGE", function(event, errorType, message)
         if message == ERR_NEWTAXIPATH then
-            local location = Journeyman.DataSource:GetNearestFlightMasterLocation()
+            local location = DataSource:GetNearestFlightMasterLocation()
             if location then
-                local taxiNodeId = Journeyman.DataSource:GetNPCTaxiNodeId(location.id)
+                local taxiNodeId = DataSource:GetNPCTaxiNodeId(location.id)
                 if taxiNodeId then
                     self:OnLearnFlightPath(taxiNodeId)
                 else
-                    Journeyman:Error("Could not find taxiNodeId for npcId %d.", location.id)
+                    addon:Error("Could not find taxiNodeId for npcId %d.", location.id)
                 end
             else
-                Journeyman:Error("Could not find nearest flight master location.")
+                addon:Error("Could not find nearest flight master location.")
             end
         end
     end)
 
     self:RegisterEvent("PLAYER_CONTROL_GAINED", function(event)
-        if Journeyman.db.char.window.show and not InCombatLockdown() then
+        if addon.db.char.window.show and not InCombatLockdown() then
             if not UnitOnTaxi("player") then
-                Journeyman.flyingTo = nil
+                addon.flyingTo = nil
             end
-            State.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+            State.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
             State.macroNeedUpdate = true
-            Journeyman:Update()
+            addon:Update()
         end
     end)
 
@@ -270,7 +271,7 @@ function Journeyman:InitializeEvents()
     end)
 
     self:RegisterEvent("SKILL_LINES_CHANGED", function(event)
-        Journeyman:Update()
+        addon:Update()
     end)
 
     self:RegisterEvent("CONFIRM_XP_LOSS", function(event)
@@ -285,75 +286,75 @@ function Journeyman:InitializeEvents()
     end)
 end
 
-function Journeyman:ShutdownEvents()
-    self:UnregisterAllEvents()
+function Events:OnDisable()
+    --self:UnregisterAllEvents()
 end
 
-function Journeyman:OnQuestAccepted(questId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeAcceptQuest then
+function Events:OnQuestAccepted(questId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeAcceptQuest then
         Journey:OnQuestAccepted(questId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnQuestAccepted(questId)
     end
 end
 
-function Journeyman:OnQuestCompleted(questId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+function Events:OnQuestCompleted(questId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeCompleteQuest then
         Journey:OnQuestCompleted(questId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnQuestCompleted(questId)
     end
 end
 
-function Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeCompleteQuest then
+function Events:OnQuestObjectiveCompleted(questId, objectiveIndex)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeCompleteQuest then
         Journey:OnQuestObjectiveCompleted(questId, objectiveIndex)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnQuestObjectiveCompleted(questId, objectiveIndex)
     end
 end
 
-function Journeyman:OnQuestTurnedIn(questId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTurnInQuest then
+function Events:OnQuestTurnedIn(questId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTurnInQuest then
         Journey:OnQuestTurnedIn(questId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnQuestTurnedIn(questId)
     end
 end
 
-function Journeyman:OnQuestAbandoned(questId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.abandonedQuests then
+function Events:OnQuestAbandoned(questId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.abandonedQuests then
         Journey:OnQuestAbandoned(questId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnQuestAbandoned(questId)
     end
 end
 
-function Journeyman:OnZoneChanged()
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeGoToZone then
-        if Journeyman.player.location and not UnitOnTaxi("player") then
-            Journey:OnZoneChanged(Journeyman.player.location)
+function Events:OnZoneChanged()
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeGoToZone then
+        if addon.player.location and not UnitOnTaxi("player") then
+            Journey:OnZoneChanged(addon.player.location)
         end
     end
-    Journeyman:OnLocationChanged()
+    self:OnLocationChanged()
 end
 
-function Journeyman:OnAreaChanged()
-    Journeyman:OnLocationChanged()
+function Events:OnAreaChanged()
+    self:OnLocationChanged()
 end
 
-function Journeyman:OnLocationChanged()
-    if Journeyman.db.char.window.show then
+function Events:OnLocationChanged()
+    if addon.db.char.window.show then
         if State.steps == nil then
             return
         end
 
-        local location = Journeyman.player.location
+        local location = addon.player.location
         if location == nil then
             return
         end
@@ -365,19 +366,19 @@ function Journeyman:OnLocationChanged()
         local playerAreaId = nil
         local step = State.currentStep
         if step and not step.isComplete and step.isShown then
-            if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+            if step.type == addon.STEP_TYPE_GO_TO_COORD then
                 local distance = HBD:GetZoneDistance(location.mapId, location.x, location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
                 if distance and distance <= 15 then
                     State:OnStepCompleted(step)
                 end
-            elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+            elseif step.type == addon.STEP_TYPE_GO_TO_AREA then
                 if playerAreaId == nil then
-                    playerAreaId = Journeyman:GetPlayerAreaId()
+                    playerAreaId = addon:GetPlayerAreaId()
                 end
                 if playerAreaId and playerAreaId == step.data.areaId then
                     State:OnStepCompleted(step)
                 end
-            elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+            elseif step.type == addon.STEP_TYPE_GO_TO_ZONE then
                 if location.mapId == step.data.mapId then
                     State:OnStepCompleted(step)
                 end
@@ -386,94 +387,94 @@ function Journeyman:OnLocationChanged()
     end
 end
 
-function Journeyman:OnLevelUp(level)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeReachLevel then
+function Events:OnLevelUp(level)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeReachLevel then
         Journey:OnLevelUp(level)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnLevelUp(level)
     end
 end
 
-function Journeyman:OnLevelXPReached(step)
-    if Journeyman.db.char.window.show then
+function Events:OnLevelXPReached(step)
+    if addon.db.char.window.show then
         State:OnLevelXPReached(step)
     end
 end
 
-function Journeyman:OnReputationReached(step)
-    if Journeyman.db.char.window.show then
+function Events:OnReputationReached(step)
+    if addon.db.char.window.show then
         State:OnReputationReached(step)
     end
 end
 
-function Journeyman:OnHearthstoneBound(areaId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeBindHearthstone then
+function Events:OnHearthstoneBound(areaId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeBindHearthstone then
         Journey:OnHearthstoneBound(areaId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnHearthstoneBound(areaId)
     end
 end
 
-function Journeyman:OnHearthstoneUsed(areaId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeUseHearthstone then
+function Events:OnHearthstoneUsed(areaId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeUseHearthstone then
         Journey:OnHearthstoneUsed(areaId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnHearthstoneUsed(areaId)
     end
 end
 
-function Journeyman:OnTaxiMapOpened()
+function Events:OnTaxiMapOpened()
     local taxiNodeCount = NumTaxiNodes()
     for i = 1, taxiNodeCount do
         local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(i)
         if taxiNodeId then
-            Journeyman.db.char.taxiNodeIds[taxiNodeId] = true
+            addon.db.char.taxiNodeIds[taxiNodeId] = true
         end
     end
 end
 
-function Journeyman:OnLearnFlightPath(taxiNodeId)
-    Journeyman.db.char.taxiNodeIds[taxiNodeId] = true
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeLearnFlightPath then
+function Events:OnLearnFlightPath(taxiNodeId)
+    addon.db.char.taxiNodeIds[taxiNodeId] = true
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeLearnFlightPath then
         Journey:OnLearnFlightPath(taxiNodeId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnLearnFlightPath(taxiNodeId)
     end
 end
 
-function Journeyman:OnClassTrainerClosed()
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainClass then
+function Events:OnClassTrainerClosed()
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTrainClass then
         Journey:OnClassTrainerClosed()
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnClassTrainerClosed()
     end
 end
 
-function Journeyman:OnSpellLearned(spellId)
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeTrainSpells then
+function Events:OnSpellLearned(spellId)
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTrainSpells then
         Journey:OnSpellLearned(spellId)
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnSpellLearned(spellId)
     end
 end
 
-function Journeyman:OnSpellCast(spellId)
-    if Journeyman.db.char.window.show then
+function Events:OnSpellCast(spellId)
+    if addon.db.char.window.show then
         State:OnSpellCast(spellId)
     end
 end
 
-function Journeyman:OnSpiritResurrection()
-    if Journeyman:IsMyJourneyEnabled() and Journeyman.db.profile.myJourney.stepTypeDieAndRes then
+function Events:OnSpiritResurrection()
+    if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeDieAndRes then
         Journey:OnSpiritResurrection()
     end
-    if Journeyman.db.char.window.show then
+    if addon.db.char.window.show then
         State:OnSpiritResurrection()
     end
 end

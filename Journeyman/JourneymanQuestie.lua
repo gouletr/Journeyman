@@ -1,11 +1,8 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local DataSourceQuestie, Private = addon:NewModule("DataSourceQuestie"), {}
 local L = addon.Locale
 
-local DataSourceQuestie = {}
-Journeyman.DataSource = DataSourceQuestie
-
-local TaxiNodes = Journeyman.TaxiNodes
+local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dictionary = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
@@ -16,15 +13,16 @@ local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 local QuestieLink = QuestieLoader and QuestieLoader:ImportModule("QuestieLink")
 local QuestieReputation = QuestieLoader and QuestieLoader:ImportModule("QuestieReputation")
 local QuestieProfessions = QuestieLoader and QuestieLoader:ImportModule("QuestieProfessions")
+local TaxiNodes
 
 local tinsert = table.insert
 
 local function GetPlayerInfo(withFaction)
-    local location = Journeyman.player.location
+    local location = addon.player.location
     if location then
         local info = { instanceId = location.instanceId, worldX = location.worldX, worldY = location.worldY, mapId = location.mapId, x = location.x, y = location.y }
         if withFaction then
-            info.factionName = Journeyman.player.factionName
+            info.factionName = addon.player.factionName
         end
         return info
     end
@@ -267,6 +265,19 @@ local function GetNearestEntityLocation(entity, player, zoneFilter)
         end
     end
 
+    if entity.Type == "killcredit" then
+        local nearest = GetNearestNPC(entity.IdList, player, zoneFilter)
+        if nearest and nearest.distance < bestDistance then
+            bestDistance = nearest.distance
+            bestX = nearest.x
+            bestY = nearest.y
+            bestMapId = nearest.mapId
+            bestName = nearest.name
+            bestId = nearest.id
+            bestType = nearest.type
+        end
+    end
+
     if entity.Type == "object" then
         local nearest = GetNearestObject({ entity.Id }, player, zoneFilter)
         if nearest and nearest.distance < bestDistance then
@@ -310,6 +321,161 @@ local function GetNearestEntityLocation(entity, player, zoneFilter)
     end
 end
 
+function DataSourceQuestie:OnInitialize()
+    TaxiNodes = addon.TaxiNodes
+end
+
+function DataSourceQuestie:OnEnable()
+end
+
+function DataSourceQuestie:OnDisable()
+end
+
+function Private:MakeQuestObjectiveNPC(npcId, isVendor)
+    local npc = QuestieDB:GetNPC(npcId)
+    if npc then
+        local objective = { type = "npc", id = npcId }
+        if isVendor then
+            objective.vendor = true
+        end
+        return objective
+    end
+end
+
+function Private:MakeQuestObjectiveItem(itemId)
+    local item = QuestieDB:GetItem(itemId)
+    if item then
+        local sources = {}
+        if item.vendors then
+            List:ForEach(item.vendors, function(npcId) List:Add(sources, self:MakeQuestObjectiveNPC(npcId, true)) end)
+        end
+        if item.npcDrops then
+            List:ForEach(item.npcDrops, function(npcId) List:Add(sources, self:MakeQuestObjectiveNPC(npcId)) end)
+        end
+        if item.itemDrops then
+            List:ForEach(item.itemDrops, function(itemId) List:Add(sources, self:MakeQuestObjectiveItem(itemId)) end)
+        end
+        if item.objectDrops then
+            List:ForEach(item.objectDrops, function(objectId) List:Add(sources, self:MakeQuestObjectiveObject(objectId)) end)
+        end
+
+        local objective = { type = "item", id = itemId }
+        if #sources > 0 then
+            objective.sources = sources
+        end
+        return objective
+    end
+end
+
+function Private:MakeQuestObjectiveObject(objectId)
+    local object = QuestieDB:GetObject(objectId)
+    if object then
+        return { type = "object", id = objectId }
+    end
+end
+
+function Private:MakeQuestObjectiveEvent(text)
+    return { type = "event", text = text }
+end
+
+function Private:GetQuestObjectives(quest)
+    if quest and quest.ObjectiveData then
+        local objectives = {}
+
+        -- Regular quest objectives
+        List:ForEach(quest.ObjectiveData, function(objectiveData)
+            if objectiveData.NPC then
+                List:ForEach(objectiveData.NPC, function(npcId) List:Add(objectives, self:MakeQuestObjectiveNPC(npcId)) end)
+            elseif objectiveData.Item then
+                List:ForEach(objectiveData.Item, function(itemId) List:Add(objectives, self:MakeQuestObjectiveItem(itemId)) end)
+            elseif objectiveData.GameObject then
+                List:ForEach(objectiveData.GameObject, function(objectId) List:Add(objectives, self:MakeQuestObjectiveObject(objectId)) end)
+            elseif objectiveData.Type == "monster" then
+                List:Add(objectives, self:MakeQuestObjectiveNPC(objectiveData.Id))
+            elseif objectiveData.Type == "item" then
+                List:Add(objectives, self:MakeQuestObjectiveItem(objectiveData.Id))
+            elseif objectiveData.Type == "object" then
+                List:Add(objectives, self:MakeQuestObjectiveObject(objectiveData.Id))
+            elseif objectiveData.Type == "event" then
+                List:Add(objectives, self:MakeQuestObjectiveEvent(objectiveData.Text))
+            elseif objectiveData.Type == "killcredit" then
+                List:ForEach(objectiveData.IdList, function(npcId) List:Add(objectives, self:MakeQuestObjectiveNPC(npcId)) end)
+            -- else
+                -- addon:Error("Unknown objective data type %s for quest %d", objectiveData.Type, quest.Id)
+            end
+        end)
+
+        -- Item provided by quest starter
+        if quest.sourceItemId then
+            List:Add(objectives, self:MakeQuestObjectiveItem(quest.sourceItemId))
+        end
+
+        -- Items required to complete quest
+        if quest.requiredSourceItems then
+            List:ForEach(quest.requiredSourceItems, function(itemId) List:Add(objectives, self:MakeQuestObjectiveItem(itemId)) end)
+        end
+
+        -- Extra custom objectives required to complete quest
+        if quest.extraObjectives then
+            List:ForEach(quest.extraObjectives, function(extraObjective)
+                if extraObjective then
+                    local spawns = extraObjective[1]
+                    if spawns then
+                        List:Add(objectives, self:MakeQuestObjectiveEvent(extraObjective[3]))
+                    end
+                    local entities = extraObjective[5]
+                    if entities then
+                        List:ForEach(entities, function(entity)
+                            local type = entity[1]
+                            local id = entity[2]
+                            if type == "monster" then
+                                List:Add(objectives, self:MakeQuestObjectiveNPC(id))
+                            elseif type == "item" then
+                                List:Add(objectives, self:MakeQuestObjectiveItem(id))
+                            elseif type == "object" then
+                                List:Add(objectives, self:MakeQuestObjectiveObject(id))
+                            else
+                                addon:Error("Unknown extra objective type")
+                            end
+                        end)
+                    end
+                end
+            end)
+        end
+
+        return objectives
+    end
+end
+
+function Private:MakeSpawn(areaId, x, y)
+    local mapId = QuestieZoneDB:GetUiMapIdByAreaId(areaId)
+    local worldX, worldY, instanceId = HBD:GetWorldCoordinatesFromZone(x / 100.0, y / 100.0, mapId)
+    return { instanceId = instanceId, worldX = worldX, worldY = worldY, mapId = mapId, areaId = areaId, x = x, y = y }
+end
+
+function Private:GetSpawns(entity)
+    if entity and entity.spawns then
+        local result = {}
+        Dictionary:ForEach(entity.spawns, function(areaId, spawns)
+            local dungeonSpawns = QuestieZoneDB:GetDungeonLocation(areaId)
+            if dungeonSpawns then
+                List:ForEach(dungeonSpawns, function(spawn) List:Add(result, MakeSpawn(spawn[1], spawn[2], spawn[3])) end)
+            else
+                List:ForEach(spawns, function(spawn) List:Add(result, MakeSpawn(areaId, spawn[1], spawn[2])) end)
+            end
+        end)
+        return result
+    end
+end
+
+function Private:IsNPCFriendly(npc, playerFaction)
+    local friendlyToFaction = npc.friendlyToFaction
+    if friendlyToFaction then
+        return (friendlyToFaction == "AH" or friendlyToFaction == "HA") or (playerFaction == "Alliance" and friendlyToFaction == "A") or (playerFaction == "Horde" and friendlyToFaction == "H")
+    end
+    return false
+end
+
 function DataSourceQuestie:IsInitialized()
     if self.initialized then
         return true
@@ -333,6 +499,72 @@ function DataSourceQuestie:IsInitialized()
     end
 
     return false
+end
+
+function DataSourceQuestie:GetQuest(questId)
+    local quest = QuestieDB:GetQuest(questId)
+    if quest then
+        return {
+            id = questId,
+            type = Private:GetQuestType(questId),
+            name = String:Trim(quest.name),
+            level = quest.questLevel,
+            requiredLevel = quest.requiredLevel,
+            objectives = Private:GetQuestObjectives(quest)
+        }
+    end
+end
+
+function Private:GetQuestType(questId)
+    local questType, questTag = QuestieDB.GetQuestTagInfo(questId)
+    if questType then
+        if questType == 1 then
+            return "elite"
+        elseif questType == 81 then
+            return "dungeon"
+        elseif questType == 62 then
+            return "raid"
+        elseif questType == 41 then
+            return "pvp"
+        elseif questType == 83 then
+            return "legendary"
+        end
+    end
+end
+
+function DataSourceQuestie:GetNPC(npcId)
+    local npc = QuestieDB:GetNPC(npcId)
+    if npc then
+        return {
+            id = npcId,
+            name = npc.name,
+            spawns = Private:GetSpawns(npc),
+            friendly = Private:IsNPCFriendly(npc, addon.player.factionName),
+            flags = npc.npcFlags
+        }
+    end
+end
+
+function DataSourceQuestie:GetItem(itemId)
+    local item = QuestieDB:GetItem(itemId)
+    if item then
+        return {
+            id = itemId,
+            name = item.name,
+            spawns = Private:GetSpawns(item)
+        }
+    end
+end
+
+function DataSourceQuestie:GetObject(objectId)
+    local object = QuestieDB:GetItem(objectId)
+    if object then
+        return {
+            id = objectId,
+            name = object.name,
+            spawns = Private:GetSpawns(object)
+        }
+    end
 end
 
 function DataSourceQuestie:IsQuestAvailable(questId)
@@ -412,7 +644,7 @@ end
 
 function DataSourceQuestie:GetQuestObjectives(questId, objectives)
     local quest = QuestieDB:GetQuest(questId)
-    local questLogObjectives = Journeyman.State:GetQuestObjectives(questId)
+    local questLogObjectives = addon.State:GetQuestObjectives(questId)
     if quest and quest.ObjectiveData and questLogObjectives then
         local result = {}
         if objectives then
@@ -428,6 +660,8 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
                         GetQuestObjectivesItem(result, objective.Item, "Item", isComplete, objectiveIndex)
                     elseif objective.Type == "monster" then
                         GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete, objectiveIndex)
+                    elseif objective.Type == "killcredit" then
+                        GetQuestObjectivesNPC(result, objective.IdList, "NPC", isComplete, objectiveIndex)
                     elseif objective.Type == "object" then
                         GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete, objectiveIndex)
                     elseif objective.Type == "item" then
@@ -450,6 +684,8 @@ function DataSourceQuestie:GetQuestObjectives(questId, objectives)
                         GetQuestObjectivesItem(result, objective.Item, "Item", isComplete, objectiveIndex)
                     elseif objective.Type == "monster" then
                         GetQuestObjectivesNPC(result, { objective.Id }, "NPC", isComplete, objectiveIndex)
+                    elseif objective.Type == "killcredit" then
+                        GetQuestObjectivesNPC(result, objective.IdList, "NPC", isComplete, objectiveIndex)
                     elseif objective.Type == "object" then
                         GetQuestObjectivesObject(result, { objective.Id }, "Object", isComplete, objectiveIndex)
                     elseif objective.Type == "item" then
@@ -500,12 +736,12 @@ end
 
 function DataSourceQuestie:GetQuestHasRequiredRace(questId)
     local requiredRaces = QuestieDB.QueryQuestSingle(questId, "requiredRaces")
-    return QuestiePlayer:HasRequiredRace(requiredRaces) == true
+    return QuestiePlayer.HasRequiredRace(requiredRaces) == true
 end
 
 function DataSourceQuestie:GetQuestHasRequiredClass(questId)
     local requiredClasses = QuestieDB.QueryQuestSingle(questId, "requiredClasses")
-    return QuestiePlayer:HasRequiredClass(requiredClasses) == true
+    return QuestiePlayer.HasRequiredClass(requiredClasses) == true
 end
 
 function DataSourceQuestie:GetQuestHasProfessionAndSkillLevel(questId)
@@ -724,7 +960,7 @@ end
 function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
     local npcs = Questie.db.global.townsfolk["Innkeeper"] or Questie.db.char.townsfolk["Innkeeper"]
     if npcs then
-        local parentAreaId = Journeyman:GetAreaParentId(areaId)
+        local parentAreaId = addon:GetAreaParentId(areaId)
         if parentAreaId then
             local player = GetPlayerInfo(true)
             if player then
@@ -735,15 +971,15 @@ function DataSourceQuestie:GetNearestInnkeeperLocation(areaId)
 end
 
 function DataSourceQuestie:GetNearestClassTrainerLocation()
-    local npcs = Questie.db.global.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Class Trainer"]
+    local npcs = Questie.db.global.classSpecificTownsfolk[addon.player.className]["Class Trainer"] or Questie.db.char.classSpecificTownsfolk[addon.player.className]["Class Trainer"]
     if npcs == nil then return nil end
 
     local nearest = nil
     local player = GetPlayerInfo(true)
     if player then
-        local playerAreaId = Journeyman:GetPlayerAreaId()
+        local playerAreaId = addon:GetPlayerAreaId()
         if playerAreaId then
-            local parentAreaId = Journeyman:GetAreaParentId(playerAreaId)
+            local parentAreaId = addon:GetAreaParentId(playerAreaId)
             if parentAreaId then
                 nearest = GetNearestNPC(npcs, player, parentAreaId, true)
             end
@@ -756,7 +992,7 @@ function DataSourceQuestie:GetNearestClassTrainerLocation()
 end
 
 function DataSourceQuestie:GetNearestPortalTrainerLocation()
-    local npcs = Questie.db.global.classSpecificTownsfolk["MAGE"]["Portal Trainer"] or Questie.db.char.classSpecificTownsfolk[Journeyman.player.className]["Portal Trainer"]
+    local npcs = Questie.db.global.classSpecificTownsfolk["MAGE"]["Portal Trainer"] or Questie.db.char.classSpecificTownsfolk[addon.player.className]["Portal Trainer"]
     if npcs then
         local player = GetPlayerInfo(true)
         if player then

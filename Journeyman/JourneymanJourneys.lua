@@ -51,7 +51,7 @@ end
 
 function Journey:SetActiveJourney(journey)
     if journey and journey.guid and type(journey.guid) == "string" then
-        Journeyman.db.char.journey = journey.guid
+        addon.db.char.journey = journey.guid
     end
 end
 
@@ -94,9 +94,9 @@ function Journey:DeleteChapter(journey, index)
 end
 
 function Journey:AdvanceChapter(journey)
-    local index = Journeyman.db.char.chapter + 1
+    local index = addon.db.char.chapter + 1
     if journey and index > 0 and index <= #journey.chapters then
-        Journeyman.db.char.chapter = index
+        addon.db.char.chapter = index
         return true
     end
     return false

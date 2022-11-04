@@ -41,12 +41,16 @@ function Utils:CountBits(value)
     return count
 end
 
-function Utils:Dump(o)
+function Utils:Dump(o, recurse)
    if type(o) == 'table' then
       local s = '{ '
       for k,v in pairs(o) do
          if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. self:Dump(v) .. ','
+         if recurse then
+            s = s .. '['..k..'] = ' .. self:Dump(v, recurse) .. ','
+         else
+            s = s .. '['..k..'] = ' .. tostring(v) .. ','
+         end
       end
       return s .. '} '
    else

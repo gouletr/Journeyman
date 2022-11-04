@@ -1,10 +1,12 @@
 local addonName, addon = ...
-local addonVersion = GetAddOnMetadata(addonName, "version")
-local Journeyman = addon.Journeyman
+local Options, Private = addon:NewModule("Options"), {}
 local L = addon.Locale
+
+local addonVersion = GetAddOnMetadata(addonName, "version")
 
 local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
+local Database, Window, Editor
 
 local function Percent(value)
     local windowWidth = 600 - 20
@@ -12,7 +14,13 @@ local function Percent(value)
     return (value * windowWidth) / widthMultiplier
 end
 
-function Journeyman:InitializeOptions()
+function Options:OnInitialize()
+    Database = addon.Database
+    Window = addon.Window
+    Editor = addon.Editor
+end
+
+function Options:OnEnable()
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable(), addonName)
 
     local aceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -23,7 +31,10 @@ function Journeyman:InitializeOptions()
     self.profilePanel = aceConfigDialog:AddToBlizOptions(addonName, "Profiles", addonName, "profiles")
 end
 
-function Journeyman:GetOptionsTable()
+function Options:OnDisable()
+end
+
+function Options:GetOptionsTable()
     return {
         type = "group",
         name = string.format("%s v%s", addonName, addonVersion),
@@ -31,12 +42,12 @@ function Journeyman:GetOptionsTable()
             general = self:GetGeneralOptionsTable(),
             myjourney = self:GetMyJourneyOptionsTable(),
             advanced = self:GetAdvancedOptionsTable(),
-            profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
+            profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(addon.db)
         }
     }
 end
 
-function Journeyman:GetGeneralOptionsTable()
+function Options:GetGeneralOptionsTable()
     return {
         type = "group",
         name = "General",
@@ -52,12 +63,12 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SELECT_JOURNEY"] .. "*",
                 desc = L["SELECT_JOURNEY_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
-                disabled = function() return #self.journeys <= 0 end,
+                disabled = function() return #addon.journeys <= 0 end,
                 values = function(info)
                     local values = {}
-                    if self.journeys then
-                        for i = 1, #self.journeys do
-                            local journey = self.journeys[i]
+                    if addon.journeys then
+                        for i = 1, #addon.journeys do
+                            local journey = addon.journeys[i]
                             values[journey.guid] = journey.title
                         end
                     end
@@ -65,26 +76,26 @@ function Journeyman:GetGeneralOptionsTable()
                 end,
                 sorting = function(info)
                     local sorting = {}
-                    if self.journeys then
-                        for i = 1, #self.journeys do
-                            local journey = self.journeys[i]
+                    if addon.journeys then
+                        for i = 1, #addon.journeys do
+                            local journey = addon.journeys[i]
                             sorting[i] = journey.guid
                         end
                     end
                     return sorting
                 end,
                 set = function(info, value)
-                    if self.db.char.journey ~= value then
-                        self.db.char.journey = value
-                        self.db.char.chapter = 1
-                        -- if self.db.char.updateJourney then
-                            -- self.db.char.updateJourney = false
-                            -- Journeyman:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
+                    if addon.db.char.journey ~= value then
+                        addon.db.char.journey = value
+                        addon.db.char.chapter = 1
+                        -- if addon.db.char.updateJourney then
+                            -- addon.db.char.updateJourney = false
+                            -- addon:Print(L["UPDATE_ACTIVE_JOURNEY_DISABLED"])
                         -- end
-                        Journeyman:Reset(true)
+                        addon:Reset(true)
                     end
                 end,
-                get = function(info) return self.db.char.journey end
+                get = function(info) return addon.db.char.journey end
             },
             createNewJourney = {
                 order = 2,
@@ -93,17 +104,17 @@ function Journeyman:GetGeneralOptionsTable()
                 desc = L["CREATE_NEW_JOURNEY_DESC"],
                 width = Percent(0.5),
                 func = function()
-                    local journey = Journeyman.Journey:AddNewJourney()
+                    local journey = addon.Journey:AddNewJourney()
                     if journey then
-                        local chapter = Journeyman.Journey:AddNewChapter(journey)
+                        local chapter = addon.Journey:AddNewChapter(journey)
                         if chapter then
-                            InterfaceOptionsFrame_OpenToCategory(Journeyman.Editor.frame)
-                            Journeyman.Editor:SetSelectedJourneyIndex(#Journeyman.journeys)
-                            Journeyman.Editor:SetSelectedChapterIndex(1)
-                            Journeyman.Editor:SetSelectedStepIndex(-1)
-                            Journeyman.Editor:Refresh()
-                            Journeyman.db.char.journey = journey.guid
-                            Journeyman:Reset(true)
+                            InterfaceOptionsFrame_OpenToCategory(Editor.frame)
+                            Editor:SetSelectedJourneyIndex(#addon.journeys)
+                            Editor:SetSelectedChapterIndex(1)
+                            Editor:SetSelectedStepIndex(-1)
+                            Editor:Refresh()
+                            addon.db.char.journey = journey.guid
+                            addon:Reset(true)
                         end
                     end
                 end
@@ -114,11 +125,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["AUTO_SET_WAYPOINT"],
                 desc = L["AUTO_SET_WAYPOINT_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.autoSetWaypoint end,
+                get = function(info) return addon.db.profile.autoSetWaypoint end,
                 set = function(info, value)
-                    if self.db.profile.autoSetWaypoint ~= value then
-                        self.db.profile.autoSetWaypoint = value
-                        Journeyman:Update()
+                    if addon.db.profile.autoSetWaypoint ~= value then
+                        addon.db.profile.autoSetWaypoint = value
+                        addon:Update()
                     end
                 end
             },
@@ -132,13 +143,13 @@ function Journeyman:GetGeneralOptionsTable()
                 softMax = 100,
                 step = 1,
                 bigStep = 5,
-                disabled = function() return not self.db.profile.autoSetWaypoint end,
+                disabled = function() return not addon.db.profile.autoSetWaypoint end,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.autoSetWaypointMin end,
+                get = function(info) return addon.db.profile.autoSetWaypointMin end,
                 set = function(info, value)
-                    if self.db.profile.autoSetWaypointMin ~= value then
-                        self.db.profile.autoSetWaypointMin = value
-                        Journeyman:Update()
+                    if addon.db.profile.autoSetWaypointMin ~= value then
+                        addon.db.profile.autoSetWaypointMin = value
+                        addon:Update()
                     end
                 end
             },
@@ -153,14 +164,14 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SHOW_WINDOW"] .. "*",
                 desc = L["SHOW_WINDOW_DESC"] .. "\n" .. L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
-                get = function(info) return self.db.char.window.show end,
+                get = function(info) return addon.db.char.window.show end,
                 set = function(info, value)
-                    if self.db.char.window.show ~= value then
-                        self.db.char.window.show = value
+                    if addon.db.char.window.show ~= value then
+                        addon.db.char.window.show = value
                         if value then
-                            Journeyman:Reset(true)
+                            addon:Reset(true)
                         else
-                            Journeyman.Window:Update(true)
+                            Window:Update(true)
                         end
                     end
                 end
@@ -171,11 +182,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["LOCK_WINDOW"],
                 desc = L["LOCK_WINDOW_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.locked end,
+                get = function(info) return addon.db.profile.window.locked end,
                 set = function(info, value)
-                    if self.db.profile.window.locked ~= value then
-                        self.db.profile.window.locked = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.locked ~= value then
+                        addon.db.profile.window.locked = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -185,11 +196,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["CLAMP_WINDOW"],
                 desc = L["CLAMP_WINDOW_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.clamped end,
+                get = function(info) return addon.db.profile.window.clamped end,
                 set = function(info, value)
-                    if self.db.profile.window.clamped ~= value then
-                        self.db.profile.window.clamped = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.clamped ~= value then
+                        addon.db.profile.window.clamped = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -200,12 +211,12 @@ function Journeyman:GetGeneralOptionsTable()
                 desc = L["RESET_POSITION_DESC"],
                 width = Percent(0.5),
                 func = function()
-                    self.db.profile.window.relativePoint = "CENTER"
-                    self.db.profile.window.x = 0
-                    self.db.profile.window.y = 0
-                    self.Window.frame:ClearAllPoints()
-                    self.Window.frame:SetPoint("CENTER", UIParent, "CENTER")
-                    self.Window:Update(true)
+                    addon.db.profile.window.relativePoint = "CENTER"
+                    addon.db.profile.window.x = 0
+                    addon.db.profile.window.y = 0
+                    Window.frame:ClearAllPoints()
+                    Window.frame:SetPoint("CENTER", UIParent, "CENTER")
+                    Window:Update(true)
                 end
             },
             showScrollBar = {
@@ -214,11 +225,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SHOW_SCROLL_BAR"],
                 desc = L["SHOW_SCROLL_BAR_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showScrollBar end,
+                get = function(info) return addon.db.profile.window.showScrollBar end,
                 set = function(info, value)
-                    if self.db.profile.window.showScrollBar ~= value then
-                        self.db.profile.window.showScrollBar = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.showScrollBar ~= value then
+                        addon.db.profile.window.showScrollBar = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -228,11 +239,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["AUTO_SCROLL"],
                 desc = L["AUTO_SCROLL_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.autoScroll end,
+                get = function(info) return addon.db.profile.window.autoScroll end,
                 set = function(info, value)
-                    if self.db.profile.window.autoScroll ~= value then
-                        self.db.profile.window.autoScroll = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.autoScroll ~= value then
+                        addon.db.profile.window.autoScroll = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -242,11 +253,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SHOW_COMPLETED_STEPS"],
                 desc = L["SHOW_COMPLETED_STEPS_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showCompletedSteps end,
+                get = function(info) return addon.db.profile.window.showCompletedSteps end,
                 set = function(info, value)
-                    if self.db.profile.window.showCompletedSteps ~= value then
-                        self.db.profile.window.showCompletedSteps = value
-                        Journeyman:Update(true)
+                    if addon.db.profile.window.showCompletedSteps ~= value then
+                        addon.db.profile.window.showCompletedSteps = value
+                        addon:Update(true)
                     end
                 end
             },
@@ -256,11 +267,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SHOW_SKIPPED_STEPS"],
                 desc = L["SHOW_SKIPPED_STEPS_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showSkippedSteps end,
+                get = function(info) return addon.db.profile.window.showSkippedSteps end,
                 set = function(info, value)
-                    if self.db.profile.window.showSkippedSteps ~= value then
-                        self.db.profile.window.showSkippedSteps = value
-                        Journeyman:Update(true)
+                    if addon.db.profile.window.showSkippedSteps ~= value then
+                        addon.db.profile.window.showSkippedSteps = value
+                        addon:Update(true)
                     end
                 end
             },
@@ -270,11 +281,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["SHOW_QUEST_LEVEL"],
                 desc = L["SHOW_QUEST_LEVEL_DESC"],
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.showQuestLevel end,
+                get = function(info) return addon.db.profile.window.showQuestLevel end,
                 set = function(info, value)
-                    if self.db.profile.window.showQuestLevel ~= value then
-                        self.db.profile.window.showQuestLevel = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.showQuestLevel ~= value then
+                        addon.db.profile.window.showQuestLevel = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -284,11 +295,11 @@ function Journeyman:GetGeneralOptionsTable()
                 name = L["HARDCORE_MODE"].."*",
                 desc = L["HARDCORE_MODE_DESC"].."\n"..L["SAVED_PER_CHARACTER"],
                 width = Percent(0.5),
-                get = function(info) return self.db.char.hardcoreMode end,
+                get = function(info) return addon.db.char.hardcoreMode end,
                 set = function(info, value)
-                    if self.db.char.hardcoreMode ~= value then
-                        self.db.char.hardcoreMode = value
-                        Journeyman:Reset(true)
+                    if addon.db.char.hardcoreMode ~= value then
+                        addon.db.char.hardcoreMode = value
+                        addon:Reset(true)
                     end
                 end
             },
@@ -302,11 +313,11 @@ function Journeyman:GetGeneralOptionsTable()
                 softMax = 25,
                 step = 1,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.stepsShown end,
+                get = function(info) return addon.db.profile.window.stepsShown end,
                 set = function(info, value)
-                    if self.db.profile.window.stepsShown ~= value then
-                        self.db.profile.window.stepsShown = value
-                        Journeyman:Update(true)
+                    if addon.db.profile.window.stepsShown ~= value then
+                        addon.db.profile.window.stepsShown = value
+                        addon:Update(true)
                     end
                 end
             },
@@ -324,15 +335,15 @@ function Journeyman:GetGeneralOptionsTable()
                 hasAlpha = true,
                 width = Percent(0.5),
                 get = function(info)
-                    local color = self.db.profile.window.backgroundColor
+                    local color = addon.db.profile.window.backgroundColor
                     return color.r, color.g, color.b, color.a
                 end,
                 set = function(info, r, g, b, a)
-                    self.db.profile.window.backgroundColor.r = r
-                    self.db.profile.window.backgroundColor.g = g
-                    self.db.profile.window.backgroundColor.b = b
-                    self.db.profile.window.backgroundColor.a = a
-                    self.Window:Update(true)
+                    addon.db.profile.window.backgroundColor.r = r
+                    addon.db.profile.window.backgroundColor.g = g
+                    addon.db.profile.window.backgroundColor.b = b
+                    addon.db.profile.window.backgroundColor.a = a
+                    Window:Update(true)
                 end
             },
             width = {
@@ -346,11 +357,11 @@ function Journeyman:GetGeneralOptionsTable()
                 step = 1,
                 bigStep = 10,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.width end,
+                get = function(info) return addon.db.profile.window.width end,
                 set = function(info, value)
-                    if self.db.profile.window.width ~= value then
-                        self.db.profile.window.width = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.width ~= value then
+                        addon.db.profile.window.width = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -365,11 +376,11 @@ function Journeyman:GetGeneralOptionsTable()
                 step = 1,
                 bigStep = 10,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.height end,
+                get = function(info) return addon.db.profile.window.height end,
                 set = function(info, value)
-                    if self.db.profile.window.height ~= value then
-                        self.db.profile.window.height = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.height ~= value then
+                        addon.db.profile.window.height = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -382,11 +393,11 @@ function Journeyman:GetGeneralOptionsTable()
                 max = 20,
                 step = 1,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.stepSpacing end,
+                get = function(info) return addon.db.profile.window.stepSpacing end,
                 set = function(info, value)
-                    if self.db.profile.window.stepSpacing ~= value then
-                        self.db.profile.window.stepSpacing = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.stepSpacing ~= value then
+                        addon.db.profile.window.stepSpacing = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -399,11 +410,11 @@ function Journeyman:GetGeneralOptionsTable()
                 max = 20,
                 step = 1,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.lineSpacing end,
+                get = function(info) return addon.db.profile.window.lineSpacing end,
                 set = function(info, value)
-                    if self.db.profile.window.lineSpacing ~= value then
-                        self.db.profile.window.lineSpacing = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.lineSpacing ~= value then
+                        addon.db.profile.window.lineSpacing = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -416,11 +427,11 @@ function Journeyman:GetGeneralOptionsTable()
                 max = 24,
                 step = 1,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.fontSize end,
+                get = function(info) return addon.db.profile.window.fontSize end,
                 set = function(info, value)
-                    if self.db.profile.window.fontSize ~= value then
-                        self.db.profile.window.fontSize = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.fontSize ~= value then
+                        addon.db.profile.window.fontSize = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -433,11 +444,11 @@ function Journeyman:GetGeneralOptionsTable()
                 max = 50,
                 step = 1,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.indentSize end,
+                get = function(info) return addon.db.profile.window.indentSize end,
                 set = function(info, value)
-                    if self.db.profile.window.indentSize ~= value then
-                        self.db.profile.window.indentSize = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.indentSize ~= value then
+                        addon.db.profile.window.indentSize = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -458,11 +469,11 @@ function Journeyman:GetGeneralOptionsTable()
                     ["TOOLTIP"] = "TOOLTIP"
                 },
                 sorting = {"BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG", "FULLSCREEN", "FULLSCREEN_DIALOG", "TOOLTIP"},
-                get = function(info) return self.db.profile.window.strata end,
+                get = function(info) return addon.db.profile.window.strata end,
                 set = function(info, value)
-                    if self.db.profile.window.strata ~= value then
-                        self.db.profile.window.strata = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.strata ~= value then
+                        addon.db.profile.window.strata = value
+                        Window:Update(true)
                     end
                 end
             },
@@ -476,11 +487,11 @@ function Journeyman:GetGeneralOptionsTable()
                 step = 1,
                 bigStep = 100,
                 width = Percent(0.5),
-                get = function(info) return self.db.profile.window.level end,
+                get = function(info) return addon.db.profile.window.level end,
                 set = function(info, value)
-                    if self.db.profile.window.level ~= value then
-                        self.db.profile.window.level = value
-                        self.Window:Update(true)
+                    if addon.db.profile.window.level ~= value then
+                        addon.db.profile.window.level = value
+                        Window:Update(true)
                     end
                 end
             }
@@ -488,7 +499,7 @@ function Journeyman:GetGeneralOptionsTable()
     }
 end
 
-function Journeyman:GetMyJourneyOptionsTable()
+function Options:GetMyJourneyOptionsTable()
     return {
         name = "My Journey",
         type = "group",
@@ -504,10 +515,10 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_ENABLE"].."*",
                 desc = L["MY_JOURNEY_ENABLE_DESC"].."\n"..L["SAVED_PER_CHARACTER"],
                 width = Percent(1.0),
-                get = function(info) return self.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.char.myJourney.enabled end,
                 set = function(info, value)
-                    if self.db.char.myJourney.enabled ~= value then
-                        self.db.char.myJourney.enabled = value
+                    if addon.db.char.myJourney.enabled ~= value then
+                        addon.db.char.myJourney.enabled = value
                     end
                 end
             },
@@ -517,11 +528,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_AT_MAX_LEVEL"],
                 desc = L["MY_JOURNEY_AT_MAX_LEVEL_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.atMaxLevel end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.atMaxLevel end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.atMaxLevel ~= value then
-                        self.db.profile.myJourney.atMaxLevel = value
+                    if addon.db.profile.myJourney.atMaxLevel ~= value then
+                        addon.db.profile.myJourney.atMaxLevel = value
                     end
                 end
             },
@@ -531,11 +542,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_ABANDONED_QUESTS"],
                 desc = L["MY_JOURNEY_ABANDONED_QUESTS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.abandonedQuests end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.abandonedQuests end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.abandonedQuests ~= value then
-                        self.db.profile.myJourney.abandonedQuests = value
+                    if addon.db.profile.myJourney.abandonedQuests ~= value then
+                        addon.db.profile.myJourney.abandonedQuests = value
                     end
                 end
             },
@@ -550,11 +561,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_ACCEPT_QUEST"],
                 desc = L["MY_JOURNEY_STEP_ACCEPT_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeAcceptQuest end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeAcceptQuest end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeAcceptQuest ~= value then
-                        self.db.profile.myJourney.stepTypeAcceptQuest = value
+                    if addon.db.profile.myJourney.stepTypeAcceptQuest ~= value then
+                        addon.db.profile.myJourney.stepTypeAcceptQuest = value
                     end
                 end
             },
@@ -564,11 +575,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_COMPLETE_QUEST"],
                 desc = L["MY_JOURNEY_STEP_COMPLETE_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeCompleteQuest end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeCompleteQuest end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeCompleteQuest ~= value then
-                        self.db.profile.myJourney.stepTypeCompleteQuest = value
+                    if addon.db.profile.myJourney.stepTypeCompleteQuest ~= value then
+                        addon.db.profile.myJourney.stepTypeCompleteQuest = value
                     end
                 end
             },
@@ -578,11 +589,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TURNIN_QUEST"],
                 desc = L["MY_JOURNEY_STEP_TURNIN_QUEST_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeTurnInQuest end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeTurnInQuest end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeTurnInQuest ~= value then
-                        self.db.profile.myJourney.stepTypeTurnInQuest = value
+                    if addon.db.profile.myJourney.stepTypeTurnInQuest ~= value then
+                        addon.db.profile.myJourney.stepTypeTurnInQuest = value
                     end
                 end
             },
@@ -592,11 +603,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_GO_TO_ZONE"],
                 desc = L["MY_JOURNEY_STEP_GO_TO_ZONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeGoToZone end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeGoToZone end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeGoToZone ~= value then
-                        self.db.profile.myJourney.stepTypeGoToZone = value
+                    if addon.db.profile.myJourney.stepTypeGoToZone ~= value then
+                        addon.db.profile.myJourney.stepTypeGoToZone = value
                     end
                 end
             },
@@ -606,11 +617,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_REACH_LEVEL"],
                 desc = L["MY_JOURNEY_STEP_REACH_LEVEL_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeReachLevel end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeReachLevel end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeReachLevel ~= value then
-                        self.db.profile.myJourney.stepTypeReachLevel = value
+                    if addon.db.profile.myJourney.stepTypeReachLevel ~= value then
+                        addon.db.profile.myJourney.stepTypeReachLevel = value
                     end
                 end
             },
@@ -620,11 +631,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE"],
                 desc = L["MY_JOURNEY_STEP_BIND_HEARTHSTONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeBindHearthstone end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeBindHearthstone end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeBindHearthstone ~= value then
-                        self.db.profile.myJourney.stepTypeBindHearthstone = value
+                    if addon.db.profile.myJourney.stepTypeBindHearthstone ~= value then
+                        addon.db.profile.myJourney.stepTypeBindHearthstone = value
                     end
                 end
             },
@@ -634,11 +645,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_USE_HEARTHSTONE"],
                 desc = L["MY_JOURNEY_STEP_USE_HEARTHSTONE_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeUseHearthstone end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeUseHearthstone end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeUseHearthstone ~= value then
-                        self.db.profile.myJourney.stepTypeUseHearthstone = value
+                    if addon.db.profile.myJourney.stepTypeUseHearthstone ~= value then
+                        addon.db.profile.myJourney.stepTypeUseHearthstone = value
                     end
                 end
             },
@@ -648,11 +659,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH"],
                 desc = L["MY_JOURNEY_STEP_LEARN_FLIGHT_PATH_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeLearnFlightPath end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeLearnFlightPath end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeLearnFlightPath ~= value then
-                        self.db.profile.myJourney.stepTypeLearnFlightPath = value
+                    if addon.db.profile.myJourney.stepTypeLearnFlightPath ~= value then
+                        addon.db.profile.myJourney.stepTypeLearnFlightPath = value
                     end
                 end
             },
@@ -662,11 +673,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_FLY_TO"],
                 desc = L["MY_JOURNEY_STEP_FLY_TO_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeFlyTo end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeFlyTo end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeFlyTo ~= value then
-                        self.db.profile.myJourney.stepTypeFlyTo = value
+                    if addon.db.profile.myJourney.stepTypeFlyTo ~= value then
+                        addon.db.profile.myJourney.stepTypeFlyTo = value
                     end
                 end
             },
@@ -676,13 +687,13 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TRAIN_CLASS"],
                 desc = L["MY_JOURNEY_STEP_TRAIN_CLASS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeTrainClass end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeTrainClass end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeTrainClass ~= value then
-                        self.db.profile.myJourney.stepTypeTrainClass = value
+                    if addon.db.profile.myJourney.stepTypeTrainClass ~= value then
+                        addon.db.profile.myJourney.stepTypeTrainClass = value
                         if value then
-                            self.db.profile.myJourney.stepTypeTrainSpells = false
+                            addon.db.profile.myJourney.stepTypeTrainSpells = false
                         end
                     end
                 end
@@ -693,13 +704,13 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_TRAIN_SPELLS"],
                 desc = L["MY_JOURNEY_STEP_TRAIN_SPELLS_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeTrainSpells end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeTrainSpells end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeTrainSpells ~= value then
-                        self.db.profile.myJourney.stepTypeTrainSpells = value
+                    if addon.db.profile.myJourney.stepTypeTrainSpells ~= value then
+                        addon.db.profile.myJourney.stepTypeTrainSpells = value
                         if value then
-                            self.db.profile.myJourney.stepTypeTrainClass = false
+                            addon.db.profile.myJourney.stepTypeTrainClass = false
                         end
                     end
                 end
@@ -710,11 +721,11 @@ function Journeyman:GetMyJourneyOptionsTable()
                 name = L["MY_JOURNEY_STEP_DIE_AND_RES"],
                 desc = L["MY_JOURNEY_STEP_DIE_AND_RES_DESC"],
                 width = Percent(0.5),
-                disabled = function(info) return not self.db.char.myJourney.enabled end,
-                get = function(info) return self.db.profile.myJourney.stepTypeDieAndRes end,
+                disabled = function(info) return not addon.db.char.myJourney.enabled end,
+                get = function(info) return addon.db.profile.myJourney.stepTypeDieAndRes end,
                 set = function(info, value)
-                    if self.db.profile.myJourney.stepTypeDieAndRes ~= value then
-                        self.db.profile.myJourney.stepTypeDieAndRes = value
+                    if addon.db.profile.myJourney.stepTypeDieAndRes ~= value then
+                        addon.db.profile.myJourney.stepTypeDieAndRes = value
                     end
                 end
             },
@@ -725,7 +736,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                 desc = L["EXPORT_JOURNEY_DESC"],
                 width = Percent(1.0),
                 func = function()
-                    local journey = Journeyman.myJourney
+                    local journey = addon.myJourney
                     if journey then
                         local window = AceGUI:Create("Frame")
                         window:SetTitle(L["EXPORT_JOURNEY"])
@@ -738,7 +749,7 @@ function Journeyman:GetMyJourneyOptionsTable()
                         editBox.label:SetText(L["COPY_TEXT_BELOW"])
                         window:AddChild(editBox)
 
-                        local export = Journeyman:ExportJourneyAsText(journey)
+                        local export = Database:ExportJourneyAsText(journey)
                         if export then
                             editBox:SetText(export)
                             editBox:HighlightText()
@@ -750,7 +761,7 @@ function Journeyman:GetMyJourneyOptionsTable()
     }
 end
 
-function Journeyman:GetAdvancedOptionsTable()
+function Options:GetAdvancedOptionsTable()
     return {
         name = "Advanced",
         type = "group",
@@ -768,10 +779,10 @@ function Journeyman:GetAdvancedOptionsTable()
                 -- width = Percent(1.0),
                 -- confirm = true,
                 -- confirmText = L["UPDATE_ACTIVE_JOURNEY_CONFIRM"],
-                -- get = function(info) return self.db.char.updateJourney end,
+                -- get = function(info) return addon.db.char.updateJourney end,
                 -- set = function(info, value)
-                    -- if self.db.char.updateJourney ~= value then
-                        -- self.db.char.updateJourney = value
+                    -- if addon.db.char.updateJourney ~= value then
+                        -- addon.db.char.updateJourney = value
                     -- end
                 -- end
             -- },
@@ -798,10 +809,10 @@ function Journeyman:GetAdvancedOptionsTable()
                 width = Percent(0.5),
                 confirm = true,
                 confirmText = L["UPDATE_FREQUENCY_CONFIRM"],
-                get = function(info) return self.db.profile.advanced.updateFrequency end,
+                get = function(info) return addon.db.profile.advanced.updateFrequency end,
                 set = function(info, value)
-                    if self.db.profile.advanced.updateFrequency ~= value then
-                        self.db.profile.advanced.updateFrequency = value
+                    if addon.db.profile.advanced.updateFrequency ~= value then
+                        addon.db.profile.advanced.updateFrequency = value
                         C_UI.Reload()
                     end
                 end
@@ -823,16 +834,16 @@ function Journeyman:GetAdvancedOptionsTable()
                 name = L["ENABLE_DEBUG"],
                 desc = L["ENABLE_DEBUG_DESC"],
                 width = Percent(0.25),
-                get = function(info) return self.db.profile.advanced.debug end,
+                get = function(info) return addon.db.profile.advanced.debug end,
                 set = function(info, value)
-                    if self.db.profile.advanced.debug ~= value then
-                        self.db.profile.advanced.debug = value
-                        if self.db.profile.advanced.debug then
+                    if addon.db.profile.advanced.debug ~= value then
+                        addon.db.profile.advanced.debug = value
+                        if addon.db.profile.advanced.debug then
                             _G["Journeyman"] = Journeyman
                         else
                             _G["Journeyman"] = nil
                         end
-                        self.Window:Update(true)
+                        Window:Update(true)
                     end
                 end
             },
@@ -846,9 +857,9 @@ function Journeyman:GetAdvancedOptionsTable()
     }
 end
 
-function Journeyman:GetEditorPanel()
+function Options:GetEditorPanel()
     xpcall(function()
-        InterfaceOptions_AddCategory(Journeyman.Editor.frame)
-        return Journeyman.Editor.frame
+        InterfaceOptions_AddCategory(Editor.frame)
+        return Editor.frame
     end, geterrorhandler())
 end

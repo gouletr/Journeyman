@@ -1,22 +1,23 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local State, Private = addon:NewModule("State"), {}
 local L = addon.Locale
 
-local State = {}
-Journeyman.State = State
-
-local TaxiNodes = Journeyman.TaxiNodes
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
-local DataSource = Journeyman.DataSource
+local Events, DataSource, TaxiNodes
 
-function State:Initialize()
-    DataSource = Journeyman.DataSource
+function State:OnInitialize()
+    Events = addon.Events
+    DataSource = addon.DataSource
+    TaxiNodes = addon.TaxiNodes
     self.questsTurnedIn = {}
 end
 
-function State:Shutdown()
+function State:OnEnable()
+end
+
+function State:OnDisable()
 end
 
 function State:CheckForUpdate()
@@ -26,7 +27,7 @@ function State:CheckForUpdate()
 end
 
 function State:Reset(immediate)
-    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
     self.steps = nil
     self:Update(immediate)
@@ -40,17 +41,17 @@ function State:Update(immediate)
 end
 
 function State:UpdateImmediate()
-    if not Journeyman.worldLoaded or not DataSource:IsInitialized() then
+    if not addon.worldLoaded or not DataSource:IsInitialized() then
         return
     end
 
     local now = GetTimePreciseSec()
 
     -- Store some values
-    Journeyman.player.level = UnitLevel("player")
-    Journeyman.player.xp = UnitXP("player")
-    Journeyman.player.maxXP = UnitXPMax("player")
-    Journeyman.player.greenRange = GetQuestGreenRange("player")
+    addon.player.level = UnitLevel("player")
+    addon.player.xp = UnitXP("player")
+    addon.player.maxXP = UnitXPMax("player")
+    addon.player.greenRange = GetQuestGreenRange("player")
 
     -- Reset state
     self.currentStep = nil
@@ -63,7 +64,7 @@ function State:UpdateImmediate()
     end
 
     -- Update quest log
-    local questLog = Journeyman:GetQuestLog()
+    local questLog = addon:GetQuestLog()
     if questLog then
         if self.questLog then
             -- Compare new quest log with last
@@ -75,13 +76,13 @@ function State:UpdateImmediate()
                         local lastQuestObjective = lastQuestInfo.objectives[objectiveIndex]
                         if lastQuestObjective then
                             if questObjective.finished and not lastQuestObjective.finished then
-                                Journeyman:OnQuestObjectiveCompleted(questId, objectiveIndex)
+                                Events:OnQuestObjectiveCompleted(questId, objectiveIndex)
                             end
                         end
                     end
                     -- Check if quest got completed
                     if (questInfo.isComplete and not questInfo.isFailed) and (not lastQuestInfo.isComplete and not lastQuestInfo.isFailed) then
-                        Journeyman:OnQuestCompleted(questId)
+                        Events:OnQuestCompleted(questId)
                     end
                 end
             end
@@ -97,7 +98,7 @@ function State:UpdateImmediate()
             local step = self.steps[i]
 
             -- Check if step is completed
-            if Journeyman:IsStepComplete(step) or Journeyman:IsStepSkipped(step) then
+            if addon:IsStepComplete(step) or addon:IsStepSkipped(step) then
                 step.isComplete = true
             else
                 local isComplete = self:IsStepComplete(step)
@@ -108,7 +109,7 @@ function State:UpdateImmediate()
             end
 
             -- Check if step is shown
-            if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
+            if addon.db.profile.window.stepsShown > 0 and stepShownCount >= addon.db.profile.window.stepsShown then
                 step.isShown = false
             else
                 step.isShown = self:IsStepShown(step)
@@ -128,7 +129,7 @@ function State:UpdateImmediate()
             end
 
             -- Check if we reached shown step count
-            if Journeyman.db.profile.window.stepsShown > 0 and stepShownCount >= Journeyman.db.profile.window.stepsShown then
+            if addon.db.profile.window.stepsShown > 0 and stepShownCount >= addon.db.profile.window.stepsShown then
                 break
             end
         end
@@ -137,30 +138,30 @@ function State:UpdateImmediate()
 
     local elapsed = (GetTimePreciseSec() - now) * 1000
     if elapsed > 20 then
-        Journeyman:Debug("State update took %.2fms", elapsed)
+        addon:Debug("State update took %.2fms", elapsed)
     end
 
     if self.steps and next(self.steps) and self:IsChapterComplete() then
         -- Advance to next chapter and reset state
-        local journey = Journeyman:GetActiveJourney()
+        local journey = addon:GetActiveJourney()
         if journey then
-            if not Journeyman.Journey:AdvanceChapter(journey) then
-                Journeyman.db.char.journey = ""
-                Journeyman.db.char.chapter = 1
+            if not addon.Journey:AdvanceChapter(journey) then
+                addon.db.char.journey = ""
+                addon.db.char.chapter = 1
             end
-            Journeyman:Reset(true)
+            addon:Reset(true)
         end
     else
         -- Update window, waypoint and macro immediate
-        if Journeyman.db.char.window.show then
-            Journeyman.Window:UpdateImmediate()
+        if addon.db.char.window.show then
+            addon.Window:UpdateImmediate()
             if self.waypointNeedUpdate then
-                if Journeyman:SetWaypoint(self.currentStep, false) then
+                if addon:SetWaypoint(self.currentStep, false) then
                     self.waypointNeedUpdate = false
                 end
             end
             if self.macroNeedUpdate then
-                if Journeyman:SetMacro(self.currentStep) then
+                if addon:SetMacro(self.currentStep) then
                     self.macroNeedUpdate = false
                 end
             end
@@ -170,16 +171,16 @@ end
 
 function State:GetActiveSteps()
     local steps = {}
-    local chapter = Journeyman:GetActiveJourneyChapter()
+    local chapter = addon:GetActiveJourneyChapter()
     if chapter and type(chapter) == "table" then
         -- Clone active steps
         local index = 1
         for i = 1, #chapter.steps or {} do
             local step = chapter.steps[i]
-            if step.type and step.type ~= Journeyman.STEP_TYPE_UNDEFINED and step.data then
-                local data = Journeyman:GetStepData(step)
+            if step.type and step.type ~= addon.STEP_TYPE_UNDEFINED and step.data then
+                local data = addon:GetStepData(step)
                 if data then
-                    local clonedStep = Journeyman.Utils:Clone(step)
+                    local clonedStep = addon.Utils:Clone(step)
                     clonedStep.data = data
 
                     local isAvailable, reason = self:IsStepAvailable(clonedStep)
@@ -191,7 +192,7 @@ function State:GetActiveSteps()
                         steps[index] = clonedStep
                         index = index + 1
                     else
-                        --Journeyman:Debug("Step %s %s not available: %s", step.type, step.data, reason)
+                        --addon:Debug("Step %s %s not available: %s", step.type, step.data, reason)
                     end
                 end
             end
@@ -200,10 +201,10 @@ function State:GetActiveSteps()
         -- Initialize state
         for i = 1, #steps do
             local step = steps[i]
-            if not Journeyman:IsStepComplete(step) and self:IsStepComplete(step) then
-                Journeyman:SetStepStateCompleted(step, true)
+            if not addon:IsStepComplete(step) and self:IsStepComplete(step) then
+                addon:SetStepStateCompleted(step, true)
             end
-            if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST and Journeyman:IsStepComplete(step) then
+            if step.type == addon.STEP_TYPE_TURNIN_QUEST and addon:IsStepComplete(step) then
                 self:SetQuestTurnedIn(step.data.questId)
             end
         end
@@ -223,14 +224,14 @@ function State:FindStep(predicate)
 end
 
 function State:OnQuestAccepted(questId)
-    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_ACCEPT_QUEST and s.data.questId == questId end)
+    local step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_ACCEPT_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnQuestCompleted(questId)
-    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId end)
+    local step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -238,7 +239,7 @@ end
 
 function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
     local step = self:FindStep(function(s)
-        if s.type == Journeyman.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId then
+        if s.type == addon.STEP_TYPE_COMPLETE_QUEST and s.data.questId == questId then
             if s.objectives then
                 return List:Contains(s.objectives, objectiveIndex)
             else
@@ -250,15 +251,15 @@ function State:OnQuestObjectiveCompleted(questId, objectiveIndex)
         if self:IsStepAllQuestObjectivesComplete(step) then
             self:OnStepCompleted(step)
         else
-            self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+            self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
             self.macroNeedUpdate = true
-            Journeyman:Update()
+            addon:Update()
         end
     end
 end
 
 function State:OnQuestTurnedIn(questId)
-    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_TURNIN_QUEST and s.data.questId == questId end)
+    local step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_TURNIN_QUEST and s.data.questId == questId end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -268,16 +269,16 @@ function State:OnQuestAbandoned(questId)
     -- Reset state for all steps related to this quest
     if self.steps then
         List:ForEach(self.steps, function(step)
-            if Journeyman:IsStepTypeQuest(step) and step.data.questId == questId then
-                Journeyman:ResetStepState(step)
+            if addon:IsStepTypeQuest(step) and step.data.questId == questId then
+                addon:ResetStepState(step)
             end
         end)
     end
-    Journeyman:Update()
+    addon:Update()
 end
 
 function State:OnLevelUp(level)
-    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_REACH_LEVEL and s.data.level == level and s.data.xp == nil end)
+    local step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_REACH_LEVEL and s.data.level == level and s.data.xp == nil end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -293,20 +294,20 @@ end
 
 function State:OnHearthstoneBound(areaId)
     local step = self.currentStep
-    if step and step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE and step.data.areaId == areaId then
+    if step and step.type == addon.STEP_TYPE_BIND_HEARTHSTONE and step.data.areaId == areaId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnHearthstoneUsed(areaId)
     local step = self.currentStep
-    if step and step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE and step.data.areaId == areaId then
+    if step and step.type == addon.STEP_TYPE_USE_HEARTHSTONE and step.data.areaId == areaId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnLearnFlightPath(taxiNodeId)
-    local step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH and s.data.taxiNodeId == taxiNodeId end)
+    local step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_LEARN_FLIGHT_PATH and s.data.taxiNodeId == taxiNodeId end)
     if step then
         self:OnStepCompleted(step)
     end
@@ -314,28 +315,28 @@ end
 
 function State:OnTakeFlightPath(taxiNodeId)
     local step = self.currentStep
-    if step and step.type == Journeyman.STEP_TYPE_FLY_TO and step.data.taxiNodeId == taxiNodeId then
+    if step and step.type == addon.STEP_TYPE_FLY_TO and step.data.taxiNodeId == taxiNodeId then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnClassTrainerClosed()
     local step = self.currentStep
-    if step and step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+    if step and step.type == addon.STEP_TYPE_TRAIN_CLASS then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnSpellLearned(spellId)
     local step
-    if spellId == Journeyman.SPELL_FIRST_AID_APPRENTICE then
-        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID end)
-    elseif spellId == Journeyman.SPELL_COOKING_APPRENTICE then
-        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_COOKING end)
-    elseif spellId == Journeyman.SPELL_FISHING_APPRENTICE then
-        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_LEARN_FISHING end)
+    if spellId == addon.SPELL_FIRST_AID_APPRENTICE then
+        step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_LEARN_FIRST_AID end)
+    elseif spellId == addon.SPELL_COOKING_APPRENTICE then
+        step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_LEARN_COOKING end)
+    elseif spellId == addon.SPELL_FISHING_APPRENTICE then
+        step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_LEARN_FISHING end)
     else
-        step = self:FindStep(function(s) return s.type == Journeyman.STEP_TYPE_TRAIN_SPELLS and List:Contains(s.spells, spellId) end)
+        step = self:FindStep(function(s) return s.type == addon.STEP_TYPE_TRAIN_SPELLS and List:Contains(s.spells, spellId) end)
     end
     if step then
         self:OnStepCompleted(step)
@@ -347,108 +348,108 @@ end
 
 function State:OnSpiritResurrection()
     local step = self.currentStep
-    if step and step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+    if step and step.type == addon.STEP_TYPE_DIE_AND_RES then
         self:OnStepCompleted(step)
     end
 end
 
 function State:OnStepCompleted(step, immediate)
-    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
     -- Mark step as completed
-    Journeyman:SetStepStateCompleted(step, true)
+    addon:SetStepStateCompleted(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    if step.type == addon.STEP_TYPE_TURNIN_QUEST then
         self:SetQuestTurnedIn(step.data.questId)
     end
 
     -- Display step complete message
-    if not Journeyman:IsStepTypeQuest(step) and step.type ~= Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-        local text = Journeyman:GetStepText(step, false, false)
+    if not addon:IsStepTypeQuest(step) and step.type ~= addon.STEP_TYPE_LEARN_FLIGHT_PATH then
+        local text = addon:GetStepText(step, false, false)
         if not String:IsNilOrEmpty(text) then
             UIErrorsFrame:AddMessage(string.format("Step: %s (%s)", text, "Complete"), YELLOW_FONT_COLOR:GetRGB())
         end
     end
 
-    Journeyman:Update(immediate)
+    addon:Update(immediate)
 end
 
 function State:OnStepSkipped(step, immediate)
-    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
     -- Mark step as skipped
-    Journeyman:SetStepStateSkipped(step, true)
+    addon:SetStepStateSkipped(step, true)
     step.isComplete = true
     step.isShown = false
-    if step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    if step.type == addon.STEP_TYPE_TURNIN_QUEST then
         self:SetQuestTurnedIn(step.data.questId)
     end
 
-    Journeyman:Update(immediate)
+    addon:Update(immediate)
 end
 
 function State:OnStepReset(step, immediate)
-    self.waypointNeedUpdate = Journeyman.db.profile.autoSetWaypoint
+    self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
     -- Reset step completed state
-    Journeyman:ResetStepState(step)
+    addon:ResetStepState(step)
     step.isComplete = false
     step.isShown = true
 
-    Journeyman:Update(immediate)
+    addon:Update(immediate)
 end
 
 function State:IsStepAvailable(step)
-    if Journeyman.db.char.hardcoreMode and step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+    if addon.db.char.hardcoreMode and step.type == addon.STEP_TYPE_DIE_AND_RES then
         return false
     end
 
-    if step.requiredRaces and bit.band(step.requiredRaces, Journeyman.player.raceMask) == 0 then
+    if step.requiredRaces and bit.band(step.requiredRaces, addon.player.raceMask) == 0 then
         return false
     end
 
-    if step.requiredClasses and bit.band(step.requiredClasses, Journeyman.player.classMask) == 0 then
+    if step.requiredClasses and bit.band(step.requiredClasses, addon.player.classMask) == 0 then
         return false
     end
 
-    if Journeyman:IsStepTypeQuest(step) then
+    if addon:IsStepTypeQuest(step) then
         return self:IsQuestAvailable(step.data.questId)
-    elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.factionName)
+    elseif step.type == addon.STEP_TYPE_FLY_TO then
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId, addon.player.factionName)
     end
 
     return true
 end
 
 function State:IsStepDoable(step)
-    if Journeyman:IsStepTypeQuest(step) then
-        return self:IsQuestDoable(step.data.questId, step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST)
-    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+    if addon:IsStepTypeQuest(step) then
+        return self:IsQuestDoable(step.data.questId, step.type == addon.STEP_TYPE_COMPLETE_QUEST)
+    elseif step.type == addon.STEP_TYPE_BIND_HEARTHSTONE then
         return DataSource:GetNearestInnkeeperLocation(step.data.areaId) ~= nil
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
-        return TaxiNodes:IsAvailable(step.data.taxiNodeId, Journeyman.player.factionName)
-    elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
-        return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
+    elseif step.type == addon.STEP_TYPE_LEARN_FLIGHT_PATH then
+        return TaxiNodes:IsAvailable(step.data.taxiNodeId, addon.player.factionName)
+    elseif step.type == addon.STEP_TYPE_FLY_TO then
+        return addon.db.char.taxiNodeIds[step.data.taxiNodeId] == true
     end
     return true
 end
 
 function State:IsStepShown(step)
     -- Check if step is completed, or if we show completed steps
-    local showStep = not step.isComplete or Journeyman.db.profile.window.showCompletedSteps
+    local showStep = not step.isComplete or addon.db.profile.window.showCompletedSteps
 
     -- Additional checks if step is going to become current step
     if showStep and not step.isComplete and self.currentStep == nil then
         local doable, reason = self:IsStepDoable(step)
         if doable then
-            if Journeyman:IsStepTypeQuest(step) then
+            if addon:IsStepTypeQuest(step) then
                 -- Additional checks if step is going to become current step
                 local questId = step.data.questId
-                if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+                if step.type == addon.STEP_TYPE_COMPLETE_QUEST then
                     if not self:IsQuestInQuestLog(questId) then
                         -- Check if there's any objectives that can be completed even if quest is not in quest log
                         local objectives = DataSource:GetQuestObjectives(questId, step.data.objectives)
@@ -459,7 +460,7 @@ function State:IsStepShown(step)
                                     return true
                                 end
                                 -- Check if we can get item without active quest (not a quest item)
-                                if not Journeyman:IsItemQuestItem(objective.id) then
+                                if not addon:IsItemQuestItem(objective.id) then
                                     return true
                                 end
                             end
@@ -469,7 +470,7 @@ function State:IsStepShown(step)
                             return false, string.format("Quest %s not in quest log", questId)
                         end
                     end
-                elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+                elseif step.type == addon.STEP_TYPE_TURNIN_QUEST then
                     if DataSource:IsQuestRepeatable(questId) or DataSource:IsQuestAutoComplete(questId) then
                         if not self:IsQuestObjectivesComplete(questId) then
                             doable, reason = false, string.format("Quest %s is not complete", questId)
@@ -484,7 +485,7 @@ function State:IsStepShown(step)
         end
 
         if not doable then
-            --Journeyman:Debug("Step %s %s is not doable: %s", step.type, dump(step.data), dump(reason))
+            --addon:Debug("Step %s %s is not doable: %s", step.type, dump(step.data), dump(reason))
         end
 
         showStep = doable -- Hide steps that are not doable
@@ -494,7 +495,7 @@ function State:IsStepShown(step)
 end
 
 function State:IsStepComplete(step)
-    if Journeyman:IsStepTypeQuest(step) then
+    if addon:IsStepTypeQuest(step) then
         local questId = step.data.questId
 
         -- Check if quest is already turned-in
@@ -512,18 +513,18 @@ function State:IsStepComplete(step)
         end
 
         -- Per quest step type checks
-        if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+        if step.type == addon.STEP_TYPE_ACCEPT_QUEST then
             -- Check if quest is in quest log
             if self:IsQuestInQuestLog(questId) then
                 return true
             end
-        elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+        elseif step.type == addon.STEP_TYPE_COMPLETE_QUEST then
             if self:IsQuestInQuestLogAndComplete(questId) then -- Check if quest is in quest log and complete
                 return true
             elseif self:IsStepAllQuestObjectivesComplete(step) then -- Check if quest objectives are all complete
                 return true
             end
-        elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+        elseif step.type == addon.STEP_TYPE_TURNIN_QUEST then
             -- Check if quest is turned-in (redundancy)
             if self:IsQuestTurnedIn(questId) then
                 return true
@@ -531,51 +532,51 @@ function State:IsStepComplete(step)
         end
         return false
     else
-        if step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
+        if step.type == addon.STEP_TYPE_GO_TO_COORD then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
+        elseif step.type == addon.STEP_TYPE_GO_TO_ZONE then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+        elseif step.type == addon.STEP_TYPE_GO_TO_AREA then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
-            if Journeyman.player.level > step.data.level then
+        elseif step.type == addon.STEP_TYPE_REACH_LEVEL then
+            if addon.player.level > step.data.level then
                 return true
-            elseif Journeyman.player.level == step.data.level then
-                return step.data.xp == nil or Journeyman.player.xp >= step.data.xp
+            elseif addon.player.level == step.data.level then
+                return step.data.xp == nil or addon.player.xp >= step.data.xp
             end
-        elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+        elseif step.type == addon.STEP_TYPE_REACH_REPUTATION then
             local name, _, standingId = GetFactionInfoByID(step.data.factionId)
             if name and standingId and standingId >= step.data.standingId then
                 return true
             end
-        elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+        elseif step.type == addon.STEP_TYPE_BIND_HEARTHSTONE then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+        elseif step.type == addon.STEP_TYPE_USE_HEARTHSTONE then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+        elseif step.type == addon.STEP_TYPE_LEARN_FLIGHT_PATH then
             -- Check if taxiNodeId has been unlocked
-            return Journeyman.db.char.taxiNodeIds[step.data.taxiNodeId] == true
-        elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+            return addon.db.char.taxiNodeIds[step.data.taxiNodeId] == true
+        elseif step.type == addon.STEP_TYPE_FLY_TO then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+        elseif step.type == addon.STEP_TYPE_TRAIN_CLASS then
             -- Can't verify
-        elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
-            return List:All(step.data.spells, function(spellId) return Journeyman:IsSpellKnown(spellId) end)
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
-            return Journeyman:IsSpellKnown(Journeyman.SPELL_FIRST_AID_APPRENTICE)
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
-            return Journeyman:IsSpellKnown(Journeyman.SPELL_COOKING_APPRENTICE)
-        elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
-            return Journeyman:IsSpellKnown(Journeyman.SPELL_FISHING_APPRENTICE)
-        elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
-            return List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
-        elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+        elseif step.type == addon.STEP_TYPE_TRAIN_SPELLS then
+            return List:All(step.data.spells, function(spellId) return addon:IsSpellKnown(spellId) end)
+        elseif step.type == addon.STEP_TYPE_LEARN_FIRST_AID then
+            return addon:IsSpellKnown(addon.SPELL_FIRST_AID_APPRENTICE)
+        elseif step.type == addon.STEP_TYPE_LEARN_COOKING then
+            return addon:IsSpellKnown(addon.SPELL_COOKING_APPRENTICE)
+        elseif step.type == addon.STEP_TYPE_LEARN_FISHING then
+            return addon:IsSpellKnown(addon.SPELL_FISHING_APPRENTICE)
+        elseif step.type == addon.STEP_TYPE_ACQUIRE_ITEMS then
+            return List:All(step.data.items, function(item) return addon:GetItemCountInBags(item.id) >= item.count end)
+        elseif step.type == addon.STEP_TYPE_DIE_AND_RES then
             -- Can't verify
         end
         return false
     end
 
-    Journeyman:Error("Step type %s not implemented.", step.type)
+    addon:Error("Step type %s not implemented.", step.type)
 end
 
 function State:IsChapterComplete()
@@ -590,9 +591,9 @@ function State:GetCurrentStep()
 end
 
 function State:GetStepLocation(step)
-    if step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST then
+    if step.type == addon.STEP_TYPE_ACCEPT_QUEST then
         return DataSource:GetNearestQuestStarter(step.data.questId)
-    elseif step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
+    elseif step.type == addon.STEP_TYPE_COMPLETE_QUEST then
         if step.objectiveIndex then
             return DataSource:GetQuestObjectiveLocation(step.data.questId, step.objectiveIndex)
         else
@@ -613,79 +614,79 @@ function State:GetStepLocation(step)
                 return DataSource:GetNearestQuestObjectiveLocation(step.data.questId, objectives)
             end
         end
-    elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
+    elseif step.type == addon.STEP_TYPE_TURNIN_QUEST then
         return DataSource:GetNearestQuestFinisher(step.data.questId)
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
-        if Journeyman.player.location then
-            local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+    elseif step.type == addon.STEP_TYPE_GO_TO_COORD then
+        if addon.player.location then
+            local distance = HBD:GetZoneDistance(addon.player.location.mapId, addon.player.location.x, addon.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
             if distance then
                 return { distance = distance, mapId = step.data.mapId, x = step.data.x, y = step.data.y, name = string.format("%s\n%s", step.data.desc, step.data.mapName), type = "Event" }
             end
         end
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
-        if Journeyman.player.location and step.data.x and step.data.y then -- coords are optional, so they can be nil
-            local distance = HBD:GetZoneDistance(Journeyman.player.location.mapId, Journeyman.player.location.x, Journeyman.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
+    elseif step.type == addon.STEP_TYPE_GO_TO_ZONE then
+        if addon.player.location and step.data.x and step.data.y then -- coords are optional, so they can be nil
+            local distance = HBD:GetZoneDistance(addon.player.location.mapId, addon.player.location.x, addon.player.location.y, step.data.mapId, step.data.x / 100.0, step.data.y / 100.0)
             if distance then
                 return { distance = distance, mapId = step.data.mapId, x = step.data.x, y = step.data.y, name = string.format("%s", step.data.mapName), type = "Event" }
             end
         end
-    elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
+    elseif step.type == addon.STEP_TYPE_GO_TO_AREA then
         return nil -- todo
-    elseif step.type == Journeyman.STEP_TYPE_REACH_LEVEL then
+    elseif step.type == addon.STEP_TYPE_REACH_LEVEL then
         return nil
-    elseif step.type == Journeyman.STEP_TYPE_REACH_REPUTATION then
+    elseif step.type == addon.STEP_TYPE_REACH_REPUTATION then
         return nil
-    elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE then
+    elseif step.type == addon.STEP_TYPE_BIND_HEARTHSTONE then
         return DataSource:GetNearestInnkeeperLocation(step.data.areaId)
-    elseif step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
+    elseif step.type == addon.STEP_TYPE_USE_HEARTHSTONE then
         return nil
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FLIGHT_PATH then
+    elseif step.type == addon.STEP_TYPE_LEARN_FLIGHT_PATH then
         return DataSource:GetFlightMasterLocation(step.data.taxiNodeId)
-    elseif step.type == Journeyman.STEP_TYPE_FLY_TO then
+    elseif step.type == addon.STEP_TYPE_FLY_TO then
         return DataSource:GetNearestFlightMasterLocation()
-    elseif step.type == Journeyman.STEP_TYPE_TRAIN_CLASS then
+    elseif step.type == addon.STEP_TYPE_TRAIN_CLASS then
         return DataSource:GetNearestClassTrainerLocation()
-    elseif step.type == Journeyman.STEP_TYPE_TRAIN_SPELLS then
+    elseif step.type == addon.STEP_TYPE_TRAIN_SPELLS then
         local spellId = step.data.spells[1] -- Always use trainer location of first spell in list
-        if spellId == Journeyman.SPELL_TELEPORT_TO_STORMWIND or spellId == Journeyman.SPELL_PORTAL_TO_STORMWIND then
-            return DataSource:GetNPCLocation(Journeyman.NPC_STORMWIND_PORTAL_TRAINER)
-        elseif spellId == Journeyman.SPELL_TELEPORT_TO_IRONFORGE or spellId == Journeyman.SPELL_PORTAL_TO_IRONFORGE then
-            return DataSource:GetNPCLocation(Journeyman.NPC_IRONFORGE_PORTAL_TRAINER)
-        elseif spellId == Journeyman.SPELL_TELEPORT_TO_DARNASSUS or spellId == Journeyman.SPELL_PORTAL_TO_DARNASSUS then
-            return DataSource:GetNPCLocation(Journeyman.NPC_DARNASSUS_PORTAL_TRAINER)
-        elseif spellId == Journeyman.SPELL_HORSE_RIDING then
-            return DataSource:GetNPCLocation(Journeyman.NPC_HORSE_RIDING_INSTRUCTOR)
-        elseif spellId == Journeyman.SPELL_RAM_RIDING then
-            return DataSource:GetNPCLocation(Journeyman.NPC_RAM_RIDING_INSTRUCTOR)
-        elseif spellId == Journeyman.SPELL_TIGER_RIDING then
-            return DataSource:GetNPCLocation(Journeyman.NPC_NIGHTSABER_RIDING_INSTRUCTOR)
-        elseif spellId == Journeyman.SPELL_MECHANOSTRIDER_PILOTING then
-            return DataSource:GetNPCLocation(Journeyman.NPC_MECHANOSTRIDER_PILOT)
+        if spellId == addon.SPELL_TELEPORT_TO_STORMWIND or spellId == addon.SPELL_PORTAL_TO_STORMWIND then
+            return DataSource:GetNPCLocation(addon.NPC_STORMWIND_PORTAL_TRAINER)
+        elseif spellId == addon.SPELL_TELEPORT_TO_IRONFORGE or spellId == addon.SPELL_PORTAL_TO_IRONFORGE then
+            return DataSource:GetNPCLocation(addon.NPC_IRONFORGE_PORTAL_TRAINER)
+        elseif spellId == addon.SPELL_TELEPORT_TO_DARNASSUS or spellId == addon.SPELL_PORTAL_TO_DARNASSUS then
+            return DataSource:GetNPCLocation(addon.NPC_DARNASSUS_PORTAL_TRAINER)
+        elseif spellId == addon.SPELL_HORSE_RIDING then
+            return DataSource:GetNPCLocation(addon.NPC_HORSE_RIDING_INSTRUCTOR)
+        elseif spellId == addon.SPELL_RAM_RIDING then
+            return DataSource:GetNPCLocation(addon.NPC_RAM_RIDING_INSTRUCTOR)
+        elseif spellId == addon.SPELL_TIGER_RIDING then
+            return DataSource:GetNPCLocation(addon.NPC_NIGHTSABER_RIDING_INSTRUCTOR)
+        elseif spellId == addon.SPELL_MECHANOSTRIDER_PILOTING then
+            return DataSource:GetNPCLocation(addon.NPC_MECHANOSTRIDER_PILOT)
         end
         return DataSource:GetNearestClassTrainerLocation()
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FIRST_AID then
+    elseif step.type == addon.STEP_TYPE_LEARN_FIRST_AID then
         return DataSource:GetNearestFirstAidTrainerLocation()
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_COOKING then
+    elseif step.type == addon.STEP_TYPE_LEARN_COOKING then
         return DataSource:GetNearestCookingTrainerLocation()
-    elseif step.type == Journeyman.STEP_TYPE_LEARN_FISHING then
+    elseif step.type == addon.STEP_TYPE_LEARN_FISHING then
         return DataSource:GetNearestFishingTrainerLocation()
-    elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
+    elseif step.type == addon.STEP_TYPE_ACQUIRE_ITEMS then
         if step.itemId then
             return DataSource:GetNearestItemLocation({ step.itemId })
         else
             local items = {}
-            local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
+            local hasAll = List:All(step.data.items, function(item) return addon:GetItemCountInBags(item.id) >= item.count end)
             local items = List:Select(step.data.items, function(item)
-                if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
+                if hasAll or addon:GetItemCountInBags(item.id) < item.count then
                     return item.id
                 end
             end)
             return DataSource:GetNearestItemLocation(items)
         end
-    elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
+    elseif step.type == addon.STEP_TYPE_DIE_AND_RES then
         return nil
     else
-        Journeyman:Error("Step type %s not implemented.", step.type)
+        addon:Error("Step type %s not implemented.", step.type)
     end
 end
 
@@ -711,7 +712,7 @@ end
 
 function State:IsQuestDoable(questId, isStepTypeComplete)
     -- Check if player has required level
-    if Journeyman.player.level < DataSource:GetQuestRequiredLevel(questId) then
+    if addon.player.level < DataSource:GetQuestRequiredLevel(questId) then
         return false, "Missing level requirement"
     end
 
