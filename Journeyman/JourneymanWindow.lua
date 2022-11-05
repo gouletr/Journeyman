@@ -5,7 +5,7 @@ local L = addon.Locale
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local TomTom = TomTom
-local DataSource, TaxiNodes, State, GUI, Options
+local Options, DataSource, TaxiNodes, State, GUI
 
 local HEADER_HEIGHT = 24
 local TEXT_COLOR_STEP_COMPLETE = "FFA0A0A0"
@@ -16,11 +16,11 @@ local function round(num)
 end
 
 function Window:OnInitialize()
+    Options = addon.Options
     DataSource = addon.DataSource
     TaxiNodes = addon.TaxiNodes
     State = addon.State
     GUI = addon.GUI
-    Options = addon.Options
 
     self.questLogScrollBar = QuestLogListScrollFrame.ScrollBar or QuestLogListScrollFrameScrollBar
     self.lines = {}

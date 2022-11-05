@@ -120,6 +120,15 @@ local function GetWorldCoordinates(data)
     end
 end
 
+function TaxiNodes:OnInitialize()
+end
+
+function TaxiNodes:OnEnable()
+end
+
+function TaxiNodes:OnDisable()
+end
+
 function TaxiNodes:GetTaxiNode(id)
     local data = L.taxiNodes[id]
     if data and IsValid(id, data) then

@@ -1,13 +1,19 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local GUI = addon:NewModule("GUI")
 local L = addon.Locale
-local GUI = {}
-Journeyman.GUI = GUI
 
-local tinsert = table.insert
+local List = LibStub("LibCollections-1.0").List
+local Utils
 
--- Useful template:
--- BackdropTemplateMixin and "BackdropTemplate"
+function GUI:OnInitialize()
+    Utils = addon.Utils
+end
+
+function GUI:OnEnable()
+end
+
+function GUI:OnDisable()
+end
 
 function GUI:CreateGroup(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
@@ -225,7 +231,7 @@ function GUI:CreateDropDownMenu(frameType, name, parent, isBitFlag, template, id
     end
 
     frame.SetValue = function(self, value)
-        if frame.isBitFlag and Journeyman.Utils:CountBits(value) > 1 then
+        if frame.isBitFlag and Utils:CountBits(value) > 1 then
             UIDropDownMenu_SetText(self.dropDownMenu, "Many")
         else
             local values = frame:GetValues()
@@ -316,7 +322,7 @@ function GUI:CreateListView(frameType, name, parent, template, id)
                 row:SetPoint("TOPLEFT", self.rows[index - 1], "BOTTOMLEFT")
                 row:SetPoint("BOTTOMRIGHT", self.rows[index - 1], "BOTTOMRIGHT", 0, -self.rowHeight)
             end
-            tinsert(self.rows, row)
+            List:Add(self.rows, row)
         else
             row = self.rows[index]
         end
@@ -324,7 +330,7 @@ function GUI:CreateListView(frameType, name, parent, template, id)
     end
 
     frame.CreateRow = function(self, index, parent)
-        local row = Journeyman.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
+        local row = GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)

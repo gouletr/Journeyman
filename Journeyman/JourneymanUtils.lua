@@ -1,9 +1,15 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local Utils, Private = addon:NewModule("Utils"), {}
 local L = addon.Locale
 
-local Utils = {}
-Journeyman.Utils = Utils
+function Utils:OnInitialize()
+end
+
+function Utils:OnEnable()
+end
+
+function Utils:OnDisable()
+end
 
 function Utils:Clone(t)
     local c
@@ -39,21 +45,4 @@ function Utils:CountBits(value)
         count = count + 1
     end
     return count
-end
-
-function Utils:Dump(o, recurse)
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         if recurse then
-            s = s .. '['..k..'] = ' .. self:Dump(v, recurse) .. ','
-         else
-            s = s .. '['..k..'] = ' .. tostring(v) .. ','
-         end
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
 end

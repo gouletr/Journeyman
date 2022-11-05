@@ -13,7 +13,7 @@ local QuestieZoneDB = QuestieLoader and QuestieLoader:ImportModule("ZoneDB")
 local QuestieLink = QuestieLoader and QuestieLoader:ImportModule("QuestieLink")
 local QuestieReputation = QuestieLoader and QuestieLoader:ImportModule("QuestieReputation")
 local QuestieProfessions = QuestieLoader and QuestieLoader:ImportModule("QuestieProfessions")
-local TaxiNodes
+local TaxiNodes, State
 
 local tinsert = table.insert
 
@@ -323,6 +323,7 @@ end
 
 function DataSourceQuestie:OnInitialize()
     TaxiNodes = addon.TaxiNodes
+    State = addon.State
 end
 
 function DataSourceQuestie:OnEnable()
@@ -644,7 +645,7 @@ end
 
 function DataSourceQuestie:GetQuestObjectives(questId, objectives)
     local quest = QuestieDB:GetQuest(questId)
-    local questLogObjectives = addon.State:GetQuestObjectives(questId)
+    local questLogObjectives = State:GetQuestObjectives(questId)
     if quest and quest.ObjectiveData and questLogObjectives then
         local result = {}
         if objectives then

@@ -5,12 +5,14 @@ local L = addon.Locale
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
-local Events, DataSource, TaxiNodes
+local Utils, Journeys, Events, DataSource, TaxiNodes
 
 function State:OnInitialize()
+    Utils = addon.Utils
+    Journeys = addon.Journeys
     Events = addon.Events
-    DataSource = addon.DataSource
     TaxiNodes = addon.TaxiNodes
+    DataSource = addon.DataSource
     self.questsTurnedIn = {}
 end
 
@@ -145,7 +147,7 @@ function State:UpdateImmediate()
         -- Advance to next chapter and reset state
         local journey = addon:GetActiveJourney()
         if journey then
-            if not addon.Journey:AdvanceChapter(journey) then
+            if not Journeys:AdvanceChapter(journey) then
                 addon.db.char.journey = ""
                 addon.db.char.chapter = 1
             end
@@ -180,7 +182,7 @@ function State:GetActiveSteps()
             if step.type and step.type ~= addon.STEP_TYPE_UNDEFINED and step.data then
                 local data = addon:GetStepData(step)
                 if data then
-                    local clonedStep = addon.Utils:Clone(step)
+                    local clonedStep = Utils:Clone(step)
                     clonedStep.data = data
 
                     local isAvailable, reason = self:IsStepAvailable(clonedStep)

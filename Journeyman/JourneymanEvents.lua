@@ -5,12 +5,12 @@ local L = addon.Locale
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local HBD = LibStub("HereBeDragons-2.0")
-local Database, DataSource, Journey, State, TaxiNodes
+local Journeys, Database, DataSource, State, TaxiNodes
 
 function Events:OnInitialize()
+    Journeys = addon.Journeys
     Database = addon.Database
     DataSource = addon.DataSource
-    Journey = addon.Journey
     State = addon.State
     TaxiNodes = addon.TaxiNodes
     self.questTurnedIn = {}
@@ -243,7 +243,7 @@ function Events:OnEnable()
     self:RegisterEvent("PLAYER_CONTROL_GAINED", function(event)
         if addon.db.char.window.show and not InCombatLockdown() then
             if not UnitOnTaxi("player") then
-                addon.flyingTo = nil
+                addon.player.flyingTo = nil
             end
             State.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
             State.macroNeedUpdate = true
@@ -292,7 +292,7 @@ end
 
 function Events:OnQuestAccepted(questId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeAcceptQuest then
-        Journey:OnQuestAccepted(questId)
+        Journeys:OnQuestAccepted(questId)
     end
     if addon.db.char.window.show then
         State:OnQuestAccepted(questId)
@@ -301,7 +301,7 @@ end
 
 function Events:OnQuestCompleted(questId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeCompleteQuest then
-        Journey:OnQuestCompleted(questId)
+        Journeys:OnQuestCompleted(questId)
     end
     if addon.db.char.window.show then
         State:OnQuestCompleted(questId)
@@ -310,7 +310,7 @@ end
 
 function Events:OnQuestObjectiveCompleted(questId, objectiveIndex)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeCompleteQuest then
-        Journey:OnQuestObjectiveCompleted(questId, objectiveIndex)
+        Journeys:OnQuestObjectiveCompleted(questId, objectiveIndex)
     end
     if addon.db.char.window.show then
         State:OnQuestObjectiveCompleted(questId, objectiveIndex)
@@ -319,7 +319,7 @@ end
 
 function Events:OnQuestTurnedIn(questId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTurnInQuest then
-        Journey:OnQuestTurnedIn(questId)
+        Journeys:OnQuestTurnedIn(questId)
     end
     if addon.db.char.window.show then
         State:OnQuestTurnedIn(questId)
@@ -328,7 +328,7 @@ end
 
 function Events:OnQuestAbandoned(questId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.abandonedQuests then
-        Journey:OnQuestAbandoned(questId)
+        Journeys:OnQuestAbandoned(questId)
     end
     if addon.db.char.window.show then
         State:OnQuestAbandoned(questId)
@@ -338,7 +338,7 @@ end
 function Events:OnZoneChanged()
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeGoToZone then
         if addon.player.location and not UnitOnTaxi("player") then
-            Journey:OnZoneChanged(addon.player.location)
+            Journeys:OnZoneChanged(addon.player.location)
         end
     end
     self:OnLocationChanged()
@@ -389,7 +389,7 @@ end
 
 function Events:OnLevelUp(level)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeReachLevel then
-        Journey:OnLevelUp(level)
+        Journeys:OnLevelUp(level)
     end
     if addon.db.char.window.show then
         State:OnLevelUp(level)
@@ -410,7 +410,7 @@ end
 
 function Events:OnHearthstoneBound(areaId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeBindHearthstone then
-        Journey:OnHearthstoneBound(areaId)
+        Journeys:OnHearthstoneBound(areaId)
     end
     if addon.db.char.window.show then
         State:OnHearthstoneBound(areaId)
@@ -419,7 +419,7 @@ end
 
 function Events:OnHearthstoneUsed(areaId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeUseHearthstone then
-        Journey:OnHearthstoneUsed(areaId)
+        Journeys:OnHearthstoneUsed(areaId)
     end
     if addon.db.char.window.show then
         State:OnHearthstoneUsed(areaId)
@@ -439,7 +439,7 @@ end
 function Events:OnLearnFlightPath(taxiNodeId)
     addon.db.char.taxiNodeIds[taxiNodeId] = true
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeLearnFlightPath then
-        Journey:OnLearnFlightPath(taxiNodeId)
+        Journeys:OnLearnFlightPath(taxiNodeId)
     end
     if addon.db.char.window.show then
         State:OnLearnFlightPath(taxiNodeId)
@@ -448,7 +448,7 @@ end
 
 function Events:OnClassTrainerClosed()
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTrainClass then
-        Journey:OnClassTrainerClosed()
+        Journeys:OnClassTrainerClosed()
     end
     if addon.db.char.window.show then
         State:OnClassTrainerClosed()
@@ -457,7 +457,7 @@ end
 
 function Events:OnSpellLearned(spellId)
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeTrainSpells then
-        Journey:OnSpellLearned(spellId)
+        Journeys:OnSpellLearned(spellId)
     end
     if addon.db.char.window.show then
         State:OnSpellLearned(spellId)
@@ -472,7 +472,7 @@ end
 
 function Events:OnSpiritResurrection()
     if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeDieAndRes then
-        Journey:OnSpiritResurrection()
+        Journeys:OnSpiritResurrection()
     end
     if addon.db.char.window.show then
         State:OnSpiritResurrection()

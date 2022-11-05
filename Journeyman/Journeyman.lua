@@ -1,15 +1,14 @@
 local addonName, addon = ...
-addon.Journeyman = LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceHook-3.0", "AceConsole-3.0")
+local Journeyman = LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceConsole-3.0")
 addon.Locale = LibStub("AceLocale-3.0"):GetLocale(addonName)
 
-local Journeyman = addon.Journeyman
 local L = addon.Locale
 
 local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local Dict = LibStub("LibCollections-1.0").Dictionary
 local HBD = LibStub("HereBeDragons-2.0")
-local Database, Options, Events, JourneymanDB, DataSource, TaxiNodes, State, Window, Tooltips, Editor
+local Journeys, Events, TaxiNodes, DataSource, JourneymanDB, State, Window
 
 local QUEST_COLOR_RED = "FFFF1A1A"
 local QUEST_COLOR_ORANGE = "FFFF8040"
@@ -163,27 +162,28 @@ local function LocationEquals(current, previous)
 end
 
 function Journeyman:OnInitialize()
-    Database = self:GetModule("Database")
-    Options = self:GetModule("Options")
-    Events = self:GetModule("Events")
-    JourneymanDB = self:GetModule("JourneymanDB")
-    DataSource = self:GetModule("DataSourceQuestie")
-    TaxiNodes = self:GetModule("TaxiNodes")
-    State = self:GetModule("State")
-    Window = self:GetModule("Window")
-    Tooltips = self:GetModule("Tooltips")
-    Editor = self:GetModule("Editor")
+    self.Utils = self:GetModule("Utils")
+    self.Journeys = self:GetModule("Journeys")
+    self.GUI = self:GetModule("GUI")
+    self.Database = self:GetModule("Database")
+    self.Hooks = self:GetModule("Hooks")
+    self.Events = self:GetModule("Events")
+    self.TaxiNodes = self:GetModule("TaxiNodes")
+    self.DataSource = self:GetModule("DataSourceQuestie")
+    self.JourneymanDB = self:GetModule("JourneymanDB")
+    self.State = self:GetModule("State")
+    self.Tooltips = self:GetModule("Tooltips")
+    self.Editor = self:GetModule("Editor")
+    self.Options = self:GetModule("Options")
+    self.Window = self:GetModule("Window")
 
-    self.Database = Database
-    self.Options = Options
-    self.Events = Events
-    self.JourneymanDB = JourneymanDB
-    self.DataSource = DataSource
-    self.TaxiNodes = TaxiNodes
-    self.State = State
-    self.Window = Window
-    self.Tooltips = Tooltips
-    self.Editor = Editor
+    Journeys = self.Journeys
+    Events = self.Events
+    TaxiNodes = self.TaxiNodes
+    DataSource = self.DataSource
+    JourneymanDB = self.JourneymanDB
+    State = self.State
+    Window = self.Window
 
     self.factionNameLocalToFactionId = {}
 
@@ -212,16 +212,13 @@ function Journeyman:OnInitialize()
     self.player.maxXP = UnitXPMax("player")
     self.player.greenRange = GetQuestGreenRange("player")
     self.player.location = nil
-
-    self.Journey:Initialize()
-    self:InitializeHooks()
 end
 
 function Journeyman:OnEnable()
     self:Reset()
 
     -- Install update ticker
-    local updateFrequency = min(max(addon.db.profile.advanced.updateFrequency, 0.1), 5)
+    local updateFrequency = min(max(self.db.profile.advanced.updateFrequency, 0.1), 5)
     self.updateTicker = C_Timer.NewTicker(updateFrequency, function()
         -- Check for state and window update
         State:CheckForUpdate()
@@ -275,7 +272,20 @@ Journeyman.Print = function(self, fmt, ...)
 end
 
 function Journeyman:Dump(o, recurse)
-    return addon.Utils:Dump(o, recurse)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k, v in pairs(o) do
+            if type(k) ~= 'number' then k = '"'..k..'"' end
+            if recurse then
+                s = s .. '['..k..'] = ' .. self:Dump(v, recurse) .. ','
+            else
+                s = s .. '['..k..'] = ' .. tostring(v) .. ','
+            end
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
 end
 
 function Journeyman:Debug(fmt, ...)
@@ -659,7 +669,7 @@ end
 
 function Journeyman:GetMyJourney()
     if self.myJourney == nil then
-        self.myJourney = Journeyman.Journey:CreateJourney(self.player.name.."'s Journey")
+        self.myJourney = Journeys:CreateJourney(self.player.name.."'s Journey")
     end
     return self.myJourney
 end

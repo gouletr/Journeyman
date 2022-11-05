@@ -7,7 +7,7 @@ local List = LibStub("LibCollections-1.0").List
 local Dictionary = LibStub("LibCollections-1.0").Dictionary
 local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
-local Journey
+local Utils, Journeys
 
 local databaseDefaults = {
     profile = {
@@ -77,14 +77,17 @@ local databaseDefaults = {
 }
 
 function Database:OnInitialize()
-    Journey = addon.Journey
+    Utils = addon.Utils
+    Journeys = addon.Journeys
 
     -- Create database
     addon.db = LibStub("AceDB-3.0"):New(addonName.."Database", databaseDefaults, true)
     if addon.db.profile.advanced.debug then
         _G["Journeyman"] = addon
     end
+end
 
+function Database:OnEnable()
     -- Initialize known taxi node ids per race
     if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
         if addon.player.raceName == "HUMAN" then
@@ -147,9 +150,6 @@ function Database:OnInitialize()
     self:DeserializeDatabase()
 end
 
-function Database:OnEnable()
-end
-
 function Database:OnDisable()
 end
 
@@ -204,7 +204,7 @@ function Database:DeserializeDatabase()
                 end
                 -- Make sure guid is unique
                 if List:Any(addon.journeys, function(j) return j.guid == deserialized.guid end) then
-                    deserialized.guid = addon.Utils:CreateGUID()
+                    deserialized.guid = Utils:CreateGUID()
                 end
                 -- Add journey
                 List:Add(addon.journeys, deserialized)
@@ -244,7 +244,7 @@ function Database:ExportJourney(deserializedJourney)
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = addon.Utils:CreateGUID()
+        journey.guid = Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -370,7 +370,7 @@ function Database:ImportJourney(serializedJourney)
     if deserializedJourney.guid and type(deserializedJourney.guid) == "string" then
         journey.guid = deserializedJourney.guid
     else
-        journey.guid = addon.Utils:CreateGUID()
+        journey.guid = Utils:CreateGUID()
     end
 
     if deserializedJourney.title and type(deserializedJourney.title) == "string" then
@@ -628,7 +628,7 @@ local function ParseCommandJourney(arguments, context)
         return
     end
 
-    context.journey = Journey:CreateJourney(title, guid)
+    context.journey = Journeys:CreateJourney(title, guid)
 end
 
 local function ParseCommandChapter(arguments, context)
@@ -638,7 +638,7 @@ local function ParseCommandChapter(arguments, context)
         return
     end
 
-    context.chapter = Journey:AddNewChapter(context.journey, title)
+    context.chapter = Journeys:AddNewChapter(context.journey, title)
 end
 
 local function ParseCommand(type, arguments, context)
@@ -686,7 +686,7 @@ local function ParseCommand(type, arguments, context)
     end
 
     if data then
-        context.step = Journey:AddNewStep(context.journey, context.chapter, type, data, nil, requiredRaces, requiredClasses, note)
+        context.step = Journeys:AddNewStep(context.journey, context.chapter, type, data, nil, requiredRaces, requiredClasses, note)
     end
 end
 

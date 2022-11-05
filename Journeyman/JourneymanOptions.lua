@@ -6,7 +6,7 @@ local addonVersion = GetAddOnMetadata(addonName, "version")
 
 local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
-local Database, Window, Editor
+local Journeys, Database, Editor, Window
 
 local function Percent(value)
     local windowWidth = 600 - 20
@@ -15,9 +15,10 @@ local function Percent(value)
 end
 
 function Options:OnInitialize()
+    Journeys = addon.Journeys
     Database = addon.Database
-    Window = addon.Window
     Editor = addon.Editor
+    Window = addon.Window
 end
 
 function Options:OnEnable()
@@ -104,9 +105,9 @@ function Options:GetGeneralOptionsTable()
                 desc = L["CREATE_NEW_JOURNEY_DESC"],
                 width = Percent(0.5),
                 func = function()
-                    local journey = addon.Journey:AddNewJourney()
+                    local journey = Journeys:AddNewJourney()
                     if journey then
-                        local chapter = addon.Journey:AddNewChapter(journey)
+                        local chapter = Journeys:AddNewChapter(journey)
                         if chapter then
                             InterfaceOptionsFrame_OpenToCategory(Editor.frame)
                             Editor:SetSelectedJourneyIndex(#addon.journeys)

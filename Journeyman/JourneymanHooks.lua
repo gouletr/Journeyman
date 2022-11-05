@@ -1,23 +1,31 @@
 local addonName, addon = ...
-local Journeyman = addon.Journeyman
+local Hooks = addon:NewModule("Hooks", "AceHook-3.0")
 local L = addon.Locale
 
-local TaxiNodes = Journeyman.TaxiNodes
+local Journeys, TaxiNodes, State
 
-function Journeyman:InitializeHooks()
-    TaxiNodes = Journeyman.TaxiNodes
+function Hooks:OnInitialize()
+    Journeys = addon.Journeys
+    TaxiNodes = addon.TaxiNodes
+    State = addon.State
+end
+
+function Hooks:OnEnable()
     self:Hook("TakeTaxiNode", "OnTakeTaxiNode", true)
 end
 
-function Journeyman:OnTakeTaxiNode(slot)
-    local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot, Journeyman.player.factionName)
+function Hooks:OnDisable()
+end
+
+function Hooks:OnTakeTaxiNode(slot)
+    local taxiNodeId = TaxiNodes:GetTaxiNodeIdFromSlot(slot, addon.player.factionName)
     if taxiNodeId then
-        if Journeyman:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeFlyTo then
-            self.Journey:OnTakeFlightPath(taxiNodeId)
+        if addon:IsMyJourneyEnabled() and addon.db.profile.myJourney.stepTypeFlyTo then
+            Journeys:OnTakeFlightPath(taxiNodeId)
         end
         if addon.db.char.window.show then
-            self.flyingTo = taxiNodeId
-            self.State:OnTakeFlightPath(taxiNodeId)
+            addon.player.flyingTo = taxiNodeId
+            State:OnTakeFlightPath(taxiNodeId)
         end
     end
 end

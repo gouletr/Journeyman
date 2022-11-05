@@ -8,11 +8,13 @@ local String = LibStub("LibCollections-1.0").String
 local List = LibStub("LibCollections-1.0").List
 local AceGUI = LibStub("AceGUI-3.0")
 local HBD = LibStub("HereBeDragons-2.0")
-local Database, Journey
+local Utils, Journeys, GUI, Database
 
 function Editor:OnInitialize()
+    Utils = addon.Utils
+    Journeys = addon.Journeys
+    GUI = addon.GUI
     Database = addon.Database
-    Journey = addon.Journey
 end
 
 function Editor:OnEnable()
@@ -45,7 +47,7 @@ function Editor:OnEnable()
     content:SetPoint("TOPLEFT", frame, "TOPLEFT", 10, -15)
     content:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -10, 10)
 
-    local title = addon.GUI:CreateLabel("FRAME", "Title", content)
+    local title = GUI:CreateLabel("FRAME", "Title", content)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", content, "TOPRIGHT", 0, -30)
     title:SetJustifyH("LEFT")
@@ -97,7 +99,7 @@ function Editor:OnEnable()
     newJourneyButton:SetPoint("BOTTOMRIGHT", journeySelector, "BOTTOM", 0, -22)
     newJourneyButton:SetText(L["NEW_JOURNEY"])
     newJourneyButton:SetScript("OnClick", function(self, button, down)
-        if Journey:AddNewJourney() then
+        if Journeys:AddNewJourney() then
             Editor:SetSelectedJourneyIndex(#addon.journeys)
             Editor:SetSelectedChapterIndex(-1)
             Editor:SetSelectedStepIndex(-1)
@@ -111,7 +113,7 @@ function Editor:OnEnable()
         button1 = ACCEPT,
         button2 = CANCEL,
         OnAccept = function()
-            if Journey:DeleteJourney(Editor:GetSelectedJourneyIndex()) then
+            if Journeys:DeleteJourney(Editor:GetSelectedJourneyIndex()) then
                 Editor:SetSelectedJourneyIndex(-1)
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
@@ -141,7 +143,7 @@ function Editor:OnEnable()
             local importingJourney = self.importingJourney
             if importingJourney then
                 -- Make sure guid is unique
-                importingJourney.guid = addon.Utils:CreateGUID()
+                importingJourney.guid = Utils:CreateGUID()
                 -- Make sure title is unique
                 if List:Any(addon.journeys, function(j) return j.title == importingJourney.title end) then
                     local title = importingJourney.title
@@ -222,7 +224,7 @@ function Editor:OnEnable()
     end)
     self.importJourneyButton = importJourneyButton
 
-    local exportJourneyButton = addon.GUI:CreateDropDownButton("FRAME", "ExportJourney", content)
+    local exportJourneyButton = GUI:CreateDropDownButton("FRAME", "ExportJourney", content)
     exportJourneyButton:SetPoint("TOPLEFT", deleteJourneyButton, "BOTTOMLEFT")
     exportJourneyButton:SetPoint("BOTTOMRIGHT", deleteJourneyButton, "BOTTOMRIGHT", 0, -22)
     exportJourneyButton:SetText(L["EXPORT_JOURNEY"])
@@ -277,7 +279,7 @@ function Editor:OnEnable()
     newChapterButton:SetText(L["NEW_CHAPTER"])
     newChapterButton:SetScript("OnClick", function(self, button, down)
         local journey = Editor:GetSelectedJourney()
-        if journey and Journey:AddNewChapter(journey) then
+        if journey and Journeys:AddNewChapter(journey) then
             Editor:SetSelectedChapterIndex(#journey.chapters)
             Editor:SetSelectedStepIndex(-1)
             Editor:Refresh()
@@ -293,7 +295,7 @@ function Editor:OnEnable()
         button2 = CANCEL,
         OnAccept = function()
             local journey = Editor:GetSelectedJourney()
-            if journey and Journey:DeleteChapter(journey, Editor:GetSelectedChapterIndex()) then
+            if journey and Journeys:DeleteChapter(journey, Editor:GetSelectedChapterIndex()) then
                 Editor:SetSelectedChapterIndex(-1)
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
@@ -333,7 +335,7 @@ function Editor:OnEnable()
         local journey = Editor:GetSelectedJourney()
         if journey and Editor.clipBoard and Editor.clipBoard.type == "Chapter" and Editor.clipBoard.data then
             Editor.clipBoard.data.journey = nil -- prevent infinite recursion
-            local chapter = addon.Utils:Clone(Editor.clipBoard.data)
+            local chapter = Utils:Clone(Editor.clipBoard.data)
             chapter.journey = journey -- restore chapter's journey after clone
             List:Add(journey.chapters, chapter)
             Editor:SetSelectedChapterIndex(#journey.chapters)
@@ -353,7 +355,7 @@ function Editor:OnEnable()
         end
     end
     stepSelector.list.CreateRow = function(self, index, parent)
-        local row = addon.GUI:CreateLabel("BUTTON", "Row" .. index, parent)
+        local row = GUI:CreateLabel("BUTTON", "Row" .. index, parent)
         row:SetJustifyH("LEFT")
         row:SetJustifyV("CENTER")
         row:SetFontSize(10)
@@ -417,7 +419,7 @@ function Editor:OnEnable()
         if IsControlKeyDown() then
             stepIndex = nil
         end
-        if Journey:AddNewStep(journey, chapter, nil, nil, stepIndex) then
+        if Journeys:AddNewStep(journey, chapter, nil, nil, stepIndex) then
             Editor:Refresh()
             addon:Reset(true)
         end
@@ -432,7 +434,7 @@ function Editor:OnEnable()
         OnAccept = function()
             local journey = Editor:GetSelectedJourney()
             local chapter = Editor:GetSelectedChapter()
-            if Journey:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
+            if Journeys:DeleteStep(journey, chapter, Editor:GetSelectedStepIndex()) then
                 Editor:SetSelectedStepIndex(-1)
                 Editor:Refresh()
                 addon:Reset(true)
@@ -465,7 +467,7 @@ function Editor:OnEnable()
     self.ResetSelectedChapterState = function(self) addon:ResetJourneyChapterState(self:GetSelectedJourneyIndex(), self:GetSelectedChapterIndex()) end
     self.GetSelectedStepIndex = function(self) return self.stepSelector.list.selectedIndex end
     self.SetSelectedStepIndex = function(self, index) self.stepSelector.list.selectedIndex = index end
-    self.GetSelectedStep = function(self) return Journey:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
+    self.GetSelectedStep = function(self) return Journeys:GetStep(self:GetSelectedChapter(), self:GetSelectedStepIndex()) end
     self.IsSelectedStepLast = function(self) return self.stepSelector.list.selectedIndex == #self:GetSelectedChapter().steps end
     self.Refresh = function(self)
         xpcall(function()
@@ -491,7 +493,7 @@ end
 function Editor:CreateSelector(name, parent)
     local frame = CreateFrame("FRAME", name, parent)
 
-    local title = addon.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -499,11 +501,11 @@ function Editor:CreateSelector(name, parent)
     title:SetFontSize(12)
     frame.title = title
 
-    local container = addon.GUI:CreateGroup("FRAME", "Container", frame)
+    local container = GUI:CreateGroup("FRAME", "Container", frame)
     container:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     container:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 
-    local list = addon.GUI:CreateListView("FRAME", "List", container)
+    local list = GUI:CreateListView("FRAME", "List", container)
     list:SetPoint("TOPLEFT", 5, -5)
     list:SetPoint("BOTTOMRIGHT", -5, 5)
     frame.list = list
@@ -517,7 +519,7 @@ end
 function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local title = addon.GUI:CreateLabel("FRAME", "Title", frame)
+    local title = GUI:CreateLabel("FRAME", "Title", frame)
     title:SetPoint("TOPLEFT")
     title:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -18)
     title:SetJustifyH("LEFT")
@@ -526,7 +528,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     title:SetText("Properties")
     frame.title = title
 
-    local group = addon.GUI:CreateGroup("FRAME", "Group", frame)
+    local group = GUI:CreateGroup("FRAME", "Group", frame)
     group:SetPoint("TOPLEFT", title, "BOTTOMLEFT")
     group:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     frame.group = group
@@ -561,7 +563,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     journeyIndex:SetNumeric(true)
     journeyIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
-        if index and Journey:MoveJourney(Editor:GetSelectedJourneyIndex(), index) then
+        if index and Journeys:MoveJourney(Editor:GetSelectedJourneyIndex(), index) then
             Editor:SetSelectedJourneyIndex(index)
         end
         Editor:Refresh()
@@ -591,7 +593,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
     chapterIndex.OnEnterPressed = function(self)
         local index = self:GetNumber()
         local journey = Editor:GetSelectedJourney()
-        if index and journey and Journey:MoveChapter(journey, Editor:GetSelectedChapterIndex(), index) then
+        if index and journey and Journeys:MoveChapter(journey, Editor:GetSelectedChapterIndex(), index) then
             Editor:SetSelectedChapterIndex(index)
         end
         Editor:Refresh()
@@ -646,15 +648,15 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
             addon.STEP_TYPE_GO_TO_COORD,
             addon.STEP_TYPE_GO_TO_ZONE,
 --            addon.STEP_TYPE_GO_TO_AREA,
-            addon.STEP_TYPE_FLY_TO,
             addon.STEP_TYPE_BIND_HEARTHSTONE,
             addon.STEP_TYPE_USE_HEARTHSTONE,
+            addon.STEP_TYPE_LEARN_FLIGHT_PATH,
+            addon.STEP_TYPE_FLY_TO,
             addon.STEP_TYPE_TRAIN_CLASS,
             addon.STEP_TYPE_TRAIN_SPELLS,
             addon.STEP_TYPE_LEARN_FIRST_AID,
             addon.STEP_TYPE_LEARN_COOKING,
             addon.STEP_TYPE_LEARN_FISHING,
-            addon.STEP_TYPE_LEARN_FLIGHT_PATH,
             addon.STEP_TYPE_ACQUIRE_ITEMS,
             addon.STEP_TYPE_DIE_AND_RES,
         }
@@ -716,7 +718,7 @@ function Editor:CreatePropertiesGroup(frameType, name, parent, template, id)
         local journey = Editor:GetSelectedJourney()
         local chapter = Editor:GetSelectedChapter()
         local index = self:GetNumber()
-        if Journey:MoveStep(journey, chapter, Editor:GetSelectedStepIndex(), index) then
+        if Journeys:MoveStep(journey, chapter, Editor:GetSelectedStepIndex(), index) then
             Editor:SetSelectedStepIndex(index)
         end
         Editor:Refresh()
@@ -906,7 +908,7 @@ end
 function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = addon.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -914,7 +916,7 @@ function Editor:CreateEditBoxProperty(frameType, name, parent, template, id)
     label:SetFontSize(10)
     frame.label = label
 
-    local editBox = addon.GUI:CreateEditBox("FRAME", "EditBox", frame)
+    local editBox = GUI:CreateEditBox("FRAME", "EditBox", frame)
     editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     editBox:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     editBox:SetTextColor(1, 1, 1, 1)
@@ -938,7 +940,7 @@ end
 function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, template, id)
     local frame = CreateFrame(frameType, name, parent, template, id)
 
-    local label = addon.GUI:CreateLabel("FRAME", "Label", frame)
+    local label = GUI:CreateLabel("FRAME", "Label", frame)
     label:SetPoint("TOPLEFT")
     label:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -15)
     label:SetJustifyH("LEFT")
@@ -946,7 +948,7 @@ function Editor:CreateDropDownMenuProperty(frameType, name, parent, isBitFlag, t
     label:SetFontSize(10)
     frame.label = label
 
-    local dropDownMenu = addon.GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame, isBitFlag)
+    local dropDownMenu = GUI:CreateDropDownMenu("FRAME", "DropDownMenu", frame, isBitFlag)
     dropDownMenu:SetPoint("TOPLEFT", label, "BOTTOMLEFT")
     dropDownMenu:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
     dropDownMenu.GetValue = function(self) return frame:GetValue() end
