@@ -658,7 +658,7 @@ function Journeyman:IsMyJourneyEnabled()
         elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
             maxLevel = 80
         else
-            Journeyman:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
+            addon:Error("Unsupported WoW version (WOW_PROJECT_ID = %s)", WOW_PROJECT_ID)
         end
         if self.player.level >= maxLevel then
             return false
@@ -840,7 +840,7 @@ local function LoadJourneyData(journey, callback)
         List:ForEach(chapter.steps, function(step)
             -- Only consider 'complete quest' step type
             if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-                local data = Journeyman:GetStepData(step)
+                local data = self:GetStepData(step)
                 if data and data.questId then
                     AddJourneyQuestData(journey, data.questId)
                 end
@@ -1047,7 +1047,7 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
             local values = String:Split(step.data, ",")
             local mapId = tonumber(values[1])
-            local mapName = Journeyman:GetMapNameById(mapId)
+            local mapName = self:GetMapNameById(mapId)
             local x = tonumber(values[2])
             local y = tonumber(values[3])
             local desc = values[4]
@@ -1060,7 +1060,7 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
             local values = String:Split(step.data, ",")
             local mapId = tonumber(values[1])
-            local mapName = Journeyman:GetMapNameById(mapId)
+            local mapName = self:GetMapNameById(mapId)
             if mapId and mapName then
                 local x = tonumber(values[2])
                 local y = tonumber(values[3])
@@ -1069,7 +1069,7 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
             local values = String:Split(step.data, ",")
             local areaId = tonumber(values[1])
-            local areaName = Journeyman:GetAreaNameById(areaId)
+            local areaName = self:GetAreaNameById(areaId)
             local x = tonumber(values[2])
             local y = tonumber(values[3])
             local desc = values[4]
@@ -1144,7 +1144,7 @@ function Journeyman:GetStepData(step)
         elseif step.type == Journeyman.STEP_TYPE_DIE_AND_RES then
             data = {}
         else
-            Journeyman:Error("Step type %s not implemented.", step.type)
+            addon:Error("Step type %s not implemented.", step.type)
         end
     end
     return data
@@ -1170,12 +1170,12 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         elseif step.type == Journeyman.STEP_TYPE_TURNIN_QUEST then
             return string.format(L["STEP_TEXT_TURNIN_QUEST"], questName)
         else
-            Journeyman:Error("Step type %s not implemented.", step.type)
+            addon:Error("Step type %s not implemented.", step.type)
         end
 
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_COORD then
         local mapId = data and data.mapId or 0
-        local mapName = Journeyman:GetMapNameById(mapId, showId)
+        local mapName = self:GetMapNameById(mapId, showId)
         if mapName == nil then
             mapName = string.format("map:%d", mapId)
         end
@@ -1191,7 +1191,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_ZONE then
         local mapId = data and data.mapId or 0
-        local mapName = Journeyman:GetMapNameById(mapId, showId)
+        local mapName = self:GetMapNameById(mapId, showId)
         if mapName == nil then
             mapName = string.format("map:%d", mapId)
         end
@@ -1200,7 +1200,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
 
     elseif step.type == Journeyman.STEP_TYPE_GO_TO_AREA then
         local areaId = data and data.areaId or 0
-        local areaName = Journeyman:GetAreaNameById(areaId, showId)
+        local areaName = self:GetAreaNameById(areaId, showId)
         if areaName == nil then
             areaName = string.format("area:%d", areaId)
         end
@@ -1230,7 +1230,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         return string.format(L["STEP_TEXT_REACH_REPUTATION"], standingLabel, factionName)
 
     elseif step.type == Journeyman.STEP_TYPE_BIND_HEARTHSTONE or step.type == Journeyman.STEP_TYPE_USE_HEARTHSTONE then
-        local itemLink = Journeyman:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)
+        local itemLink = self:GetItemLink(Journeyman.ITEM_HEARTHSTONE, callback)
         if itemLink == nil then
             itemLink = string.format("<%s>", L["NO_VALUE"])
         elseif type(itemLink) ~= "string" then
@@ -1303,7 +1303,7 @@ function Journeyman:GetStepText(step, showQuestLevel, showId, callback)
         return L["STEP_TEXT_DIE_AND_RES"]
 
     else
-        Journeyman:Error("Step type %s not implemented.", step.type)
+        addon:Error("Step type %s not implemented.", step.type)
     end
 end
 
@@ -1403,7 +1403,7 @@ function Journeyman:SetMacro(step)
 
     -- Early exit if we can't create a new macro
     if macroId == nil then
-        Journeyman:Error("Failed to create targeting macro.")
+        addon:Error("Failed to create targeting macro.")
         return true
     end
 
@@ -1446,9 +1446,9 @@ function Journeyman:SetMacro(step)
             end
         elseif step.type == Journeyman.STEP_TYPE_ACQUIRE_ITEMS then
             local items = {}
-            local hasAll = List:All(step.data.items, function(item) return Journeyman:GetItemCountInBags(item.id) >= item.count end)
+            local hasAll = List:All(step.data.items, function(item) return self:GetItemCountInBags(item.id) >= item.count end)
             local items = List:Select(step.data.items, function(item)
-                if hasAll or Journeyman:GetItemCountInBags(item.id) < item.count then
+                if hasAll or self:GetItemCountInBags(item.id) < item.count then
                     return item.id
                 end
             end)

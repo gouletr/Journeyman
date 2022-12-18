@@ -25,7 +25,7 @@ local function OnTooltipSetUnit(tooltip, ...)
     id = tonumber(id)
 
     local args = {...}
-    local npcData = Journeyman:GetActiveJourneyNPCData(id, function()
+    local npcData = addon:GetActiveJourneyNPCData(id, function()
         OnTooltipSetUnit(tooltip, unpack(args))
     end)
 
@@ -35,15 +35,15 @@ local function OnTooltipSetUnit(tooltip, ...)
 
         -- Get quests to show
         local quests = List:Where(npcData.quests, function(quest)
-            return State:IsQuestAvailable(quest.id) and not State:IsQuestInQuestLog(quest.id) and not State:IsQuestTurnedIn(quest.id) and quest.itemId and (quest.objectiveType == "Vendor" or not Journeyman:IsItemQuestItem(quest.itemId))
+            return State:IsQuestAvailable(quest.id) and not State:IsQuestInQuestLog(quest.id) and not State:IsQuestTurnedIn(quest.id) and quest.itemId and (quest.objectiveType == "Vendor" or not addon:IsItemQuestItem(quest.itemId))
         end)
 
         -- Display each quest to show
         List:ForEach(quests, function(quest)
-            local questName = Journeyman:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
+            local questName = addon:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
             if not String:IsNilOrEmpty(questName) then
                 -- Add quest name
-                local questColor = Journeyman:GetQuestColor(quest.id)
+                local questColor = addon:GetQuestColor(quest.id)
                 tooltip:AddLine(string.format("|c%s%s|r", questColor, questName))
 
                 -- Add quest objective
@@ -51,7 +51,7 @@ local function OnTooltipSetUnit(tooltip, ...)
                 if objectives then
                     local objective = objectives[quest.objectiveIndex]
                     if objective then
-                        local itemName = Journeyman:GetItemName(quest.itemId, function()
+                        local itemName = addon:GetItemName(quest.itemId, function()
                             OnTooltipSetUnit(tooltip, unpack(args))
                         end)
                         tooltip:AddLine(string.format("   %s/%s %s", objective.numFulfilled, objective.numRequired, itemName), 1, 1, 1)
@@ -76,7 +76,7 @@ local function OnTooltipSetItem(tooltip, ...)
     end
 
     local args = {...}
-    local itemData = Journeyman:GetActiveJourneyItemData(itemId, function()
+    local itemData = addon:GetActiveJourneyItemData(itemId, function()
         OnTooltipSetItem(tooltip, unpack(args))
     end)
 
@@ -91,10 +91,10 @@ local function OnTooltipSetItem(tooltip, ...)
 
         -- Display each quest to show
         List:ForEach(quests, function(quest)
-            local questName = Journeyman:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
+            local questName = addon:GetQuestName(quest.id, addon.db.profile.window.showQuestLevel)
             if not String:IsNilOrEmpty(questName) then
                 -- Add quest name
-                local questColor = Journeyman:GetQuestColor(quest.id)
+                local questColor = addon:GetQuestColor(quest.id)
                 tooltip:AddLine(string.format("|c%s%s|r", questColor, questName))
 
                 -- Add quest objective
