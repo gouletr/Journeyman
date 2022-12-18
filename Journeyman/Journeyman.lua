@@ -89,6 +89,7 @@ Journeyman.FalseQuestItems = {
     12841, -- Invader's Scourgestone
     12843, -- Corruptor's Scourgestone
     21377, -- Deadwood Headdress Feather
+    23848, -- Nethergarde Bitter
 }
 
 -- Store races info
