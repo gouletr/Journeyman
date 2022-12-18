@@ -423,12 +423,20 @@ end
 function Journeyman:GetItemCountInBags(itemId)
     if itemId and type(itemId) == "number" then
         local counter = 0
+        -- Bags
         for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
             for slot = 1, GetContainerNumSlots(bag) do
                 local _, count, _, _, _, _, _, _, _, id = GetContainerItemInfo(bag, slot)
                 if id == itemId then
                     counter = counter + count
                 end
+            end
+        end
+        -- Keyring
+        for slot = 1, GetContainerNumSlots(KEYRING_CONTAINER) do
+            local _, count, _, _, _, _, _, _, _, id = GetContainerItemInfo(KEYRING_CONTAINER, slot)
+            if id == itemId then
+                counter = counter + count
             end
         end
         return counter
