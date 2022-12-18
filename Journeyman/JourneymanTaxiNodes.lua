@@ -46,15 +46,18 @@ end
 local invalidIds
 if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
     invalidIds = {
-        84, 85, 86, 87 -- Eastern Plaguelands PvP
+        84, 85, 86, 87, -- Eastern Plaguelands PvP
     }
 elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
     invalidIds = {
-        84, 85, 86, 87 -- Eastern Plaguelands PvP
+        84, 85, 86, 87, -- Eastern Plaguelands PvP
+        91, 92, 95, 96, 97, 98, 113, 114, 115, 116, 131, 132, 133, 134, 135, 136, 137, 138, 143, 144, 145, 146, 152, 153, 154, 155, 157, 158, 161, 162, 169, 170, 173, 174, 180, 181, 209, 210, 211, 212, -- TBC Quests
     }
 elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then
     invalidIds = {
-        84, 85, 86, 87 -- Eastern Plaguelands PvP
+        84, 85, 86, 87, -- Eastern Plaguelands PvP
+        91, 92, 95, 96, 97, 98, 113, 114, 115, 116, 131, 132, 133, 134, 135, 136, 137, 138, 143, 144, 145, 146, 152, 153, 154, 155, 157, 158, 161, 162, 169, 170, 173, 174, 180, 181, 209, 210, 211, 212, -- TBC Quests
+        176, 177, 182, 186, 187, 188, 189, 193, 194, 199, 200, 203, 204, 207, 208, 214, 215, 223, 239, 240, 242, 243, 261, 269, 270, 285, 286, 287, 288, 297, 298, 301, 302, 311, 312, 313, 314, 358, 359, 381, 382, 392, 393, -- WOTLK Quests
     }
 else
     error("Unsupported WoW version (WOW_PROJECT_ID = "..WOW_PROJECT_ID..")")
