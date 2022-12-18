@@ -388,14 +388,25 @@ function State:OnStepSkipped(step, immediate)
 end
 
 function State:SkipAllStepsUpToIndex(index)
+    if not self.steps then
+        return
+    end
+
+    local n = #self.steps
+    if index > n then
+        index = n
+    end
+
     for i = 1, index do
         local step = self.steps[i]
-        if not step.isComplete and not addon:IsStepComplete(step) or not addon:IsStepSkipped(step) then
-            addon:SetStepStateSkipped(step, true)
-            step.isComplete = true
-            step.isShown = false
-            if step.type == addon.STEP_TYPE_TURNIN_QUEST then
-                self:SetQuestTurnedIn(step.data.questId)
+        if step then
+            if not step.isComplete and not addon:IsStepComplete(step) or not addon:IsStepSkipped(step) then
+                addon:SetStepStateSkipped(step, true)
+                step.isComplete = true
+                step.isShown = false
+                if step.type == addon.STEP_TYPE_TURNIN_QUEST then
+                    self:SetQuestTurnedIn(step.data.questId)
+                end
             end
         end
     end
