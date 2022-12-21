@@ -849,7 +849,7 @@ local function LoadJourneyData(journey, callback)
         List:ForEach(chapter.steps, function(step)
             -- Only consider 'complete quest' step type
             if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
-                local data = self:GetStepData(step)
+                local data = addon:GetStepData(step)
                 if data and data.questId then
                     AddJourneyQuestData(journey, data.questId)
                 end
@@ -1013,7 +1013,7 @@ function Journeyman:SetStepStateSkipped(step, value)
 end
 
 function Journeyman:IsStepTypeQuest(step)
-    return step.type == self.STEP_TYPE_ACCEPT_QUEST or step.type == self.STEP_TYPE_COMPLETE_QUEST or step.type == self.STEP_TYPE_TURNIN_QUEST
+    return step.type == Journeyman.STEP_TYPE_ACCEPT_QUEST or step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST or step.type == Journeyman.STEP_TYPE_TURNIN_QUEST
 end
 
 function Journeyman:IsStepTypeUnique(step)
@@ -1343,7 +1343,7 @@ function Journeyman:SetWaypoint(step, force)
     local minDistance = 0
     local clearDistance = 0
     local arrivalDistance = 5
-    if step.type == self.STEP_TYPE_COMPLETE_QUEST then
+    if step.type == Journeyman.STEP_TYPE_COMPLETE_QUEST then
         if location.type == "NPC" then
             minDistance = 15
             clearDistance = 15

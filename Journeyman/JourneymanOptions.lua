@@ -840,7 +840,7 @@ function Options:GetAdvancedOptionsTable()
                     if addon.db.profile.advanced.debug ~= value then
                         addon.db.profile.advanced.debug = value
                         if addon.db.profile.advanced.debug then
-                            _G["Journeyman"] = Journeyman
+                            _G["Journeyman"] = addon
                         else
                             _G["Journeyman"] = nil
                         end
