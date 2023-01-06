@@ -2,7 +2,7 @@
 ## Title: Journeyman
 ## Author: Erunehtar
 ## Notes: Follow, create and share in-game guides for leveling and other activities.
-## Version: 0.9.0
+## Version: 0.10.0
 ## Dependencies: Questie
 ## OptionalDeps: TomTom
 ## SavedVariables: JourneymanDatabase
