@@ -611,7 +611,7 @@ local function CreateLine(index, parent)
             if step.isComplete then
                 State:OnStepReset(step, true)
             else
-                State:OnStepSkipped(step, true)
+                State:OnStepSkipped(step, IsShiftKeyDown(), true)
             end
         end)
 
@@ -658,8 +658,6 @@ local function CreateLine(index, parent)
                     end
                 elseif IsControlKeyDown() then
                     addon:SetWaypoint(step, true)
-                elseif IsAltKeyDown() and not step.hasChildren and not step.ObjectiveIndex then
-                    State:OnStepSkipped(step, true)
                 end
             end
         end)

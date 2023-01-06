@@ -378,20 +378,34 @@ function State:OnStepCompleted(step, immediate)
     addon:Update(immediate)
 end
 
-function State:OnStepSkipped(step, immediate)
+function State:OnStepSkipped(step, multi, immediate)
     self.waypointNeedUpdate = addon.db.profile.autoSetWaypoint
     self.macroNeedUpdate = true
 
-    -- Mark step and previous steps as skipped
-    self:SkipAllStepsUpToIndex(step.indexInChapter)
+    if multi then
+        self:SkipAllStepsUpToStep(step)
+    else
+        self:SkipStep(step)
+    end
+
     addon:Update(immediate)
 end
 
-function State:SkipAllStepsUpToIndex(index)
+function State:SkipStep(step)
+    addon:SetStepStateSkipped(step, true)
+    step.isComplete = true
+    step.isShown = false
+    if step.type == addon.STEP_TYPE_TURNIN_QUEST then
+        self:SetQuestTurnedIn(step.data.questId)
+    end
+end
+
+function State:SkipAllStepsUpToStep(step)
     if not self.steps then
         return
     end
 
+    local index = step.index
     local n = #self.steps
     if index > n then
         index = n
@@ -401,12 +415,7 @@ function State:SkipAllStepsUpToIndex(index)
         local step = self.steps[i]
         if step then
             if not step.isComplete and not addon:IsStepComplete(step) or not addon:IsStepSkipped(step) then
-                addon:SetStepStateSkipped(step, true)
-                step.isComplete = true
-                step.isShown = false
-                if step.type == addon.STEP_TYPE_TURNIN_QUEST then
-                    self:SetQuestTurnedIn(step.data.questId)
-                end
+                self:SkipStep(step)
             end
         end
     end
