@@ -510,9 +510,9 @@ end
 local function ExportRaces(races)
     if races then
         local requiredRaces = {}
-        List:ForEach(addon.raceMask, function(mask)
-            if bit.band(mask, races) == mask then
-                List:Add(requiredRaces, addon.raceName[mask])
+        Dictionary:ForEach(addon.raceMask, function(raceId, raceMask)
+            if bit.band(races, raceMask) == raceMask then
+                List:Add(requiredRaces, addon.raceName[raceMask])
             end
         end)
         if #requiredRaces > 0 then
@@ -524,9 +524,9 @@ end
 local function ExportClasses(classes)
     if classes then
         local requiredClasses = {}
-        List:ForEach(addon.classMask, function(mask)
-            if bit.band(mask, classes) == mask then
-                List:Add(requiredClasses, addon.className[mask])
+        Dictionary:ForEach(addon.classMask, function(classId, classMask)
+            if bit.band(classes, classMask) == classMask then
+                List:Add(requiredClasses, addon.className[classMask])
             end
         end)
         if #requiredClasses > 0 then

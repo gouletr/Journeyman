@@ -7,7 +7,7 @@ local List = LibStub("LibCollections-1.0").List
 local DataSource, TaxiNodes
 
 local Cache = {
-    items = {},
+    values = {},
     queue = {},
     New = function(self, o)
         o = o or {}
@@ -16,14 +16,14 @@ local Cache = {
         return o
     end,
     Get = function(self, key)
-        return self.items[key]
+        return self.values[key]
     end,
     Add = function(self, key, value)
         if key and value then
-            self.items[key] = value
+            self.values[key] = value
             List:Add(self.queue, key)
             while List:Count(self.queue) > 100 do
-                self.items[self.queue[1]] = nil
+                self.values[self.queue[1]] = nil
                 List:RemoveAt(self.queue, 1)
             end
         end
